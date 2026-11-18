@@ -74,12 +74,17 @@ A phase is done only when `pnpm typecheck && pnpm test` pass and its criteria be
 - [x] Knowledge Center UI: search, mine/private filters, versions, share and validity controls
 - [x] **Acceptance verified with real Claude Code sessions:** Alice's agent shared a decision and kept a refunds brainstorm private; Bob, asking in French without any shared keyword, got the English decision by meaning and never saw the private brainstorm; Alice found her private note with a French query.
 
-## Phase 6 — Git intelligence
+## Phase 6 — Git intelligence ✅
 
-- Bridge watcher (branch, HEAD, status, worktrees, hunks vs merge-base), snapshots throttled
-- Overlap engine: file, line, potential (`git merge-tree`), confirmed; Git Intelligence UI
-- GitHub/GitLab/Bitbucket integration design (webhooks, PR links) — read-only
-- **Accept:** two agents editing `payment.service.ts` on different machines trigger a conflict alert to both.
+- [x] Bridge Git watcher: read-only snapshots of session worktrees every 20 s (branch, HEAD, last commit, staged/modified/untracked/unmerged files, ahead/behind, linked worktrees) — paths and line numbers only, never contents
+- [x] Changed lines expressed in merge-base coordinates (committed + uncommitted), so different branches are comparable
+- [x] Overlap detection: FILE_OVERLAP, LINE_OVERLAP (adjacent lines count, like git), POTENTIAL_CONFLICT (Bridge runs `git merge-tree --write-tree` in memory against the other branch when available), CONFIRMED_CONFLICT (unmerged paths during a merge)
+- [x] Both developers notified once per severity; dismiss/acknowledge/resolve; alerts close themselves when the overlap disappears
+- [x] Real-time warning inside Claude Code: the PostToolUse hook returns the overlap to the agent right after an edit (once per conflict and session)
+- [x] Agents: `team_check_overlap` before editing, open overlaps in the session-start context
+- [x] UI: Git intelligence page (repositories, worktrees per agent, alerts), Git alerts on the dashboard
+- [x] **Acceptance verified:** Alice's agent on `feat/idempotency` changed lines 11 and 13; a real Claude Code session for Bob on `feat/refund` edited line 13 and was told immediately that Alice changes the same lines; both Bridges showed a desktop notification; the alert appeared in the UI.
+- **Provider integrations (design, not implemented):** GitHub/GitLab/Bitbucket webhooks for pushes and PRs would let the server run merge-tree checks centrally and link PRs to requests; DevSync stays read-only on repositories.
 
 ## Phase 7 — Production readiness
 
