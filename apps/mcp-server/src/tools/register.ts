@@ -18,6 +18,7 @@ import {
   formatInbox,
 } from '../format';
 import { registerCollaborationTools } from './collaboration';
+import { registerKnowledgeTools } from './knowledge';
 
 const text = (value: string) => ({ content: [{ type: 'text' as const, text: value }] });
 const failure = (error: unknown) => ({ ...text(describeError(error)), isError: true });
@@ -281,4 +282,5 @@ export function registerTools(server: McpServer, bridge: BridgeClient) {
   );
 
   registerCollaborationTools(server, bridge);
+  registerKnowledgeTools(server, bridge);
 }

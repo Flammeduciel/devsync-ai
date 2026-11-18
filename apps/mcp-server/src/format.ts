@@ -105,6 +105,10 @@ export function formatContext(ctx: TeamContext): string {
       );
     lines.push('Confirm with the developer before resuming any of this.');
   }
+  if (ctx.recentKnowledge?.length) {
+    lines.push('', '## Team knowledge for this project (search before exploring: team_search_knowledge)');
+    lines.push(...ctx.recentKnowledge.map((k) => `- "${k.title}" (${k.kind.toLowerCase()}, v${k.version}${k.private ? ', your private note' : ''}, knowledgeId ${k.id})`));
+  }
   lines.push('', '## Teammates working now');
   lines.push(
     ctx.teammates.length

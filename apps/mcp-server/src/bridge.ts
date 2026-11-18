@@ -19,7 +19,14 @@ export type ApiOperation =
   | 'publishDeliverable'
   | 'readDeliverable'
   | 'uploadDeliverableFile'
-  | 'broadcast';
+  | 'broadcast'
+  | 'searchKnowledge'
+  | 'listKnowledge'
+  | 'getKnowledge'
+  | 'publishKnowledge'
+  | 'setKnowledgeVisibility'
+  | 'setKnowledgeValidity'
+  | 'promoteDeliverable';
 
 export interface BridgeClient {
   api<T>(operation: ApiOperation, params?: Record<string, unknown>): Promise<T>;
