@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: share
 description: Share what was just worked out in this session (project understanding, decision, analysis, solution, brainstorm) with the project team as reusable knowledge
 argument-hint: "[what to share, e.g. 'the architecture overview']"

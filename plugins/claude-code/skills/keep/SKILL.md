@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: keep
 description: Save this session's result privately so the developer's future sessions can find it, without sharing it with the team
 argument-hint: "[what to keep]"
