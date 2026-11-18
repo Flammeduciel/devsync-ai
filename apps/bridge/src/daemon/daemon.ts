@@ -1,12 +1,13 @@
 import { hostname } from 'node:os';
 import { createLogger, type Logger } from '@devsync/config';
 import type { Envelope } from '@devsync/protocol';
-import { DevSyncClient } from '@devsync/sdk';
+import { DevSyncApiError, DevSyncClient } from '@devsync/sdk';
 import { declaredAgentStatusSchema } from '@devsync/validation';
 import { z } from 'zod';
 import { loadConfig, loadToken, type BridgePaths } from '../config';
 import { createRealtimeLink, type RealtimeLink } from '../connection/realtime-link';
 import { detectRepository } from '../git/repo';
+import { GitWatcher, SNAPSHOT_INTERVAL_MS } from '../git/watcher';
 import { readDeliverableFile } from '../files/upload';
 import { createNotifier, type Notifier } from '../notifications/notifier';
 import { Outbox } from '../queue/outbox';
@@ -30,6 +31,8 @@ const sessionUpdate = z.object({
 const sessionUpdateByDirectory = sessionUpdate
   .omit({ externalSessionId: true })
   .extend({ workingDirectory: z.string().min(1).max(1024) });
+const gitSnapshotRequest = z.object({ workingDirectory: z.string().min(1).max(1024), externalSessionId: z.string().max(200).optional() });
+const gitOverlapRequest = z.object({ workingDirectory: z.string().min(1).max(1024), files: z.array(z.string().min(1).max(1024)).min(1).max(100) });
 const sessionRef = z.object({ externalSessionId: z.string().min(1).max(200) });
 const activity = sessionRef.extend({
   kind: z.enum(['tool_used', 'task_declared', 'summary_published']),
@@ -178,6 +181,16 @@ export async function runDaemon(
       }
       return handler(input);
     },
+    /** Fresh Git snapshot of a working directory (PostToolUse hook): returns the overlaps involving it. */
+    'git.snapshot': async (raw) => {
+      const { workingDirectory, externalSessionId } = gitSnapshotRequest.parse(raw);
+      return gitWatcher.observe(workingDirectory, externalSessionId);
+    },
+    'git.overlap': async (raw) => {
+      const { workingDirectory, files } = gitOverlapRequest.parse(raw);
+      const repo = await detectRepository(workingDirectory);
+      return api.checkOverlap({ ...(repo?.remote ? { remote: repo.remote } : {}), files });
+    },
     'notify.test': async () =>
       notify({ title: 'DevSync', body: `Notifications work on ${hostname()}`, sound: true }),
   });
@@ -259,6 +272,11 @@ export async function runDaemon(
     },
   };
 
+  const gitWatcher = new GitWatcher(api, logger);
+  const gitTimer = setInterval(() => void gitWatcher.tick(sessions.workingDirectories()).catch((error: unknown) => {
+    if (error instanceof DevSyncApiError && error.status === 401) onUnauthorized();
+  }), SNAPSHOT_INTERVAL_MS);
+
   const timer = setInterval(
     () => void sessions.tick().catch((error) => logger.warn({ err: error }, 'tick failed')),
     HEARTBEAT_INTERVAL_MS,
@@ -271,6 +289,7 @@ export async function runDaemon(
   return {
     async stop() {
       clearInterval(timer);
+      clearInterval(gitTimer);
       link?.close();
       ipc.close();
       await state.flush();

@@ -67,6 +67,11 @@ export class SessionManager {
     await this.sendHeartbeat(externalSessionId);
   }
 
+  /** Working directories of active sessions (observed by the Git watcher). */
+  workingDirectories(): { externalSessionId: string; workingDirectory?: string | undefined }[] {
+    return [...this.sessions.entries()].filter(([, s]) => !s.ending).map(([key, s]) => ({ externalSessionId: key, workingDirectory: s.info.workingDirectory }));
+  }
+
   /** Sessions started in this directory (the MCP server knows its cwd, not Claude's session id). */
   keysForDirectory(workingDirectory: string): string[] {
     return [...this.sessions.entries()]
