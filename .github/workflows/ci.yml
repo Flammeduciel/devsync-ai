@@ -43,3 +43,4 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm --filter @devsync/realtime build
+      - run: pnpm --filter @devsync/bridge build
