@@ -53,6 +53,11 @@ The [template](.github/pull_request_template.md) is filled automatically. A pull
 
 Merges use **squash** or **rebase**; the history of `main` stays linear.
 
+## License of contributions
+
+DevSync AI is licensed under the [AGPL-3.0](LICENSE). By opening a pull request you agree that your
+contribution is licensed under the same terms, and you confirm you have the right to submit it.
+
 ## Reporting a vulnerability
 
 Never in a public issue — see [SECURITY.md](SECURITY.md).
