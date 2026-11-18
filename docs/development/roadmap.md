@@ -86,8 +86,14 @@ A phase is done only when `pnpm typecheck && pnpm test` pass and its criteria be
 - [x] **Acceptance verified:** Alice's agent on `feat/idempotency` changed lines 11 and 13; a real Claude Code session for Bob on `feat/refund` edited line 13 and was told immediately that Alice changes the same lines; both Bridges showed a desktop notification; the alert appeared in the UI.
 - **Provider integrations (design, not implemented):** GitHub/GitLab/Bitbucket webhooks for pushes and PRs would let the server run merge-tree checks centrally and link PRs to requests; DevSync stays read-only on repositories.
 
-## Phase 7 — Production readiness
+## Phase 7 — Production readiness (Dokploy) — in progress
 
-- Rate limiting, security headers/CSP, webhook signatures, secret rotation, backups
-- OpenTelemetry traces + metrics, dashboards; Dockerfiles; CI/CD to VPS/Kubernetes; load tests
-- **Accept:** security review checklist passed; deploy guide reproduced on a clean VPS.
+- [x] Single application image (`infrastructure/docker/app.Dockerfile`), one role per container: `web`, `realtime`, `worker`, `migrate`; builds without any secret
+- [x] `docker-compose.dokploy.yml`: Postgres/pgvector, Redis (password, AOF), MinIO, versioned migrations before start, healthchecks, data services off the public network
+- [x] Production headers (CSP, HSTS), client IP from trusted proxy hops, presigned links on a public storage domain
+- [x] Platform admin console (`/admin`): instance figures, service health, teams/users with suspension, sign-up mode (open / invitation only / closed), audit log; e-mail verification
+- [x] One developer on several machines = one person (no self-overlap, "Your other machines", work resumed across machines)
+- [x] **Verified locally on the production stack:** image built, migrations applied, all services healthy, owner sign-up + e-mail verification + `/admin`, closed sign-up refused (403), Bridge paired and connected to realtime
+- [ ] Deploy guide reproduced on the real Dokploy server (`docs/deployment/dokploy.md`)
+- [ ] Smaller runtime image (currently ~3.8 GB: whole workspace with dev dependencies)
+- [ ] Scheduled backups, OpenTelemetry metrics, load tests, billing (if the instance is commercial)
