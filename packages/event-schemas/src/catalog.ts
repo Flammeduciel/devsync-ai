@@ -96,6 +96,8 @@ export const eventCatalog = {
     title: z.string().max(200),
     body: z.string().max(2000).optional(),
     link: z.string().max(512).optional(),
+    /** Show an OS notification through the Bridge (user preference). */
+    desktop: z.boolean().default(true),
     playSound: z.boolean(),
   }),
 } as const satisfies Record<string, z.ZodType>;
