@@ -8,6 +8,9 @@ WORKDIR /app
 
 FROM base AS build
 COPY . .
+# prisma generate (postinstall) reads the config but never connects: a placeholder URL is enough.
+# onnxruntime: CPU binaries ship with the package; skip the CUDA download (servers have no GPU).
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build ONNXRUNTIME_NODE_INSTALL=skip
 # Cached pnpm store between builds (BuildKit).
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm --filter @devsync/database db:generate \
