@@ -47,12 +47,12 @@ export function evaluateAgentRequest(
   if (request.assigneeAgentId && policy.allowedAgentIds.length > 0 && !policy.allowedAgentIds.includes(request.assigneeAgentId)) {
     return { outcome: 'deny', code: 'FORBIDDEN', reason: 'The team policy does not allow agents to solicit this agent' };
   }
-  if (request.assigneeAgentId && request.chainInitiatorAgentIds.includes(request.assigneeAgentId)) {
-    return { outcome: 'deny', code: 'CONFLICT', reason: 'Request loop: this agent is already part of the request chain' };
-  }
   const maxDepth = policy.level === 'COORDINATED' ? policy.maxChainDepth : 0;
   if (request.depth > maxDepth) {
     return { outcome: 'deny', code: 'FORBIDDEN', reason: policy.level === 'COORDINATED' ? `Request chains are limited to ${maxDepth} levels` : 'Agents cannot chain requests at this autonomy level (needs level 3)' };
+  }
+  if (request.assigneeAgentId && request.chainInitiatorAgentIds.includes(request.assigneeAgentId)) {
+    return { outcome: 'deny', code: 'CONFLICT', reason: 'Request loop: this agent is already part of the request chain' };
   }
   if (policy.level === 'SUGGEST') return { outcome: 'needs_approval', reason: 'Autonomy level 1: a developer approves every agent request' };
   if (PRIORITY_RANK[request.priority] > PRIORITY_RANK[policy.maxPriority]) {
