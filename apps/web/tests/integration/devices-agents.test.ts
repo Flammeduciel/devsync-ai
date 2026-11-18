@@ -1,3 +1,4 @@
+import { newId } from '@devsync/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AgentsService } from '../../server/services/agents.service';
 import { MemoryDeviceFlowStore } from '../../server/services/device-flow-store';
@@ -122,7 +123,7 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
     const a = await pair(owner.id);
     const b = await pair(owner.id);
     const { sessionId } = await agents.registerSession(a.device, { externalSessionId: 'own' });
-    const id = '01a1ee8d-715d-7b0d-8f27-918b280affff';
+    const id = newId();
     await expect(
       agents.publishActivity(a.device, {
         id,
