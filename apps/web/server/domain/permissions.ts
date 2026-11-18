@@ -52,18 +52,20 @@ export function checkMemberChange(params: {
   ownerCount: number;
 }): MemberChangeDenial | null {
   const { actorRole, actorIsTarget, targetRole, newRole, ownerCount } = params;
+
+  // Authorization first, so an unauthorized actor learns nothing about the team's owners.
+  if (actorIsTarget && newRole !== null) return 'SELF';
+  if (!actorIsTarget) {
+    const permission = newRole === null ? 'member:remove' : 'member:update_role';
+    if (!hasTeamPermission(actorRole, permission)) return 'FORBIDDEN';
+    // Admins cannot touch owners or other admins; owners can touch anyone.
+    if (actorRole !== 'OWNER' && !outranks(actorRole, targetRole)) return 'FORBIDDEN';
+    if (newRole !== null && !canGrantRole(actorRole, newRole)) return 'FORBIDDEN';
+  }
+
+  // Anyone may leave a team, but a team never loses its last owner.
   const losingOwner = targetRole === 'OWNER' && newRole !== 'OWNER';
   if (losingOwner && ownerCount <= 1) return 'LAST_OWNER';
-
-  // Anyone may leave a team (removal of self), subject to the last-owner rule above.
-  if (actorIsTarget && newRole === null) return null;
-  if (actorIsTarget) return 'SELF';
-
-  const permission = newRole === null ? 'member:remove' : 'member:update_role';
-  if (!hasTeamPermission(actorRole, permission)) return 'FORBIDDEN';
-  // Admins cannot touch owners or other admins; owners can touch anyone.
-  if (actorRole !== 'OWNER' && !outranks(actorRole, targetRole)) return 'FORBIDDEN';
-  if (newRole !== null && !canGrantRole(actorRole, newRole)) return 'FORBIDDEN';
   return null;
 }
 
