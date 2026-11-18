@@ -1,6 +1,7 @@
 import 'server-only';
 import { serverEnv } from './env';
 import { db } from './infrastructure/database';
+import { redisEventPublisher } from './infrastructure/event-publisher';
 import { mailer } from './infrastructure/mailer';
 import { DashboardService } from './services/dashboard.service';
 import { InvitationsService } from './services/invitations.service';
@@ -10,7 +11,12 @@ import type { ServiceDeps } from './services/ports';
 import { TeamsService } from './services/teams.service';
 
 function createContainer() {
-  const deps: ServiceDeps = { db: db(), mailer: mailer(), appUrl: serverEnv().APP_URL };
+  const deps: ServiceDeps = {
+    db: db(),
+    mailer: mailer(),
+    publisher: redisEventPublisher,
+    appUrl: serverEnv().APP_URL,
+  };
   return {
     teams: new TeamsService(deps),
     members: new MembersService(deps),
