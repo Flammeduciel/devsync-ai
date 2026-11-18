@@ -38,6 +38,9 @@ importers:
       '@devsync/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      pino:
+        specifier: 10.4.0
+        version: 10.4.0
       socket.io:
         specifier: 4.8.4
         version: 4.8.4
