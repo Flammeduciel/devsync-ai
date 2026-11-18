@@ -26,6 +26,7 @@ const sessionUpdate = z.object({
   status: declaredAgentStatusSchema.optional(),
   currentTask: z.string().max(500).nullable().optional(),
 });
+const sessionUpdateByDirectory = sessionUpdate.omit({ externalSessionId: true }).extend({ workingDirectory: z.string().min(1).max(1024) });
 const sessionRef = z.object({ externalSessionId: z.string().min(1).max(200) });
 const activity = sessionRef.extend({
   kind: z.enum(['tool_used', 'task_declared', 'summary_published']),
@@ -116,6 +117,12 @@ export async function runDaemon(
     'session.update': async (raw) => {
       const { externalSessionId, ...state } = sessionUpdate.parse(raw);
       await sessions.update(externalSessionId, state);
+    },
+    'session.updateByDirectory': async (raw) => {
+      const { workingDirectory, ...state } = sessionUpdateByDirectory.parse(raw);
+      const keys = sessions.keysForDirectory(workingDirectory);
+      for (const key of keys) await sessions.update(key, state);
+      return { updated: keys.length };
     },
     'session.end': async (raw) => sessions.end(sessionRef.parse(raw).externalSessionId),
     'activity.publish': async (raw) => {
