@@ -14,3 +14,4 @@ coverage/
 .DS_Store
 packages/database/src/generated/
 .devsync/
+next-env.d.ts
