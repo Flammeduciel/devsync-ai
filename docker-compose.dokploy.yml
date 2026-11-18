@@ -1,0 +1,145 @@
+# DevSync AI on Dokploy (Docker Compose deployment).
+# - Set the environment variables in Dokploy (see .env.production.example).
+# - Domains (Dokploy → Domains): `web` on port 3000 (e.g. devsync.example.com),
+#   `realtime` on port 4000 (e.g. realtime.devsync.example.com), both with HTTPS.
+# - Only web and realtime join dokploy-network (Traefik); data services stay on the internal network.
+name: devsync
+
+x-app: &app
+  image: ${DEVSYNC_IMAGE:-devsync-app:latest}
+  build:
+    context: .
+    dockerfile: infrastructure/docker/app.Dockerfile
+  restart: unless-stopped
+  environment: &app-env
+    NODE_ENV: production
+    LOG_LEVEL: ${LOG_LEVEL:-info}
+    APP_URL: ${APP_URL}
+    AUTH_SECRET: ${AUTH_SECRET}
+    DATABASE_URL: postgresql://devsync:${POSTGRES_PASSWORD}@postgres:5432/devsync
+    REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+    S3_REGION: ${S3_REGION:-us-east-1}
+    S3_BUCKET: ${S3_BUCKET:-devsync}
+    S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+    S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+    S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+    SMTP_HOST: ${SMTP_HOST}
+    SMTP_PORT: ${SMTP_PORT:-587}
+    SMTP_USER: ${SMTP_USER:-}
+    SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    EMAIL_FROM: ${EMAIL_FROM}
+    REALTIME_URL: ${REALTIME_URL}
+    REALTIME_JWT_SECRET: ${REALTIME_JWT_SECRET}
+    TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+    PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
+  networks: [internal]
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: devsync
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: devsync
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devsync -d devsync"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks: [internal]
+
+  # Object storage. Remove this service and point S3_* to an external provider (R2, S3, Scaleway…) if preferred.
+  minio:
+    image: ${MINIO_IMAGE:-devsync/minio:RELEASE.2025-09-07T16-13-09Z}
+    build:
+      context: ./infrastructure/docker/minio
+    restart: unless-stopped
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+    volumes: [minio-data:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  # Applies pending migrations, then exits. Other app services wait for it.
+  migrate:
+    <<: *app
+    command: ["migrate"]
+    restart: "no"
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  web:
+    <<: *app
+    command: ["web"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [internal, dokploy-network]
+
+  realtime:
+    <<: *app
+    command: ["realtime"]
+    environment:
+      <<: *app-env
+      REALTIME_PORT: 4000
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+    networks: [internal, dokploy-network]
+
+  worker:
+    <<: *app
+    command: ["worker"]
+    environment:
+      <<: *app-env
+      WORKER_ROLES: ${WORKER_ROLES:-maintenance,embeddings}
+    volumes: [models:/models]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:
+  models:
+
+networks:
+  internal:
+  dokploy-network:
+    external: true
