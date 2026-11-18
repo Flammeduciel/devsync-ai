@@ -58,6 +58,13 @@ const API_OPERATIONS = [
   'readDeliverable',
   'uploadDeliverableFile',
   'broadcast',
+  'searchKnowledge',
+  'listKnowledge',
+  'getKnowledge',
+  'publishKnowledge',
+  'setKnowledgeVisibility',
+  'setKnowledgeValidity',
+  'promoteDeliverable',
 ] as const;
 type ApiOperation = (typeof API_OPERATIONS)[number];
 const apiCall = z.object({
@@ -206,6 +213,16 @@ export async function runDaemon(
         inline: true,
       }),
     broadcast: (p) => api.broadcast(p),
+    searchKnowledge: (p) => api.searchKnowledge(p as { query: string }),
+    listKnowledge: (p) => {
+      const { remote: _remote, ...query } = p;
+      return api.listKnowledge(query);
+    },
+    getKnowledge: (p) => api.getKnowledge(String(p.knowledgeId), typeof p.version === 'number' ? p.version : undefined),
+    publishKnowledge: (p) => api.publishKnowledge(p),
+    setKnowledgeVisibility: (p) => api.setKnowledgeVisibility(String(p.knowledgeId), p.visibility === 'PRIVATE' ? 'PRIVATE' : 'PROJECT'),
+    setKnowledgeValidity: (p) => api.setKnowledgeValidity(String(p.knowledgeId), { validity: String(p.validity), ...(p.reason ? { reason: String(p.reason) } : {}) }),
+    promoteDeliverable: (p) => api.promoteDeliverable(p as { deliverableId: string }),
     /** Reads a project file locally, registers an upload version and sends the bytes to storage. */
     uploadDeliverableFile: async (p) => {
       if (typeof p.workingDirectory !== 'string')
