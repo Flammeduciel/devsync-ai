@@ -97,6 +97,14 @@ export interface TeamContext {
   inbox: InboxItem[];
   claims: ClaimInfo[];
   recentActivity: ActivityEntry[];
+  /** Continuity with this machine's previous conversations (facts only). */
+  yourWork?: {
+    lastDeclaredTask: { task: string; at: string } | null;
+    previousSession: { endedAt: string; branch: string | null; edited: string[] } | null;
+    claimsHeld: { id: string; resourceType: string; resourceKey: string; expiresAt: string }[];
+    assignedInProgress: { id: string; title: string; status: string }[];
+    waitingOnOthers: { id: string; title: string; status: string; assignee: string | null }[];
+  } | null;
 }
 
 export interface DeliveredItem {

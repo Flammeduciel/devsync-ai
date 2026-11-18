@@ -61,6 +61,19 @@ export function formatContext(ctx: TeamContext): string {
       'This repository is not linked to a DevSync project (link it in the project settings).',
     );
   }
+  const work = ctx.yourWork;
+  if (work && (work.lastDeclaredTask || work.previousSession || work.claimsHeld.length || work.assignedInProgress.length || work.waitingOnOthers.length)) {
+    lines.push('', '## Resume your work (from your previous sessions on this machine)');
+    if (work.lastDeclaredTask) lines.push(`- Last declared task (${ago(work.lastDeclaredTask.at)}): ${work.lastDeclaredTask.task}`);
+    if (work.previousSession) {
+      lines.push(`- Previous session ended ${ago(work.previousSession.endedAt)}${work.previousSession.branch ? ` on branch ${work.previousSession.branch}` : ''}`);
+      if (work.previousSession.edited.length) lines.push(`  ${work.previousSession.edited.join(', ')}`);
+    }
+    for (const c of work.claimsHeld) lines.push(`- You still hold ${c.resourceType.toLowerCase()} \`${c.resourceKey}\` (claimId ${c.id}) — release it if you are done`);
+    for (const r of work.assignedInProgress) lines.push(`- Your request in progress: "${r.title}" (${r.status.toLowerCase().replace(/_/g, ' ')}, id ${r.id})`);
+    for (const r of work.waitingOnOthers) lines.push(`- Waiting on ${r.assignee ?? 'a teammate'}: "${r.title}" (${r.status.toLowerCase().replace(/_/g, ' ')}, id ${r.id})`);
+    lines.push('Confirm with the developer before resuming any of this.');
+  }
   lines.push('', '## Teammates working now');
   lines.push(
     ctx.teammates.length

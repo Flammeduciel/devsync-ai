@@ -96,7 +96,17 @@ describe('DevSync MCP server', () => {
       'Alice (claude-code, working): Payments API contract · Checkout · branch feat/api',
     );
     expect(text).toContain('Edited src/api.ts');
+    expect(text).not.toContain('Resume your work');
     expect(calls).toEqual([['context', {}]]);
+
+    const resumed = await connect({
+      api: async () => ({ ...context, yourWork: { lastDeclaredTask: { task: 'Cart totals', at: new Date().toISOString() }, previousSession: null, claimsHeld: [{ id: 'c1', resourceType: 'FILE', resourceKey: 'src/cart.ts', expiresAt: new Date().toISOString() }], assignedInProgress: [], waitingOnOthers: [] } }),
+      call: async () => ({}),
+    } as unknown as BridgeClient);
+    const resumedText = textOf(await resumed.callTool({ name: 'team_get_context', arguments: {} }));
+    expect(resumedText).toContain('## Resume your work');
+    expect(resumedText).toContain('Last declared task (just now): Cart totals');
+    expect(resumedText).toContain('You still hold file `src/cart.ts`');
   });
 
   it('explains a claim conflict with the holder', async () => {
