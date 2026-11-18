@@ -93,7 +93,7 @@ export const addDependencySchema = z.object({ blockingTaskId: idSchema, descript
 
 export const notificationKindSchema = z.enum([
   'AGENT_CONNECTED', 'AGENT_DISCONNECTED', 'REQUEST_CREATED', 'REQUEST_ACCEPTED', 'REQUEST_REJECTED', 'REQUEST_IN_PROGRESS',
-  'REQUEST_CLARIFICATION', 'DELIVERABLE_READY', 'GIT_CONFLICT', 'KNOWLEDGE_PUBLISHED', 'DEPENDENCY_RESOLVED', 'INVITATION',
+  'REQUEST_CLARIFICATION', 'DELIVERABLE_READY', 'GIT_CONFLICT', 'KNOWLEDGE_PUBLISHED', 'DEPENDENCY_RESOLVED', 'INVITATION', 'BROADCAST',
 ]);
 export type NotificationKind = z.infer<typeof notificationKindSchema>;
 

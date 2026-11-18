@@ -1,5 +1,10 @@
 import type { Db, NotificationKind, Prisma } from '@devsync/database';
-import { notificationPreferencesSchema } from '@devsync/validation';
+import { AppError, newId } from '@devsync/shared';
+import { broadcastSchema, notificationPreferencesSchema } from '@devsync/validation';
+import { hasProjectAccess } from '../domain/project-access';
+import { resolveDeviceProject } from './device-project.service';
+import type { DeviceActor } from './devices.service';
+import { withEvents } from './events.service';
 import type { z } from 'zod';
 import { requireTeamMember } from './access.service';
 import type { DraftEvent } from './events.service';
@@ -19,7 +24,7 @@ export const defaultPreference = (kind: NotificationKind): Preference => ({ inAp
 
 export const NOTIFICATION_KINDS: NotificationKind[] = [
   'REQUEST_CREATED', 'REQUEST_ACCEPTED', 'REQUEST_REJECTED', 'REQUEST_IN_PROGRESS', 'REQUEST_CLARIFICATION', 'DELIVERABLE_READY',
-  'DEPENDENCY_RESOLVED', 'AGENT_CONNECTED', 'AGENT_DISCONNECTED', 'GIT_CONFLICT', 'KNOWLEDGE_PUBLISHED', 'INVITATION',
+  'DEPENDENCY_RESOLVED', 'AGENT_CONNECTED', 'AGENT_DISCONNECTED', 'GIT_CONFLICT', 'KNOWLEDGE_PUBLISHED', 'INVITATION', 'BROADCAST',
 ];
 
 export interface NotificationDraft {
@@ -71,6 +76,46 @@ export async function notify(tx: Db, emit: Emit, draft: NotificationDraft): Prom
 
 export class NotificationsService {
   constructor(private readonly deps: ServiceDeps) {}
+
+  /**
+   * An agent tells everyone on its project something short ("POST /payments contract changed").
+   * Delivered as a notification to each project member except the sender.
+   */
+  async broadcast(actor: { userId: string; agentId: string }, device: DeviceActor, rawInput: z.input<typeof broadcastSchema>) {
+    const input = broadcastSchema.parse(rawInput);
+    const resolved = await resolveDeviceProject(this.deps, device, input);
+    if (!resolved) throw new AppError('NOT_FOUND', 'No project matches this repository; pass projectId');
+    if (!hasProjectAccess(resolved.access, 'write')) throw new AppError('FORBIDDEN', 'Read-only access to this project');
+    const [project, sender, members] = await Promise.all([
+      this.deps.db.project.findUniqueOrThrow({ where: { id: resolved.projectId }, select: { name: true } }),
+      this.deps.db.user.findUniqueOrThrow({ where: { id: actor.userId }, select: { name: true } }),
+      this.deps.db.teamMember.findMany({
+        where: {
+          teamId: device.teamId,
+          userId: { not: actor.userId },
+          OR: [{ role: { in: ['OWNER', 'ADMIN'] } }, { user: { projectMemberships: { some: { projectId: resolved.projectId } } } }],
+        },
+        select: { userId: true },
+      }),
+    ]);
+    const id = newId();
+    let delivered = 0;
+    await withEvents(this.deps, async (tx, emit) => {
+      for (const m of members) {
+        const ok = await notify(tx, emit, {
+          teamId: device.teamId,
+          userId: m.userId,
+          kind: 'BROADCAST',
+          title: `${sender.name}'s agent · ${project.name}`,
+          body: input.message,
+          dedupeKey: `broadcast:${id}`,
+          data: { projectId: resolved.projectId, agentId: actor.agentId },
+        });
+        if (ok) delivered += 1;
+      }
+    });
+    return { delivered };
+  }
 
   async list(userId: string, teamId: string, options: { unreadOnly?: boolean; limit?: number } = {}) {
     await requireTeamMember(this.deps.db, userId, teamId);
