@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=../../.env src/main.ts",
-    "build": "tsup src/main.ts --format esm --target node24 --clean",
+    "build": "tsup",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
