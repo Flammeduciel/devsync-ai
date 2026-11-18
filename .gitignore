@@ -15,3 +15,6 @@ coverage/
 packages/database/src/generated/
 .devsync/
 next-env.d.ts
+
+# The Claude Code plugin ships prebuilt bundles (users do not run a build).
+!plugins/claude-code/dist/

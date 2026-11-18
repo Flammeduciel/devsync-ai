@@ -4,3 +4,4 @@ dist
 coverage
 packages/database/src/generated
 packages/database/prisma/migrations
+plugins/claude-code/dist
