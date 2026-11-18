@@ -1,0 +1,10 @@
+const t = await import('@huggingface/transformers');
+t.env.cacheDir = '/models';
+const t0 = Date.now();
+const ex = await t.pipeline('feature-extraction', 'Xenova/multilingual-e5-small', { dtype: 'q8' });
+const e = async (s) => Array.from((await ex(s, { pooling: 'mean', normalize: true })).data);
+const doc = await e('passage: Payment amounts are integers in cents; currency is EUR or XAF. An Idempotency-Key header is required.');
+const other = await e('passage: The login page uses a dark theme with a purple accent color.');
+const q = await e('query: comment formater le montant d’un paiement ?');
+const cos = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
+console.log(JSON.stringify({ dims: doc.length, ms: Date.now() - t0, related: cos(q, doc).toFixed(3), unrelated: cos(q, other).toFixed(3) }));
