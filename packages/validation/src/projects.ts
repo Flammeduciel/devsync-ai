@@ -31,7 +31,8 @@ export function normalizeRemoteUrl(raw: string): string | null {
     path = scp[2]!;
   } else {
     try {
-      const url = new URL(value);
+      // "github.com/acme/repo" (also our normalized form) is accepted as https.
+      const url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : `https://${value}`);
       if (!['https:', 'http:', 'ssh:', 'git:'].includes(url.protocol)) return null;
       host = url.hostname;
       path = url.pathname;
