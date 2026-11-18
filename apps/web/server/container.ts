@@ -2,6 +2,7 @@ import 'server-only';
 import { serverEnv } from './env';
 import { db } from './infrastructure/database';
 import { mailer } from './infrastructure/mailer';
+import { DashboardService } from './services/dashboard.service';
 import { InvitationsService } from './services/invitations.service';
 import { MembersService } from './services/members.service';
 import { ProjectsService } from './services/projects.service';
@@ -15,6 +16,7 @@ function createContainer() {
     members: new MembersService(deps),
     invitations: new InvitationsService(deps),
     projects: new ProjectsService(deps),
+    dashboard: new DashboardService(deps),
   };
 }
 
