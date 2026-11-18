@@ -7,10 +7,12 @@ import { connectedMachines } from './infrastructure/presence';
 import { redisDeviceFlowStore } from './infrastructure/device-flow-store';
 import { publishControl } from './infrastructure/event-publisher';
 import { AgentsService } from './services/agents.service';
+import { ClaimsService } from './services/claims.service';
 import { DashboardService } from './services/dashboard.service';
 import { DevicesService } from './services/devices.service';
 import { InboxService } from './services/inbox.service';
 import { RealtimeTokenService } from './services/realtime-token.service';
+import { TeamDirectoryService } from './services/team-directory.service';
 import { InvitationsService } from './services/invitations.service';
 import { MembersService } from './services/members.service';
 import { ProjectsService } from './services/projects.service';
@@ -25,8 +27,12 @@ function createContainer() {
     appUrl: serverEnv().APP_URL,
   };
   const agents = new AgentsService(deps);
+  const inbox = new InboxService(deps);
+  const claims = new ClaimsService(deps);
   return {
     agents,
+    claims,
+    directory: new TeamDirectoryService(deps, agents, inbox, claims),
     devices: new DevicesService(
       deps,
       redisDeviceFlowStore,
@@ -36,7 +42,7 @@ function createContainer() {
       },
       connectedMachines,
     ),
-    inbox: new InboxService(deps),
+    inbox,
     realtimeTokens: new RealtimeTokenService(deps, serverEnv().REALTIME_JWT_SECRET),
     teams: new TeamsService(deps),
     members: new MembersService(deps),
