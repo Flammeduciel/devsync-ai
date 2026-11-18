@@ -7,6 +7,7 @@ import type { DeviceActor } from '../services/devices.service';
 import { getCurrentUser } from './session';
 
 export const AGENT_HEADER = 'x-devsync-agent';
+export const ACTOR_HEADER = 'x-devsync-actor';
 
 export type ResolvedActor = { actor: Actor; device: DeviceActor | null };
 
@@ -19,6 +20,8 @@ export async function requireActor(request: Request): Promise<ResolvedActor> {
   if (header.startsWith('Bearer ')) {
     const device = await services().devices.authenticate(header.slice(7).trim());
     if (!device) throw new AppError('UNAUTHENTICATED', 'Invalid or revoked device token');
+    // The token belongs to the developer: from the CLI they act as themselves, not as an agent.
+    if (request.headers.get(ACTOR_HEADER) === 'human') return { actor: { type: 'HUMAN', userId: device.userId }, device };
     const agentName = (request.headers.get(AGENT_HEADER) ?? 'claude-code').slice(0, 100);
     return { actor: await agentActor(db(), device, agentName), device };
   }
