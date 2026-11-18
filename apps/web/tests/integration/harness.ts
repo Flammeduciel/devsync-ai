@@ -1,5 +1,7 @@
 import { createDatabaseClient, type DatabaseClient } from '@devsync/database';
 import { newId } from '@devsync/shared';
+import type { Envelope } from '@devsync/protocol';
+import type { EventPublisher } from '../../server/services/events.service';
 import type { MailMessage, Mailer, ServiceDeps } from '../../server/services/ports';
 
 export const testDatabaseUrl = process.env.DATABASE_URL_TEST;
@@ -16,10 +18,21 @@ export class MemoryMailer implements Mailer {
   }
 }
 
+export class MemoryPublisher implements EventPublisher {
+  readonly published: Envelope[] = [];
+  async publish(events: Envelope[]) {
+    this.published.push(...events);
+  }
+  types(): string[] {
+    return this.published.map((e) => e.type);
+  }
+}
+
 export function createHarness() {
   const db: DatabaseClient = createDatabaseClient(testDatabaseUrl!);
   const mailer = new MemoryMailer();
-  const deps: ServiceDeps = { db, mailer, appUrl: 'http://app.test' };
+  const publisher = new MemoryPublisher();
+  const deps: ServiceDeps = { db, mailer, publisher, appUrl: 'http://app.test' };
   const run = newId().slice(-12);
   const createdUsers: string[] = [];
 
@@ -38,5 +51,5 @@ export function createHarness() {
     await db.$disconnect();
   }
 
-  return { db, mailer, deps, run, user, cleanup };
+  return { db, mailer, publisher, deps, run, user, cleanup };
 }

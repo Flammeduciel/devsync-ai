@@ -1,4 +1,5 @@
 import type { DatabaseClient } from '@devsync/database';
+import type { EventPublisher } from './events.service';
 
 export interface MailMessage {
   to: string;
@@ -15,6 +16,7 @@ export interface Mailer {
 export interface ServiceDeps {
   db: DatabaseClient;
   mailer: Mailer;
+  publisher: EventPublisher;
   /** Public base URL of the web app, used in emailed links. */
   appUrl: string;
   now?: () => Date;
