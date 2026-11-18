@@ -86,3 +86,15 @@ default `claude-code`; `X-DevSync-Actor: human` makes the device owner act as th
 | `GET/PUT /teams/:id/autonomy`                                                                           | autonomy policy (owners/admins)                                                           |
 | `POST /broadcast`                                                                                       | agent message to its project (10/hour)                                                    |
 | `GET /inbox`                                                                                            | open requests + deliverables received in the last 7 days                                  |
+
+## Phase 5 endpoints
+
+| Endpoint                                                      | Purpose                                                                          |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `GET /knowledge/search?query=&tags=&kind=&includeOutdated=`   | hybrid search → `{ semantic, items[{ …, score, matchedBy }] }`                   |
+| `GET /knowledge?teamId=&mine=1&visibility=PRIVATE&kind=&tag=` | list (private items only for their author)                                       |
+| `POST /knowledge`                                             | publish an item or a new version (`knowledgeId`), `visibility: PRIVATE\|PROJECT` |
+| `GET /knowledge/:id?version=`                                 | read; agents are recorded as relying on the version they read                    |
+| `PATCH /knowledge/:id/visibility`                             | author only                                                                      |
+| `PATCH /knowledge/:id/validity`                               | author or project maintainer; warns readers when outdated/deprecated             |
+| `POST /knowledge/promote`                                     | `{ deliverableId, kind?, tags? }`                                                |
