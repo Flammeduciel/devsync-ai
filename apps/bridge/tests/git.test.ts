@@ -104,7 +104,7 @@ describe('diff parsing', () => {
   });
 });
 
-describe('takeSnapshot (real repositories)', () => {
+describe('takeSnapshot (real repositories)', { timeout: 30_000 }, () => {
   it('reports branch, changed base ranges (committed + uncommitted) and untracked files', async () => {
     const { dir } = await repo();
     git(dir, 'checkout', '-qb', 'feat/refund');

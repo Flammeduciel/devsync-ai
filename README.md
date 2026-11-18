@@ -75,3 +75,11 @@ Production runs as one Docker Compose application on **Dokploy**: one image with
 
 The server never receives prompts, conversation content, model reasoning or source code. The Bridge
 sends technical facts only: session state, paths of edited files, line ranges, branch names.
+
+## License
+
+DevSync AI is free software under the [GNU Affero General Public License v3.0](LICENSE) (`AGPL-3.0-only`).
+You may use, modify and self-host it. If you run a modified version as a network service, you must
+offer its source code to its users under the same license.
+
+Contributions are welcome — read [CONTRIBUTING.md](CONTRIBUTING.md).
