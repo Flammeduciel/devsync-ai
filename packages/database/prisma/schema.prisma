@@ -852,6 +852,14 @@ model Knowledge {
   createdAt      DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime          @updatedAt @db.Timestamptz(3)
   deletedAt      DateTime?         @db.Timestamptz(3)
+  /// Summary + content + tags of the current version, maintained by the service (feeds searchVector).
+  searchText     String            @default("")
+  /// GENERATED ALWAYS from title (weight A) and searchText (weight B) — see migration knowledge_search.
+  searchVector   Unsupported("tsvector")? @default(dbgenerated("(setweight(to_tsvector('simple'::regconfig, COALESCE(title, ''::text)), 'A'::\"char\") || setweight(to_tsvector('simple'::regconfig, COALESCE(\"searchText\", ''::text)), 'B'::\"char\"))"))
+  /// Semantic embedding of the current version (multilingual-e5-small, 384 dims), computed by the worker.
+  embedding      Unsupported("vector(384)")?
+  embeddingModel String?
+  embeddedAt     DateTime?         @db.Timestamptz(3)
 
   team        Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
   project     Project @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
@@ -864,6 +872,10 @@ model Knowledge {
   @@unique([id, teamId])
   @@index([teamId, projectId, validity])
   @@index([teamId, kind])
+  @@index([title(ops: raw("gin_trgm_ops"))], map: "knowledge_title_trgm_idx", type: Gin)
+  @@index([searchVector], map: "knowledge_search_vector_idx", type: Gin)
+  /// HNSW (vector_cosine_ops) in SQL; Prisma only sees an index on the column.
+  @@index([embedding], map: "knowledge_embedding_hnsw_idx")
   @@map("knowledge")
 }
 
