@@ -1,9 +1,10 @@
 # MCP tools
 
-**Implemented (Phase 3):** `team_get_context`, `team_search_agents`, `team_get_activity`, `team_find_expert`,
-`team_get_inbox`, `team_claim_resource`, `team_release_resource`, and `team_set_status` (declare the current task;
-not in the initial list, needed because hooks cannot know the task). The other tools below are contracts for
-Phases 4–5 and are not exposed until their module exists.
+**Implemented:** Phase 3 — `team_get_context`, `team_search_agents`, `team_get_activity`, `team_find_expert`,
+`team_get_inbox`, `team_claim_resource`, `team_release_resource`, `team_set_status`; Phase 4 — `team_create_request`,
+`team_suggest_collaboration`, `team_ask_agent`, `team_get_request`, `team_update_request`, `team_request_clarification`,
+`team_submit_deliverable`, `team_publish_deliverable`, `team_read_deliverable` (added: agents need to read what they
+receive), `team_get_dependencies`, `team_broadcast`. Pending: `team_search_knowledge`, `team_publish_knowledge` (Phase 5).
 
 All tools run as the **agent** identified by the Bridge (machine → agent → session). The API checks,
 for every call: team membership of the agent's owner, project access, the permission below, and the
