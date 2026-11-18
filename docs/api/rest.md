@@ -13,9 +13,9 @@ Lists are cursor-paginated: `?cursor=&limit=` → `{ items, nextCursor }`.
 | teams         | `GET/POST /teams`, `GET/PATCH/DELETE /teams/:id`, `GET/POST /teams/:id/members`, `PATCH/DELETE /teams/:id/members/:userId`, `GET/POST /teams/:id/invitations`, `DELETE /teams/:id/invitations/:invId`, `POST /invitations/accept` | **1 ✅** |
 | projects      | `GET/POST /teams/:id/projects`, `GET/PATCH/DELETE /projects/:id`, `GET/POST/DELETE /projects/:id/members`                                                                                                                         | **1 ✅** |
 | repositories  | `GET/POST /projects/:id/repositories`, `PATCH/DELETE /repositories/:id`                                                                                                                                                           | **1 ✅** |
-| agents        | `POST /agents/machines` (device pairing), `DELETE /agents/machines/:id` (revoke), `GET /teams/:id/agents`, `PATCH /agents/:id`                                                                                                    | 2        |
-| sessions      | `POST /sessions`, `PATCH /sessions/:id` (heartbeat/status), `POST /sessions/:id/end`                                                                                                                                              | 2        |
-| activities    | `GET /projects/:id/activities`, `POST /activities`                                                                                                                                                                                | 2        |
+| agents        | `POST /agents/machines` (device pairing), `DELETE /agents/machines/:id` (revoke), `GET /teams/:id/agents`, `PATCH /agents/:id`                                                                                                    | **2 ✅** |
+| sessions      | `POST /sessions`, `PATCH /sessions/:id` (heartbeat/status), `POST /sessions/:id/end`                                                                                                                                              | **2 ✅** |
+| activities    | `GET /projects/:id/activities`, `POST /activities`                                                                                                                                                                                | **2 ✅** |
 | collaboration | `GET/POST /collaboration`, `GET/PATCH /collaboration/:id`, `POST /collaboration/:id/{approve,accept,reject,start,complete,cancel,clarify}`, `GET/POST /collaboration/:id/comments`                                                | 4        |
 | tasks         | `GET/POST /tasks`, `PATCH /tasks/:id`, `GET/POST /tasks/:id/dependencies`                                                                                                                                                         | 4        |
 | deliverables  | `POST /deliverables`, `POST /deliverables/:id/versions` (pre-signed upload), `POST /deliverables/:id/publish`, `GET /deliverables/:id/versions/:v/download`                                                                       | 4        |
@@ -44,3 +44,19 @@ POST /api/v1/projects/01a1…/repositories
 GET /api/v1/projects/<id of another team>
 → 404 { "error": { "code": "NOT_FOUND", "message": "Project not found" } }
 ```
+
+## Phase 2 endpoints
+
+| Endpoint                                                           | Auth                 | Purpose                                                                                            |
+| ------------------------------------------------------------------ | -------------------- | -------------------------------------------------------------------------------------------------- |
+| `POST /devices/authorize`                                          | public, 10/min/IP    | start `devsync login`                                                                              |
+| `POST /devices/token`                                              | public (device code) | poll: `202 {status:"pending"}`, `200 {status:"approved", deviceToken, …}`, `202 {status:"denied"}` |
+| `GET /teams/:id/machines`, `DELETE /teams/:id/machines/:machineId` | session              | list (own / all for admins), revoke                                                                |
+| `GET /me`                                                          | device               | identity of the token + `realtimeUrl`                                                              |
+| `POST /sessions`                                                   | device               | register (upsert) a Claude Code session; project resolved from `projectId` or `repositoryRemote`   |
+| `POST /sessions/:id/heartbeat`                                     | device               | `{ status?, currentTask? }`                                                                        |
+| `POST /sessions/:id/end`                                           | device               | end a session                                                                                      |
+| `POST /activities`                                                 | device               | `{ id?, sessionId, kind, summary, tool? }` — idempotent by `id`                                    |
+| `GET /teams/:id/agents`                                            | session              | live agents                                                                                        |
+| `GET /inbox`                                                       | device               | requests assigned to the device owner or their agents                                              |
+| `GET /realtime/token`                                              | session              | 5-minute JWT + gateway URL for the dashboard socket                                                |
