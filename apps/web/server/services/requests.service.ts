@@ -277,7 +277,8 @@ export class RequestsService {
       ...this.present(request, actor, await this.rolesOf(actor, request)),
       history: history.map((h) => ({ at: h.createdAt, action: h.action, fromStatus: h.fromStatus, toStatus: h.toStatus, by: h.actorAgent ? `${h.actorUser?.name ?? '?'} (agent ${h.actorAgent.name})` : (h.actorUser?.name ?? 'System'), data: h.data })),
       comments: comments.map((c) => ({ id: c.id, at: c.createdAt, body: c.body, author: c.authorAgent ? `${c.authorUser?.name ?? '?'} (agent ${c.authorAgent.name})` : (c.authorUser?.name ?? 'System'), attachments: c.attachments.map((a) => ({ id: a.id, fileName: a.fileName, sizeBytes: Number(a.sizeBytes) })) })),
-      deliverables: deliverables.map((d) => ({
+      // Empty drafts (no version yet) are only shown to their author.
+      deliverables: deliverables.filter((d) => d.currentVersion > 0 || d.createdByUserId === actor.userId).map((d) => ({
         id: d.id,
         title: d.title,
         format: d.format,
