@@ -37,7 +37,14 @@ async function login(args: string[]) {
   const deadline = Date.now() + auth.expiresIn * 1000;
   while (Date.now() < deadline) {
     await sleep(auth.interval * 1000);
-    const result = await api.exchangeDeviceCode(auth.deviceCode);
+    let result;
+    try {
+      result = await api.exchangeDeviceCode(auth.deviceCode);
+    } catch (error) {
+      // Network blips (server restart, Wi-Fi) must not abort the login: keep polling until expiry.
+      if (error instanceof DevSyncApiError && error.status !== 429 && error.status < 500) throw error;
+      continue;
+    }
     if (result.status === 'pending') continue;
     if (result.status === 'denied') throw new Error('The request was denied in the browser.');
     await saveToken(paths, result.deviceToken);
