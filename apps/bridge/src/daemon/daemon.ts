@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { loadConfig, loadToken, type BridgePaths } from '../config';
 import { createRealtimeLink, type RealtimeLink } from '../connection/realtime-link';
 import { detectRepository } from '../git/repo';
+import { readDeliverableFile } from '../files/upload';
 import { createNotifier, type Notifier } from '../notifications/notifier';
 import { Outbox } from '../queue/outbox';
 import { DeliveryState } from '../queue/state';
@@ -44,6 +45,19 @@ const API_OPERATIONS = [
   'inbox',
   'claim',
   'releaseClaim',
+  'createRequest',
+  'getRequest',
+  'requestAction',
+  'comment',
+  'requestDependencies',
+  'taskDependencies',
+  'createTask',
+  'createDeliverable',
+  'addDeliverableVersion',
+  'publishDeliverable',
+  'readDeliverable',
+  'uploadDeliverableFile',
+  'broadcast',
 ] as const;
 type ApiOperation = (typeof API_OPERATIONS)[number];
 const apiCall = z.object({
@@ -148,7 +162,7 @@ export async function runDaemon(
     'api.call': async (raw) => {
       const { operation, params, workingDirectory } = apiCall.parse(raw);
       const handler = apiOperations[operation];
-      let input = params;
+      let input = operation === 'uploadDeliverableFile' ? { ...params, workingDirectory } : params;
       if (workingDirectory && !('projectId' in input) && !('remote' in input)) {
         const repo = await detectRepository(workingDirectory);
         if (repo?.remote) input = { ...input, remote: repo.remote };
@@ -167,6 +181,37 @@ export async function runDaemon(
     inbox: () => api.inbox(),
     claim: (p) => api.claim(p as { resourceType: string; resourceKey: string }),
     releaseClaim: (p) => api.releaseClaim(String(p.claimId)),
+    createRequest: (p) => api.createRequest(p),
+    getRequest: (p) => api.getRequest(String(p.requestId)),
+    requestAction: (p) => api.requestAction(String(p.requestId), { action: String(p.action), ...(p.comment ? { comment: String(p.comment) } : {}) }),
+    comment: (p) => api.comment(String(p.requestId), { body: String(p.body) }),
+    requestDependencies: (p) => api.requestDependencies(String(p.requestId)),
+    taskDependencies: (p) => api.taskDependencies(String(p.taskId)),
+    createTask: (p) => api.createTask(p),
+    createDeliverable: (p) => api.createDeliverable(p),
+    addDeliverableVersion: (p) => {
+      const { deliverableId, ...body } = p;
+      return api.addDeliverableVersion(String(deliverableId), body);
+    },
+    publishDeliverable: (p) => api.publishDeliverable(String(p.deliverableId)),
+    readDeliverable: (p) => api.readDeliverable(String(p.deliverableId), { ...(typeof p.version === 'number' ? { version: p.version } : {}), inline: true }),
+    broadcast: (p) => api.broadcast(p),
+    /** Reads a project file locally, registers an upload version and sends the bytes to storage. */
+    uploadDeliverableFile: async (p) => {
+      if (typeof p.workingDirectory !== 'string') throw new Error('workingDirectory is required to upload a file');
+      const file = await readDeliverableFile(String(p.filePath), p.workingDirectory);
+      const version = await api.addDeliverableVersion(String(p.deliverableId), {
+        kind: 'upload',
+        fileName: file.fileName,
+        contentType: file.contentType,
+        sizeBytes: file.sizeBytes,
+        checksumSha256: file.checksumSha256,
+        ...(p.notes ? { notes: String(p.notes) } : {}),
+      });
+      if (!version.uploadUrl) throw new Error('The server did not return an upload URL');
+      await api.upload(version.uploadUrl, file.body, file.contentType);
+      return { deliverableId: version.deliverableId, version: version.version, fileName: file.fileName, sizeBytes: file.sizeBytes };
+    },
   };
 
   const timer = setInterval(
