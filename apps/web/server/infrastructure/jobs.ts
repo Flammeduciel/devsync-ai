@@ -44,7 +44,8 @@ export const workerQueryEmbedder: QueryEmbedder = {
         workersCheckedAt = Date.now();
       }
       if (!workersAvailable) return null;
-      const job = await embeddingsQueue().add(jobs.embedQuery.name, { text }, { removeOnComplete: true, removeOnFail: true, priority: 1 });
+      // Results must outlive completion long enough for waitUntilFinished to read them.
+      const job = await embeddingsQueue().add(jobs.embedQuery.name, { text }, { removeOnComplete: { age: 60 }, removeOnFail: { age: 60 }, priority: 1 });
       const vector = (await job.waitUntilFinished(embeddingsEvents(), 4000)) as number[];
       return Array.isArray(vector) && vector.length === 384 ? vector : null;
     } catch (error) {
