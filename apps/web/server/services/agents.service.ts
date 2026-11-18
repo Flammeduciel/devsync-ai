@@ -9,7 +9,7 @@ import {
   type PublishActivityInput,
   type RegisterSessionInput,
 } from '@devsync/validation';
-import { aggregateAgentStatus, SESSION_STALE_AFTER_MS } from '../domain/agent-status';
+import { aggregateAgentStatus, RECONNECT_GRACE_MS, SESSION_STALE_AFTER_MS } from '../domain/agent-status';
 import { hasTeamPermission } from '../domain/permissions';
 import { agentsRepository } from '../repositories/agents.repository';
 import { projectsRepository } from '../repositories/projects.repository';
@@ -223,6 +223,28 @@ export class AgentsService {
     return stale.length;
   }
 
+  /** Background job: agents idle without any session past the grace period go OFFLINE. */
+  async sweepIdleAgents(): Promise<number> {
+    const now = clock(this.deps);
+    const idle = await this.deps.db.agent.findMany({
+      where: { status: { not: 'OFFLINE' }, lastActivityAt: { lt: new Date(now.getTime() - RECONNECT_GRACE_MS) }, sessions: { none: { endedAt: null } } },
+      select: { id: true, teamId: true, userId: true, machineId: true },
+      take: 200,
+    });
+    for (const agent of idle) {
+      await withEvents(this.deps, async (tx, emit) => {
+        await this.refreshAgentStatus(tx, emit, agent.id, now);
+        await emit({
+          type: 'agent.disconnected',
+          teamId: agent.teamId,
+          actor: { type: 'SYSTEM' },
+          payload: { agentId: agent.id, userId: agent.userId, reason: 'client' },
+        });
+      });
+    }
+    return idle.length;
+  }
+
   /** Called when a machine is revoked: its sessions end immediately. */
   async disconnectMachine(machineId: string) {
     const now = clock(this.deps);
@@ -264,7 +286,8 @@ export class AgentsService {
       reason === 'client' ? 'Session ended' : `Session closed (${reason})`,
       now,
     );
-    const status = await this.refreshAgentStatus(tx, emit, session.agentId, now);
+    // A conversation closed by the developer keeps the agent IDLE during a grace period (see sweepIdleAgents).
+    const status = await this.refreshAgentStatus(tx, emit, session.agentId, now, { graceful: reason === 'client' });
     if (status === 'OFFLINE') {
       await emit({
         type: 'agent.disconnected',
@@ -281,11 +304,13 @@ export class AgentsService {
     emit: Emit,
     agentId: string,
     now: Date,
+    options: { graceful?: boolean } = {},
   ): Promise<AgentStatus> {
     const agent = await agentsRepository.findAgent(tx, agentId);
     if (!agent) throw new AppError('NOT_FOUND', 'Agent not found');
     const sessions = await agentsRepository.activeSessionStatuses(tx, agentId);
-    const status = aggregateAgentStatus(sessions.map((s) => s.status));
+    const aggregated = aggregateAgentStatus(sessions.map((s) => s.status));
+    const status = aggregated === 'OFFLINE' && options.graceful ? 'IDLE' : aggregated;
     await agentsRepository.updateAgent(tx, agentId, {
       status,
       lastActivityAt: now,

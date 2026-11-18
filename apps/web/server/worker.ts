@@ -26,8 +26,9 @@ const worker = new Worker(
   async (job) => {
     if (job.name === jobs.sweepStaleSessions.name) {
       const closed = await services().agents.sweepStaleSessions();
-      if (closed > 0) logger.info({ closed }, 'closed stale agent sessions');
-      return { closed };
+      const offline = await services().agents.sweepIdleAgents();
+      if (closed > 0 || offline > 0) logger.info({ closed, offline }, 'agent sweep');
+      return { closed, offline };
     }
     throw new Error(`Unknown job ${job.name}`);
   },

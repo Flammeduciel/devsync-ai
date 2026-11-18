@@ -20,3 +20,9 @@ export function aggregateAgentStatus(activeSessionStatuses: AgentStatus[]): Agen
 
 /** A session without heartbeat for this long is considered gone (Bridge heartbeats every 30 s). */
 export const SESSION_STALE_AFTER_MS = 90_000;
+
+/**
+ * After a developer closes a conversation, the agent stays IDLE this long before going OFFLINE, so
+ * opening a new conversation right away does not make it blink offline/online for the team.
+ */
+export const RECONNECT_GRACE_MS = 60_000;
