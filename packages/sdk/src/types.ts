@@ -40,3 +40,46 @@ export interface InboxItem {
   initiatorAgent: { id: string; name: string } | null;
   assigneeAgentId: string | null;
 }
+
+export interface ProjectLocator {
+  projectId?: string;
+  /** Git origin URL of the agent's working directory. */
+  remote?: string;
+}
+
+export interface ActivityEntry {
+  at: string;
+  who: string;
+  kind: string;
+  summary: string;
+  tool: string | null;
+  project: string | null;
+}
+
+export interface Expert {
+  agentId: string;
+  owner: string;
+  agentName: string;
+  status: string;
+  currentTask: string | null;
+  score: number;
+  reasons: string[];
+}
+
+export interface ClaimInfo {
+  id: string;
+  resourceType: string;
+  resourceKey: string;
+  reason: string | null;
+  expiresAt: string;
+  holder: { agentId: string; agentName: string; userId: string; userName: string };
+}
+
+export interface TeamContext {
+  team: { id: string; name: string; slug: string };
+  project: { id: string; name: string; description: string | null; access: string; repositories: { name: string; remoteUrl: string; defaultBranch: string }[] } | null;
+  teammates: { agentId: string; owner: string; agentName: string; status: string; currentTask: string | null; specialties: string[]; projects: string[]; branches: string[] }[];
+  inbox: InboxItem[];
+  claims: ClaimInfo[];
+  recentActivity: ActivityEntry[];
+}

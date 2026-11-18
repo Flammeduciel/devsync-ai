@@ -41,3 +41,11 @@ describe('typed endpoints', () => {
     expect((init.headers as Record<string, string>).authorization).toBeUndefined();
   });
 });
+
+describe('withQuery', () => {
+  it('encodes values, repeats arrays and skips undefined', async () => {
+    const { withQuery } = await import('../src');
+    expect(withQuery('/agents/search', { query: 'a b', status: ['WORKING', 'IDLE'], remote: undefined })).toBe('/agents/search?query=a+b&status=WORKING&status=IDLE');
+    expect(withQuery('/context', {})).toBe('/context');
+  });
+});

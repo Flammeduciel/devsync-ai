@@ -1,10 +1,14 @@
 import { API_BASE_PATH } from '@devsync/protocol';
 import type { ActivityBody, DeviceAuthInput, HeartbeatBody, SessionBody } from './inputs';
 import type {
+  ActivityEntry,
   DeviceAuthorization,
   DeviceTokenResult,
+  Expert,
   InboxItem,
+  ProjectLocator,
   RegisteredSession,
+  TeamContext,
   WhoAmI,
 } from './types';
 
@@ -105,4 +109,35 @@ export class DevSyncClient {
   inbox() {
     return this.request<{ items: InboxItem[] }>('GET', '/inbox');
   }
+
+  // ── Team directory (device-authenticated) ──
+  context(query: ProjectLocator) {
+    return this.request<TeamContext>('GET', withQuery('/context', query));
+  }
+  searchAgents(query: ProjectLocator & { query?: string; status?: string[]; includeOffline?: boolean }) {
+    return this.request<{ items: unknown[] }>('GET', withQuery('/agents/search', query));
+  }
+  activity(query: ProjectLocator & { agentId?: string; since?: string; limit?: number }) {
+    return this.request<{ items: ActivityEntry[] }>('GET', withQuery('/activity', query));
+  }
+  experts(query: ProjectLocator & { topic: string; limit?: number }) {
+    return this.request<{ items: Expert[] }>('GET', withQuery('/experts', query));
+  }
+  claim(body: ProjectLocator & { resourceType: string; resourceKey: string; reason?: string; ttlMinutes?: number; agentName?: string }) {
+    return this.request<{ claimId: string; resourceKey: string; expiresAt: string; renewed: boolean }>('POST', '/claims', body);
+  }
+  releaseClaim(claimId: string) {
+    return this.request<void>('DELETE', `/claims/${encodeURIComponent(claimId)}`);
+  }
+}
+
+/** Builds `path?key=value&key=v2`, skipping undefined values. */
+export function withQuery(path: string, query: object): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null) continue;
+    for (const item of Array.isArray(value) ? value : [value]) params.append(key, String(item));
+  }
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
 }
