@@ -3,6 +3,7 @@ import {
   BookOpen,
   Bot,
   FolderGit2,
+  GitMerge,
   Handshake,
   LayoutDashboard,
   Settings,
@@ -36,6 +37,9 @@ export function MainNav({
       </NavLink>
       <NavLink href={`${base}/knowledge`}>
         <BookOpen className="size-4" /> Knowledge
+      </NavLink>
+      <NavLink href={`${base}/git`}>
+        <GitMerge className="size-4" /> Git intelligence
       </NavLink>
       <NavLink href={`${base}/notifications`}>
         <Bell className="size-4" /> Notifications {unread}

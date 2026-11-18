@@ -2,7 +2,7 @@ import type { Db } from '@devsync/database';
 
 export const dashboardRepository = {
   async counts(db: Db, teamId: string, visibleProjectIds: string[], now: Date) {
-    const [members, agentsOnline, agentsActive, pendingRequests, pendingInvitations, repositories] =
+    const [members, agentsOnline, agentsActive, pendingRequests, pendingInvitations, repositories, gitAlerts] =
       await Promise.all([
         db.teamMember.count({ where: { teamId } }),
         db.agent.count({ where: { teamId, status: { not: 'OFFLINE' } } }),
@@ -21,6 +21,9 @@ export const dashboardRepository = {
         db.repository.count({
           where: { teamId, projectId: { in: visibleProjectIds }, deletedAt: null },
         }),
+        db.gitConflict.count({
+          where: { teamId, status: { in: ['OPEN', 'ACKNOWLEDGED'] }, repository: { projectId: { in: visibleProjectIds } } },
+        }),
       ]);
     return {
       members,
@@ -28,6 +31,7 @@ export const dashboardRepository = {
       agentsActive,
       pendingRequests,
       pendingInvitations,
+      gitAlerts,
       repositories,
     };
   },

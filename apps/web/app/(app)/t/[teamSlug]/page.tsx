@@ -1,4 +1,4 @@
-import { Bot, FolderGit2, GitBranch, Inbox, Users } from 'lucide-react';
+import { Bot, FolderGit2, GitBranch, GitMerge, Inbox, Users } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,7 @@ export default async function DashboardPage({ params }: PageProps<'/t/[teamSlug]
   return (
     <>
       <PageHeader title={team.name} description="Your team at a glance." />
-      <section aria-label="Key figures" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+      <section aria-label="Key figures" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-6">
         <StatCard
           label="Developers"
           value={counts.members}
@@ -41,6 +41,7 @@ export default async function DashboardPage({ params }: PageProps<'/t/[teamSlug]
         <StatCard label="Projects" value={counts.projects} icon={FolderGit2} />
         <StatCard label="Repositories" value={counts.repositories} icon={GitBranch} />
         <StatCard label="Pending requests" value={counts.pendingRequests} icon={Inbox} />
+        <StatCard label="Git alerts" value={counts.gitAlerts} icon={GitMerge} hint={counts.gitAlerts ? 'Agents overlapping' : undefined} />
       </section>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
