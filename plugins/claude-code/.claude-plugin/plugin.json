@@ -2,7 +2,9 @@
   "name": "devsync",
   "version": "0.1.0",
   "description": "Connects Claude Code to your DevSync AI team: shared context, teammates' agents, inbox, expert finding and resource claims.",
-  "author": { "name": "DevSync AI" },
-  "license": "UNLICENSED",
+  "author": {
+    "name": "DevSync AI"
+  },
+  "license": "AGPL-3.0-only",
   "keywords": ["collaboration", "team", "agents", "mcp"]
 }
