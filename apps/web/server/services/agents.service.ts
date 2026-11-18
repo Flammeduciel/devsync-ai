@@ -31,7 +31,13 @@ export class AgentsService {
 
   async registerSession(device: DeviceActor, rawInput: RegisterSessionInput) {
     const input = registerSessionSchema.parse(rawInput);
-    const projectId = (await resolveDeviceProject(this.deps, device, { projectId: input.projectId, remote: input.repositoryRemote }))?.projectId ?? null;
+    const projectId =
+      (
+        await resolveDeviceProject(this.deps, device, {
+          projectId: input.projectId,
+          remote: input.repositoryRemote,
+        })
+      )?.projectId ?? null;
     const now = clock(this.deps);
 
     return withEvents(this.deps, async (tx, emit) => {

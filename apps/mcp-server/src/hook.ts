@@ -20,9 +20,15 @@ interface HookInput {
 
 const TIMEOUT_MS = 2000;
 const MAX_CONTEXT_CHARS = 6000;
-const EDIT_TOOLS: Record<string, string> = { Edit: 'Edited', MultiEdit: 'Edited', Write: 'Wrote', NotebookEdit: 'Edited notebook' };
+const EDIT_TOOLS: Record<string, string> = {
+  Edit: 'Edited',
+  MultiEdit: 'Edited',
+  Write: 'Wrote',
+  NotebookEdit: 'Edited notebook',
+};
 
-const bridge = <T>(method: string, params: unknown) => callBridge<T>(method, params, { timeoutMs: TIMEOUT_MS });
+const bridge = <T>(method: string, params: unknown) =>
+  callBridge<T>(method, params, { timeoutMs: TIMEOUT_MS });
 
 async function readStdin(): Promise<HookInput> {
   let data = '';
@@ -40,7 +46,11 @@ async function withSession(input: HookInput, fn: () => Promise<unknown>) {
     await fn();
   } catch (error) {
     if (!(error as Error).message?.startsWith('Unknown session')) throw error;
-    await bridge('session.start', { externalSessionId: input.session_id, workingDirectory: input.cwd, pluginVersion: PLUGIN_VERSION });
+    await bridge('session.start', {
+      externalSessionId: input.session_id,
+      workingDirectory: input.cwd,
+      pluginVersion: PLUGIN_VERSION,
+    });
     await fn();
   }
 }
@@ -48,19 +58,37 @@ async function withSession(input: HookInput, fn: () => Promise<unknown>) {
 export async function handleHook(event: string, input: HookInput): Promise<string | null> {
   const sessionId = input.session_id;
   if (!sessionId || !input.cwd) return null;
-  const update = (state: object) => withSession(input, () => bridge('session.update', { externalSessionId: sessionId, ...state }));
+  const update = (state: object) =>
+    withSession(input, () => bridge('session.update', { externalSessionId: sessionId, ...state }));
 
   switch (event) {
     case 'SessionStart': {
       try {
-        await bridge('session.start', { externalSessionId: sessionId, workingDirectory: input.cwd, pluginVersion: PLUGIN_VERSION });
-        const context = await bridge<TeamContext>('api.call', { operation: 'context', params: {}, workingDirectory: input.cwd });
+        await bridge('session.start', {
+          externalSessionId: sessionId,
+          workingDirectory: input.cwd,
+          pluginVersion: PLUGIN_VERSION,
+        });
+        const context = await bridge<TeamContext>('api.call', {
+          operation: 'context',
+          params: {},
+          workingDirectory: input.cwd,
+        });
         let text = formatContext(context);
-        if (text.length > MAX_CONTEXT_CHARS) text = `${text.slice(0, MAX_CONTEXT_CHARS)}\n… (truncated — call team_get_context for details)`;
-        return JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } });
+        if (text.length > MAX_CONTEXT_CHARS)
+          text = `${text.slice(0, MAX_CONTEXT_CHARS)}\n… (truncated — call team_get_context for details)`;
+        return JSON.stringify({
+          hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text },
+        });
       } catch (error) {
         if ((error as BridgeError).unavailable) {
-          return JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: 'DevSync: the Bridge daemon is not running on this machine, team features are unavailable (`devsync start`).' } });
+          return JSON.stringify({
+            hookSpecificOutput: {
+              hookEventName: 'SessionStart',
+              additionalContext:
+                'DevSync: the Bridge daemon is not running on this machine, team features are unavailable (`devsync start`).',
+            },
+          });
         }
         return null;
       }
@@ -75,7 +103,12 @@ export async function handleHook(event: string, input: HookInput): Promise<strin
       const rel = isAbsolute(path) ? relative(input.cwd, path) : path;
       if (rel.startsWith('..')) return null; // outside the project: not team-relevant
       await withSession(input, () =>
-        bridge('activity.publish', { externalSessionId: sessionId, kind: 'tool_used', summary: `${verb} ${rel}`, tool: input.tool_name }),
+        bridge('activity.publish', {
+          externalSessionId: sessionId,
+          kind: 'tool_used',
+          summary: `${verb} ${rel}`,
+          tool: input.tool_name,
+        }),
       );
       return null;
     }

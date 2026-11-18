@@ -17,8 +17,23 @@ beforeAll(async () => {
       calls.push({ method, params });
       let response: object = { id, result: null };
       if (method === 'session.start') known.add(params.externalSessionId);
-      if ((method === 'session.update' || method === 'activity.publish') && !known.has(params.externalSessionId)) response = { id, error: { message: `Unknown session ${params.externalSessionId}` } };
-      if (method === 'api.call') response = { id, result: { team: { id: 't', name: 'Squad', slug: 's' }, project: null, teammates: [], inbox: [], claims: [], recentActivity: [] } };
+      if (
+        (method === 'session.update' || method === 'activity.publish') &&
+        !known.has(params.externalSessionId)
+      )
+        response = { id, error: { message: `Unknown session ${params.externalSessionId}` } };
+      if (method === 'api.call')
+        response = {
+          id,
+          result: {
+            team: { id: 't', name: 'Squad', slug: 's' },
+            project: null,
+            teammates: [],
+            inbox: [],
+            claims: [],
+            recentActivity: [],
+          },
+        };
       socket.write(`${JSON.stringify(response)}\n`);
     });
   });
@@ -39,10 +54,28 @@ describe('plugin hooks', () => {
 
   it('publishes only repository-relative paths of edited files', async () => {
     calls.length = 0;
-    await handleHook('PostToolUse', { ...base, tool_name: 'Edit', tool_input: { file_path: '/work/repo/src/payment.ts' } });
-    await handleHook('PostToolUse', { ...base, tool_name: 'Write', tool_input: { file_path: '/etc/hosts' } });
+    await handleHook('PostToolUse', {
+      ...base,
+      tool_name: 'Edit',
+      tool_input: { file_path: '/work/repo/src/payment.ts' },
+    });
+    await handleHook('PostToolUse', {
+      ...base,
+      tool_name: 'Write',
+      tool_input: { file_path: '/etc/hosts' },
+    });
     await handleHook('PostToolUse', { ...base, tool_name: 'Bash', tool_input: {} });
-    expect(calls).toEqual([{ method: 'activity.publish', params: { externalSessionId: 's1', kind: 'tool_used', summary: 'Edited src/payment.ts', tool: 'Edit' } }]);
+    expect(calls).toEqual([
+      {
+        method: 'activity.publish',
+        params: {
+          externalSessionId: 's1',
+          kind: 'tool_used',
+          summary: 'Edited src/payment.ts',
+          tool: 'Edit',
+        },
+      },
+    ]);
   });
 
   it('maps lifecycle events to declared states and re-registers unknown sessions', async () => {
@@ -53,7 +86,12 @@ describe('plugin hooks', () => {
     await handleHook('Stop', base);
     await handleHook('SessionEnd', base);
     expect(calls.map((c) => `${c.method}${c.params.status ? `:${c.params.status}` : ''}`)).toEqual([
-      'session.update:WORKING', 'session.start', 'session.update:WORKING', 'session.update:WAITING', 'session.update:IDLE', 'session.end',
+      'session.update:WORKING',
+      'session.start',
+      'session.update:WORKING',
+      'session.update:WAITING',
+      'session.update:IDLE',
+      'session.end',
     ]);
   });
 

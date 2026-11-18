@@ -24,13 +24,22 @@ describe('IPC', () => {
         throw new Error('nope');
       },
       api: async () => {
-        throw Object.assign(new Error('taken'), { status: 409, code: 'CONFLICT', details: { claim: { id: 'c1' } } });
+        throw Object.assign(new Error('taken'), {
+          status: 409,
+          code: 'CONFLICT',
+          details: { claim: { id: 'c1' } },
+        });
       },
     });
     await expect(ipcCall(path, 'echo', { a: 1 })).resolves.toEqual({ a: 1 });
     await expect(ipcCall(path, 'fail')).rejects.toThrow('nope');
     await expect(ipcCall(path, 'missing')).rejects.toThrow('Unknown method');
-    await expect(ipcCall(path, 'api')).rejects.toMatchObject({ message: 'taken', status: 409, code: 'CONFLICT', details: { claim: { id: 'c1' } } });
+    await expect(ipcCall(path, 'api')).rejects.toMatchObject({
+      message: 'taken',
+      status: 409,
+      code: 'CONFLICT',
+      details: { claim: { id: 'c1' } },
+    });
     if (process.platform !== 'win32') expect((await stat(path)).mode & 0o777).toBe(0o600);
     server.close();
     await expect(ipcCall(path, 'echo')).rejects.toThrow('not running');

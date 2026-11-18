@@ -77,6 +77,11 @@ export async function startIpcServer(path: string, handlers: IpcHandlers): Promi
 }
 
 /** Client side lives in @devsync/sdk (shared with the MCP server and the plugin hooks). */
-export function ipcCall<T = unknown>(path: string, method: string, params?: unknown, timeoutMs = 5000): Promise<T> {
+export function ipcCall<T = unknown>(
+  path: string,
+  method: string,
+  params?: unknown,
+  timeoutMs = 5000,
+): Promise<T> {
   return callBridge<T>(method, params, { path, timeoutMs });
 }

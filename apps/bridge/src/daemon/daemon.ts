@@ -26,7 +26,9 @@ const sessionUpdate = z.object({
   status: declaredAgentStatusSchema.optional(),
   currentTask: z.string().max(500).nullable().optional(),
 });
-const sessionUpdateByDirectory = sessionUpdate.omit({ externalSessionId: true }).extend({ workingDirectory: z.string().min(1).max(1024) });
+const sessionUpdateByDirectory = sessionUpdate
+  .omit({ externalSessionId: true })
+  .extend({ workingDirectory: z.string().min(1).max(1024) });
 const sessionRef = z.object({ externalSessionId: z.string().min(1).max(200) });
 const activity = sessionRef.extend({
   kind: z.enum(['tool_used', 'task_declared', 'summary_published']),
@@ -34,7 +36,15 @@ const activity = sessionRef.extend({
   tool: z.string().max(64).optional(),
 });
 
-const API_OPERATIONS = ['context', 'searchAgents', 'activity', 'experts', 'inbox', 'claim', 'releaseClaim'] as const;
+const API_OPERATIONS = [
+  'context',
+  'searchAgents',
+  'activity',
+  'experts',
+  'inbox',
+  'claim',
+  'releaseClaim',
+] as const;
 type ApiOperation = (typeof API_OPERATIONS)[number];
 const apiCall = z.object({
   operation: z.enum(API_OPERATIONS),

@@ -12,5 +12,7 @@ export default defineConfig({
   splitting: false,
   minify: true,
   noExternal: [/.*/],
-  banner: { js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);" },
+  banner: {
+    js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);",
+  },
 });

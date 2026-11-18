@@ -14,7 +14,12 @@ const presentClaim = (claim: Awaited<ReturnType<typeof claimsRepository.listActi
   resourceKey: claim.resourceKey,
   reason: claim.reason,
   expiresAt: claim.expiresAt,
-  holder: { agentId: claim.agent.id, agentName: claim.agent.name, userId: claim.agent.user.id, userName: claim.agent.user.name },
+  holder: {
+    agentId: claim.agent.id,
+    agentName: claim.agent.name,
+    userId: claim.agent.user.id,
+    userName: claim.agent.user.name,
+  },
 });
 
 /**
@@ -26,17 +31,34 @@ export class ClaimsService {
 
   async claim(device: DeviceActor, rawInput: ClaimResourceInput) {
     const input = claimResourceSchema.parse(rawInput);
-    const resolved = await resolveDeviceProject(this.deps, device, { projectId: input.projectId, remote: input.remote });
-    if (!resolved) throw new AppError('NOT_FOUND', 'No project matches this repository; pass projectId');
-    if (!hasProjectAccess(resolved.access, 'write')) throw new AppError('FORBIDDEN', 'Read-only access to this project');
+    const resolved = await resolveDeviceProject(this.deps, device, {
+      projectId: input.projectId,
+      remote: input.remote,
+    });
+    if (!resolved)
+      throw new AppError('NOT_FOUND', 'No project matches this repository; pass projectId');
+    if (!hasProjectAccess(resolved.access, 'write'))
+      throw new AppError('FORBIDDEN', 'Read-only access to this project');
     const resourceKey = normalizeResourceKey(input.resourceType, input.resourceKey);
-    if (!resourceKey) throw new AppError('VALIDATION_FAILED', 'Invalid resource key (use a repository-relative path)');
+    if (!resourceKey)
+      throw new AppError(
+        'VALIDATION_FAILED',
+        'Invalid resource key (use a repository-relative path)',
+      );
 
     const agent = await this.deps.db.agent.findUnique({
       where: { machineId_name: { machineId: device.machineId, name: input.agentName } },
-      include: { sessions: { where: { endedAt: null }, select: { id: true }, take: 1, orderBy: { startedAt: 'desc' } } },
+      include: {
+        sessions: {
+          where: { endedAt: null },
+          select: { id: true },
+          take: 1,
+          orderBy: { startedAt: 'desc' },
+        },
+      },
     });
-    if (!agent) throw new AppError('NOT_FOUND', 'No agent registered on this machine; start a session first');
+    if (!agent)
+      throw new AppError('NOT_FOUND', 'No agent registered on this machine; start a session first');
 
     const now = clock(this.deps);
     const expiresAt = new Date(now.getTime() + input.ttlMinutes * 60_000);
@@ -44,9 +66,19 @@ export class ClaimsService {
     try {
       return await this.deps.db.$transaction(async (tx) => {
         await claimsRepository.closeExpired(tx, projectId, input.resourceType, resourceKey, now);
-        const existing = await claimsRepository.findActive(tx, projectId, input.resourceType, resourceKey, now);
+        const existing = await claimsRepository.findActive(
+          tx,
+          projectId,
+          input.resourceType,
+          resourceKey,
+          now,
+        );
         if (existing && existing.agent.id !== agent.id) {
-          throw new AppError('CONFLICT', `${resourceKey} is claimed by ${existing.agent.user.name}'s agent`, { claim: presentClaim(existing) });
+          throw new AppError(
+            'CONFLICT',
+            `${resourceKey} is claimed by ${existing.agent.user.name}'s agent`,
+            { claim: presentClaim(existing) },
+          );
         }
         if (existing) {
           await claimsRepository.extend(tx, existing.id, expiresAt, input.reason);
@@ -66,7 +98,8 @@ export class ClaimsService {
       });
     } catch (error) {
       // Two agents racing for the same resource: the partial unique index decides.
-      if (isUniqueViolation(error)) throw new AppError('CONFLICT', `${resourceKey} was just claimed by another agent`);
+      if (isUniqueViolation(error))
+        throw new AppError('CONFLICT', `${resourceKey} was just claimed by another agent`);
       throw error;
     }
   }
@@ -75,11 +108,14 @@ export class ClaimsService {
   async release(device: DeviceActor, claimId: string) {
     const claim = await claimsRepository.findById(this.deps.db, device.teamId, claimId);
     if (!claim || claim.releasedAt) throw new AppError('NOT_FOUND', 'Claim not found');
-    if (claim.agent.machineId !== device.machineId) throw new AppError('FORBIDDEN', 'This claim belongs to another agent');
+    if (claim.agent.machineId !== device.machineId)
+      throw new AppError('FORBIDDEN', 'This claim belongs to another agent');
     await claimsRepository.release(this.deps.db, claimId, clock(this.deps));
   }
 
   async listActive(projectId: string) {
-    return (await claimsRepository.listActive(this.deps.db, projectId, clock(this.deps))).map(presentClaim);
+    return (await claimsRepository.listActive(this.deps.db, projectId, clock(this.deps))).map(
+      presentClaim,
+    );
   }
 }

@@ -114,7 +114,9 @@ export class DevSyncClient {
   context(query: ProjectLocator) {
     return this.request<TeamContext>('GET', withQuery('/context', query));
   }
-  searchAgents(query: ProjectLocator & { query?: string; status?: string[]; includeOffline?: boolean }) {
+  searchAgents(
+    query: ProjectLocator & { query?: string; status?: string[]; includeOffline?: boolean },
+  ) {
     return this.request<{ items: unknown[] }>('GET', withQuery('/agents/search', query));
   }
   activity(query: ProjectLocator & { agentId?: string; since?: string; limit?: number }) {
@@ -123,8 +125,21 @@ export class DevSyncClient {
   experts(query: ProjectLocator & { topic: string; limit?: number }) {
     return this.request<{ items: Expert[] }>('GET', withQuery('/experts', query));
   }
-  claim(body: ProjectLocator & { resourceType: string; resourceKey: string; reason?: string; ttlMinutes?: number; agentName?: string }) {
-    return this.request<{ claimId: string; resourceKey: string; expiresAt: string; renewed: boolean }>('POST', '/claims', body);
+  claim(
+    body: ProjectLocator & {
+      resourceType: string;
+      resourceKey: string;
+      reason?: string;
+      ttlMinutes?: number;
+      agentName?: string;
+    },
+  ) {
+    return this.request<{
+      claimId: string;
+      resourceKey: string;
+      expiresAt: string;
+      renewed: boolean;
+    }>('POST', '/claims', body);
   }
   releaseClaim(claimId: string) {
     return this.request<void>('DELETE', `/claims/${encodeURIComponent(claimId)}`);

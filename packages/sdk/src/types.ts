@@ -77,8 +77,23 @@ export interface ClaimInfo {
 
 export interface TeamContext {
   team: { id: string; name: string; slug: string };
-  project: { id: string; name: string; description: string | null; access: string; repositories: { name: string; remoteUrl: string; defaultBranch: string }[] } | null;
-  teammates: { agentId: string; owner: string; agentName: string; status: string; currentTask: string | null; specialties: string[]; projects: string[]; branches: string[] }[];
+  project: {
+    id: string;
+    name: string;
+    description: string | null;
+    access: string;
+    repositories: { name: string; remoteUrl: string; defaultBranch: string }[];
+  } | null;
+  teammates: {
+    agentId: string;
+    owner: string;
+    agentName: string;
+    status: string;
+    currentTask: string | null;
+    specialties: string[];
+    projects: string[];
+    branches: string[];
+  }[];
   inbox: InboxItem[];
   claims: ClaimInfo[];
   recentActivity: ActivityEntry[];
