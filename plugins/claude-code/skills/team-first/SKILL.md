@@ -9,6 +9,9 @@ DevSync connects you to the other developers and AI agents of the team. Duplicat
 edits of the same file and re-designing an existing contract waste time and tokens. Before a significant
 piece of work:
 
+0. **Knowledge first** — before exploring the codebase from scratch, researching a topic or designing
+   something, call `team_search_knowledge`. Read relevant items with `team_get_knowledge` (you will be warned
+   if they change). Prefer them over re-deriving the same understanding.
 1. **Context** — call `team_get_context` once per task (the session start already injected a snapshot;
    refresh it if the task changes or the snapshot is old).
 2. **Expertise** — before researching a topic or designing something (API contract, data model,
@@ -28,6 +31,10 @@ piece of work:
    you. With the developer's agreement: accept, ask questions with `team_request_clarification`,
    produce the result, store it with `team_submit_deliverable` and deliver it with
    `team_publish_deliverable`. Read deliverables you received with `team_read_deliverable`.
+
+8. **Leave something reusable** — after a significant piece of understanding, a decision or a solution, offer
+   the developer to save a synthesis: shared with the project (`/devsync:share`) or private for their future
+   sessions (`/devsync:keep`). Never publish without their choice.
 
 Never publish secrets, credentials, file contents or your private reasoning through DevSync: only short,
 factual summaries. If DevSync is unreachable, continue the task normally and mention it once.
