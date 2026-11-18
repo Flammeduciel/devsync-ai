@@ -136,7 +136,7 @@ export class DeliverablesService {
   /** Publishes the latest version: request → DELIVERED, task → DONE, requester notified with sound. */
   async publish(actor: Actor, deliverableId: string) {
     const deliverable = await this.requireOwn(actor, deliverableId);
-    if (deliverable.status === 'PUBLISHED') return { deliverableId, status: 'PUBLISHED' as const };
+    if (deliverable.status === 'PUBLISHED') return { deliverableId, status: 'PUBLISHED' as const, requestStatus: null };
     const latest = await this.deps.db.deliverableVersion.findUnique({ where: { deliverableId_version: { deliverableId, version: deliverable.currentVersion } } });
     if (!latest) throw new AppError('CONFLICT', 'Add a version before publishing');
     if (latest.storageKey) {
@@ -185,7 +185,7 @@ export class DeliverablesService {
         data: { requestId: request.id, deliverableId },
       });
     });
-    return { deliverableId, status: 'PUBLISHED' as const };
+    return { deliverableId, status: 'PUBLISHED' as const, requestStatus: request ? ('DELIVERED' as const) : null };
   }
 
   /** Download link (files) or reference (git/url). Text content ≤ 1 MB is returned inline for agents. */

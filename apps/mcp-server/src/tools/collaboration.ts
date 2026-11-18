@@ -177,6 +177,7 @@ export function registerCollaborationTools(server: McpServer, bridge: BridgeClie
       annotations: write,
     },
     async (args) => {
+      let createdId: string | undefined;
       try {
         let deliverableId = args.deliverableId;
         if (!deliverableId) {
@@ -188,6 +189,7 @@ export function registerCollaborationTools(server: McpServer, bridge: BridgeClie
             ...(args.projectId ? { projectId: args.projectId } : {}),
           });
           deliverableId = d.id;
+          createdId = d.id;
         }
         const notes = args.notes ? { notes: args.notes } : {};
         let version: { version: number };
@@ -198,7 +200,10 @@ export function registerCollaborationTools(server: McpServer, bridge: BridgeClie
         else return failure(new Error('Provide content, filePath, commit or url'));
         return text(`Deliverable ${deliverableId} v${version.version} stored on the server. Call team_publish_deliverable with this deliverableId to deliver it.`);
       } catch (error) {
-        return failure(error);
+        const result = failure(error);
+        // Retry on the same deliverable instead of creating an empty one each time.
+        if (createdId) result.content[0]!.text += ` The deliverable ${createdId} was created without a version: retry with deliverableId ${createdId}.`;
+        return result;
       }
     },
   );
@@ -213,8 +218,8 @@ export function registerCollaborationTools(server: McpServer, bridge: BridgeClie
     },
     async ({ deliverableId }) => {
       try {
-        await bridge.api('publishDeliverable', { deliverableId });
-        return text('Published. The requester has been notified.');
+        const r = await bridge.api<{ requestStatus: string | null }>('publishDeliverable', { deliverableId });
+        return text(r.requestStatus ? `Published. The request is now ${r.requestStatus} and the requester has been notified — no further action is needed on it.` : 'Published.');
       } catch (error) {
         return failure(error);
       }
