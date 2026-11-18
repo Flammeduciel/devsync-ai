@@ -1,9 +1,11 @@
-import { loadEnvConfig } from '@next/env';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 
-// The monorepo keeps a single .env at the root.
-loadEnvConfig(fileURLToPath(new URL('../..', import.meta.url)));
+// The monorepo keeps a single .env at the root. Loaded natively (existing variables win) so the
+// server workers spawned by Next inherit it; @next/env would cache the app-folder lookup instead.
+const rootEnv = fileURLToPath(new URL('../../.env', import.meta.url));
+if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 
 const nextConfig: NextConfig = {
   // Workspace packages ship TypeScript sources.
