@@ -1,4 +1,4 @@
-import { FolderGit2, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { Bot, FolderGit2, LayoutDashboard, Settings, Users } from 'lucide-react';
 import { NavLink } from './nav-link';
 import { TeamSwitcher } from './team-switcher';
 import { UserMenu } from './user-menu';
@@ -9,6 +9,9 @@ export function MainNav({ teamSlug, className }: { teamSlug: string; className?:
     <nav aria-label="Main" className={className}>
       <NavLink href={base} exact>
         <LayoutDashboard className="size-4" /> Dashboard
+      </NavLink>
+      <NavLink href={`${base}/agents`}>
+        <Bot className="size-4" /> Live agents
       </NavLink>
       <NavLink href={`${base}/projects`}>
         <FolderGit2 className="size-4" /> Projects
