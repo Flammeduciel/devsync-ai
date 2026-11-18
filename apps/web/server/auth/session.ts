@@ -15,7 +15,9 @@ export interface CurrentUser {
 
 /** Session of the current request (memoized per request). */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
-  const session = await auth().api.getSession({ headers: await headers() });
+  // Read the request first: it marks the page as dynamic before any configuration is loaded (build-safe).
+  const requestHeaders = await headers();
+  const session = await auth().api.getSession({ headers: requestHeaders });
   if (!session) return null;
   // Suspension by a platform admin applies immediately, even to existing sessions.
   const account = await db().user.findUnique({ where: { id: session.user.id }, select: { suspendedAt: true, deletedAt: true } });
