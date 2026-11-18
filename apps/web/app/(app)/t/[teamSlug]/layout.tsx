@@ -19,7 +19,7 @@ export default async function TeamLayout({ children, params }: LayoutProps<'/t/[
           <Sidebar
             teamSlug={teamSlug}
             teams={teams.map(({ slug, name }) => ({ slug, name }))}
-            user={user}
+            user={{ ...user, platformAdmin: await services().platform.isAdmin(user.id) }}
             unread={badge}
           />
         </div>

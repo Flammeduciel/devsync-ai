@@ -65,7 +65,7 @@ export function Sidebar({
 }: {
   teamSlug: string;
   teams: { slug: string; name: string }[];
-  user: { name: string; email: string };
+  user: { name: string; email: string; platformAdmin?: boolean };
   unread?: ReactNode;
 }) {
   return (
@@ -74,7 +74,7 @@ export function Sidebar({
       <TeamSwitcher current={teamSlug} teams={teams} />
       <MainNav teamSlug={teamSlug} className="grid gap-0.5" unread={unread} />
       <div className="mt-auto">
-        <UserMenu name={user.name} email={user.email} />
+        <UserMenu name={user.name} email={user.email} platformAdmin={user.platformAdmin ?? false} />
       </div>
     </aside>
   );

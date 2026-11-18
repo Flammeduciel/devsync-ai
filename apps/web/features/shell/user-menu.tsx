@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { authClient } from '@/lib/auth-client';
 
-export function UserMenu({ name, email }: { name: string; email: string }) {
+export function UserMenu({ name, email, platformAdmin = false }: { name: string; email: string; platformAdmin?: boolean }) {
   const router = useRouter();
   return (
     <DropdownMenu>
@@ -25,6 +25,11 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" side="top" className="w-56">
         <DropdownMenuLabel>{email}</DropdownMenuLabel>
+        {platformAdmin ? (
+          <DropdownMenuItem asChild>
+            <a href="/admin">Platform admin</a>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           onSelect={async () => {
             await authClient.signOut();
