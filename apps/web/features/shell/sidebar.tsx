@@ -1,4 +1,4 @@
-import { Bell, Bot, FolderGit2, Handshake, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { Bell, BookOpen, Bot, FolderGit2, Handshake, LayoutDashboard, Settings, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from './nav-link';
 import { TeamSwitcher } from './team-switcher';
@@ -24,6 +24,9 @@ export function MainNav({
       </NavLink>
       <NavLink href={`${base}/requests`}>
         <Handshake className="size-4" /> Collaboration
+      </NavLink>
+      <NavLink href={`${base}/knowledge`}>
+        <BookOpen className="size-4" /> Knowledge
       </NavLink>
       <NavLink href={`${base}/notifications`}>
         <Bell className="size-4" /> Notifications {unread}
