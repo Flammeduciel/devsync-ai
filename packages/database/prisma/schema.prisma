@@ -126,6 +126,11 @@ enum KnowledgeKind {
   DELIVERABLE
 }
 
+enum KnowledgeVisibility {
+  PRIVATE // only the author (and their agents) — e.g. a brainstorm kept for later sessions
+  PROJECT // members of the project
+}
+
 enum KnowledgeValidity {
   DRAFT
   VALID
@@ -847,6 +852,7 @@ model Knowledge {
   kind           KnowledgeKind
   title          String
   validity       KnowledgeValidity @default(VALID)
+  visibility     KnowledgeVisibility @default(PROJECT)
   currentVersion Int               @default(1)
   authorUserId   String            @db.Uuid
   sourceAgentId  String?           @db.Uuid
