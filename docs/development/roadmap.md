@@ -39,11 +39,15 @@ A phase is done only when `pnpm typecheck && pnpm test` pass and its criteria be
 - [x] Verified end to end: pairing in the browser, live status in the UI, gateway outage → replay, API outage → outbox replay, revocation → disconnection
 - **Not in Phase 2:** client-published events over the socket (`event:publish`) — Bridges use REST, which is authenticated and idempotent; a self-service `devsync logout` revocation endpoint; launchd/systemd service files.
 
-## Phase 3 — Claude Code plugin & MCP
+## Phase 3 — Claude Code plugin & MCP ✅
 
-- Plugin with `.mcp.json`, hooks (SessionStart/End, Pre/PostToolUse, Stop), skills, `/devsync:*` commands
-- MCP server: context, search agents/knowledge, activity, inbox tools
-- **Accept:** a new Claude Code session prints the team context and pending requests; tool calls are authorized and audited.
+- [x] Plugin (manifest, `.mcp.json`, hooks, skills/commands) + repository marketplace; `claude plugin validate` passes
+- [x] MCP server (stdio): `team_get_context`, `team_search_agents`, `team_get_activity`, `team_find_expert`, `team_get_inbox`, `team_claim_resource`, `team_release_resource`, `team_set_status`
+- [x] Hooks: session registration + team context injection at start, declared state, edited file paths, session end — privacy-preserving
+- [x] Server: team context, agent search, activity feed, explainable expert finding, advisory resource claims (race-safe)
+- [x] Bridge: allow-listed API proxy over IPC (device token never leaves the daemon), API errors forwarded with status/details
+- [x] Verified in a real Claude Code session: the agent discovered a teammate's claim and expertise and proposed to coordinate
+- **Planned with their modules:** `team_ask_agent`, `team_broadcast`, `team_suggest_collaboration`, `team_create_request`, `team_update_request`, `team_get_dependencies`, `team_submit_deliverable`, `team_publish_deliverable`, `team_request_clarification` (Phase 4), `team_search_knowledge`, `team_publish_knowledge` (Phase 5).
 
 ## Phase 4 — Collaboration
 
