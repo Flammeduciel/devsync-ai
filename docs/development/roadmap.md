@@ -62,10 +62,17 @@ A phase is done only when `pnpm typecheck && pnpm test` pass and its criteria be
 - [x] Session continuity: agents stay IDLE 60 s between conversations; "Resume your work" section at session start
 - [x] **Acceptance verified with two real Claude Code sessions on two Bridges:** Bob's agent found Alice as payments expert and sent a DEPENDENCY request; Alice's Bridge showed a desktop notification with sound; Alice's agent accepted, wrote the OpenAPI file, uploaded it to MinIO and published it; Bob's Bridge played the "deliverable ready" sound; in a new conversation Bob's agent read the contract and summarized what the checkout form needs.
 
-## Phase 5 — Knowledge engine
+## Phase 5 — Knowledge engine ✅
 
-- Publish/version/tag knowledge, FTS + trigram search, then pgvector embeddings (hybrid ranking)
-- **Accept:** `team_search_knowledge` finds a published contract by paraphrase.
+- [x] Knowledge items with immutable versions, kinds, tags, references (files, commits, URLs, deliverables, requests), validity (draft/valid/outdated/deprecated)
+- [x] Visibility: **PRIVATE** (only the author and their future sessions) or **PROJECT**; nothing is ever shared without an explicit choice; share/unshare later
+- [x] Hybrid search: weighted PostgreSQL full-text (`simple` config, FR/EN), trigram titles, pgvector semantic (multilingual-e5-small, local, no third-party API); each result says why it matched
+- [x] Embeddings computed by the worker's `embeddings` role (BullMQ); search falls back to full-text when it is not running; Linux container for platforms without an ONNX binary (`pnpm dev:embedder`)
+- [x] Reader tracking: agents reading an item are warned when a new version is published or it becomes outdated/deprecated
+- [x] Promote a published text deliverable (e.g. an OpenAPI contract) to shared knowledge
+- [x] Agents: recent knowledge in the session-start context; `team_search_knowledge`, `team_get_knowledge`, `team_publish_knowledge`, `team_list_my_knowledge`, `team_set_knowledge_visibility`, `team_set_knowledge_validity`, `team_promote_deliverable`; `/devsync:share`, `/devsync:keep`
+- [x] Knowledge Center UI: search, mine/private filters, versions, share and validity controls
+- [x] **Acceptance verified with real Claude Code sessions:** Alice's agent shared a decision and kept a refunds brainstorm private; Bob, asking in French without any shared keyword, got the English decision by meaning and never saw the private brainstorm; Alice found her private note with a French query.
 
 ## Phase 6 — Git intelligence
 
