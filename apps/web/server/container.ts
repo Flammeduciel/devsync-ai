@@ -19,6 +19,7 @@ import { DashboardService } from './services/dashboard.service';
 import { DevicesService } from './services/devices.service';
 import { GitService } from './services/git.service';
 import { InboxService } from './services/inbox.service';
+import { PlatformAdminService } from './services/platform-admin.service';
 import { KnowledgeService } from './services/knowledge.service';
 import { RealtimeTokenService } from './services/realtime-token.service';
 import { TeamDirectoryService } from './services/team-directory.service';
@@ -50,6 +51,7 @@ function createContainer() {
     knowledge: new KnowledgeService(deps, deliverables),
     tasks: new TasksService(deps),
     git: new GitService(deps),
+    platform: new PlatformAdminService(deps, publishControl),
     notifications: new NotificationsService(deps),
     autonomy: new AutonomyService(deps),
     devices: new DevicesService(
