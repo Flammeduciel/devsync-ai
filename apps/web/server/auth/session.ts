@@ -20,7 +20,10 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const session = await auth().api.getSession({ headers: requestHeaders });
   if (!session) return null;
   // Suspension by a platform admin applies immediately, even to existing sessions.
-  const account = await db().user.findUnique({ where: { id: session.user.id }, select: { suspendedAt: true, deletedAt: true } });
+  const account = await db().user.findUnique({
+    where: { id: session.user.id },
+    select: { suspendedAt: true, deletedAt: true },
+  });
   if (!account || account.suspendedAt || account.deletedAt) return null;
   const { id, name, email, image } = session.user;
   return { id, name, email, image: image ?? null };

@@ -14,7 +14,12 @@ export default async function AdminTeamsPage({ searchParams }: PageProps<'/admin
     <>
       <PageHeader title="Teams" description={`${teams.length} team(s)`} />
       <form>
-        <Input name="q" defaultValue={q} placeholder="Search by name or slug" aria-label="Search teams" />
+        <Input
+          name="q"
+          defaultValue={q}
+          placeholder="Search by name or slug"
+          aria-label="Search teams"
+        />
       </form>
       <Card className="overflow-x-auto py-0">
         <table className="w-full text-sm">
@@ -34,15 +39,27 @@ export default async function AdminTeamsPage({ searchParams }: PageProps<'/admin
               <tr key={t.id} className={t.suspendedAt ? 'bg-destructive/5' : ''}>
                 <td className="p-3">
                   <span className="font-medium">{t.name}</span>
-                  <span className="block text-xs text-muted-foreground">{t.slug}{t.suspendedAt ? ' · suspended' : ''}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {t.slug}
+                    {t.suspendedAt ? ' · suspended' : ''}
+                  </span>
                 </td>
                 <td className="p-3">{t.members}</td>
                 <td className="p-3">{t.projects}</td>
-                <td className="p-3">{t.agents} / {t.machines}</td>
-                <td className="p-3 text-xs text-muted-foreground">{t.lastAgentActivity ? timeAgo(t.lastAgentActivity) : '—'}</td>
+                <td className="p-3">
+                  {t.agents} / {t.machines}
+                </td>
+                <td className="p-3 text-xs text-muted-foreground">
+                  {t.lastAgentActivity ? timeAgo(t.lastAgentActivity) : '—'}
+                </td>
                 <td className="p-3 text-xs text-muted-foreground">{timeAgo(t.createdAt)}</td>
                 <td className="p-3 text-right">
-                  <SuspendButton kind="team" id={t.id} suspended={!!t.suspendedAt} label={`team "${t.name}"`} />
+                  <SuspendButton
+                    kind="team"
+                    id={t.id}
+                    suspended={!!t.suspendedAt}
+                    label={`team "${t.name}"`}
+                  />
                 </td>
               </tr>
             ))}

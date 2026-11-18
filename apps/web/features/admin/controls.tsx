@@ -6,7 +6,17 @@ import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/select';
 import { setSignupModeAction, setTeamSuspendedAction, setUserSuspendedAction } from './actions';
 
-export function SuspendButton({ kind, id, suspended, label }: { kind: 'user' | 'team'; id: string; suspended: boolean; label: string }) {
+export function SuspendButton({
+  kind,
+  id,
+  suspended,
+  label,
+}: {
+  kind: 'user' | 'team';
+  id: string;
+  suspended: boolean;
+  label: string;
+}) {
   const [pending, startTransition] = useTransition();
   return (
     <Button
@@ -14,9 +24,16 @@ export function SuspendButton({ kind, id, suspended, label }: { kind: 'user' | '
       variant={suspended ? 'outline' : 'ghost'}
       disabled={pending}
       onClick={() => {
-        if (!suspended && !confirm(`Suspend ${label}? Access is cut immediately (web, agents, realtime).`)) return;
+        if (
+          !suspended &&
+          !confirm(`Suspend ${label}? Access is cut immediately (web, agents, realtime).`)
+        )
+          return;
         startTransition(async () => {
-          const r = kind === 'user' ? await setUserSuspendedAction(id, !suspended) : await setTeamSuspendedAction(id, !suspended);
+          const r =
+            kind === 'user'
+              ? await setUserSuspendedAction(id, !suspended)
+              : await setTeamSuspendedAction(id, !suspended);
           if (r.ok) toast.success(suspended ? 'Reactivated' : 'Suspended');
           else toast.error(r.error);
         });

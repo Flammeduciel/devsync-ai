@@ -214,15 +214,31 @@ describe.skipIf(!testDatabaseUrl)('git intelligence', () => {
 
   it('treats one developer on several machines as one person', async () => {
     const desktop = await pair(aliceUser, 'desktop');
-    const laptopSnap = snapshot('feat/self', { 'src/self.ts': [[1, 5]] }, { worktreePath: '/work/self-laptop' });
-    const desktopSnap = snapshot('feat/self', { 'src/self.ts': [[3, 4]] }, { worktreePath: '/work/self-desktop' });
+    const laptopSnap = snapshot(
+      'feat/self',
+      { 'src/self.ts': [[1, 5]] },
+      { worktreePath: '/work/self-laptop' },
+    );
+    const desktopSnap = snapshot(
+      'feat/self',
+      { 'src/self.ts': [[3, 4]] },
+      { worktreePath: '/work/self-desktop' },
+    );
     await git.reportSnapshot(alice, laptopSnap);
     const result = await git.reportSnapshot(desktop, desktopSnap);
     expect(result.conflicts.filter((c) => c.filePath === 'src/self.ts')).toEqual([]);
-    const overlap = await git.checkOverlap(desktop, { remote: laptopSnap.remote, files: ['src/self.ts'] });
+    const overlap = await git.checkOverlap(desktop, {
+      remote: laptopSnap.remote,
+      files: ['src/self.ts'],
+    });
     expect(overlap.files[0]!.touchedBy).toEqual([]);
 
-    const directory = new TeamDirectoryService(deps, agents, new InboxService(deps), new ClaimsService(deps));
+    const directory = new TeamDirectoryService(
+      deps,
+      agents,
+      new InboxService(deps),
+      new ClaimsService(deps),
+    );
     const ctx = await directory.context(desktop, {});
     expect(ctx.teammates.some((t) => t.owner === 'Gail')).toBe(false);
     expect(ctx.yourOtherMachines.map((m) => m.machine)).toContain(`laptop-${aliceUser.slice(-5)}`);

@@ -7,7 +7,9 @@ describe('platform rules', () => {
   it('requires a listed and verified email to be platform admin', () => {
     expect([...admins]).toEqual(['owner@example.com', 'ops@example.com']);
     expect(isPlatformAdmin({ email: 'owner@example.com', emailVerified: true }, admins)).toBe(true);
-    expect(isPlatformAdmin({ email: 'owner@example.com', emailVerified: false }, admins)).toBe(false);
+    expect(isPlatformAdmin({ email: 'owner@example.com', emailVerified: false }, admins)).toBe(
+      false,
+    );
     expect(isPlatformAdmin({ email: 'dev@example.com', emailVerified: true }, admins)).toBe(false);
   });
 
@@ -15,8 +17,12 @@ describe('platform rules', () => {
     const ctx = { adminEmails: admins, hasPendingInvitation: false };
     expect(canSignUp('OPEN', 'x@y.z', ctx).allowed).toBe(true);
     expect(canSignUp('INVITE_ONLY', 'x@y.z', ctx).allowed).toBe(false);
-    expect(canSignUp('INVITE_ONLY', 'x@y.z', { ...ctx, hasPendingInvitation: true }).allowed).toBe(true);
-    expect(canSignUp('CLOSED', 'x@y.z', { ...ctx, hasPendingInvitation: true }).allowed).toBe(false);
+    expect(canSignUp('INVITE_ONLY', 'x@y.z', { ...ctx, hasPendingInvitation: true }).allowed).toBe(
+      true,
+    );
+    expect(canSignUp('CLOSED', 'x@y.z', { ...ctx, hasPendingInvitation: true }).allowed).toBe(
+      false,
+    );
     expect(canSignUp('CLOSED', 'OWNER@example.com', ctx).allowed).toBe(true);
   });
 });

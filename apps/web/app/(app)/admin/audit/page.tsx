@@ -18,8 +18,11 @@ export default async function AdminAuditPage() {
             {rows.map((r) => (
               <li key={r.id} className="flex flex-wrap justify-between gap-2 p-3">
                 <span>
-                  <span className="font-medium">{actionLabel(r.action)}</span> · {r.targetType} {r.targetId ? <code className="text-xs">{r.targetId.slice(0, 8)}</code> : null}
-                  <span className="block text-xs text-muted-foreground">{JSON.stringify(r.metadata)}</span>
+                  <span className="font-medium">{actionLabel(r.action)}</span> · {r.targetType}{' '}
+                  {r.targetId ? <code className="text-xs">{r.targetId.slice(0, 8)}</code> : null}
+                  <span className="block text-xs text-muted-foreground">
+                    {JSON.stringify(r.metadata)}
+                  </span>
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {r.admin} · {timeAgo(r.createdAt)}

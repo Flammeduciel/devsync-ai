@@ -27,10 +27,10 @@ export function SignUpForm({ next, email }: { next: string; email?: string | und
         error.status === 403 && error.message
           ? error.message
           : error.status === 422 || error.code === 'USER_ALREADY_EXISTS'
-          ? 'An account already exists for this email.'
-          : error.status === 429
-            ? 'Too many attempts, try again in a minute.'
-            : 'Could not create the account.',
+            ? 'An account already exists for this email.'
+            : error.status === 429
+              ? 'Too many attempts, try again in a minute.'
+              : 'Could not create the account.',
       );
       return;
     }

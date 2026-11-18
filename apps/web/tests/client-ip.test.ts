@@ -4,7 +4,8 @@ vi.mock('server-only', () => ({}));
 vi.mock('../server/infrastructure/redis', () => ({ redis: () => ({}) }));
 const { clientIp } = await import('../server/infrastructure/rate-limit');
 
-const req = (xff?: string) => new Request('http://x', { headers: xff ? { 'x-forwarded-for': xff } : {} });
+const req = (xff?: string) =>
+  new Request('http://x', { headers: xff ? { 'x-forwarded-for': xff } : {} });
 
 describe('clientIp', () => {
   afterEach(() => delete process.env.TRUSTED_PROXY_HOPS);

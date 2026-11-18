@@ -7,7 +7,10 @@ import { services } from '@/server/container';
 import { runAction } from '@/server/http/action';
 import type { SignupMode } from '@/server/domain/platform';
 
-export async function setUserSuspendedAction(userId: string, suspended: boolean): Promise<ActionResult> {
+export async function setUserSuspendedAction(
+  userId: string,
+  suspended: boolean,
+): Promise<ActionResult> {
   return runAction(async () => {
     const user = await requireUser();
     await services().platform.setUserSuspended(user.id, userId, suspended);
@@ -16,7 +19,10 @@ export async function setUserSuspendedAction(userId: string, suspended: boolean)
   });
 }
 
-export async function setTeamSuspendedAction(teamId: string, suspended: boolean): Promise<ActionResult> {
+export async function setTeamSuspendedAction(
+  teamId: string,
+  suspended: boolean,
+): Promise<ActionResult> {
   return runAction(async () => {
     const user = await requireUser();
     await services().platform.setTeamSuspended(user.id, teamId, suspended);

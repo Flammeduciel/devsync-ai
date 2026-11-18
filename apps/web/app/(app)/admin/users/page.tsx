@@ -14,7 +14,12 @@ export default async function AdminUsersPage({ searchParams }: PageProps<'/admin
     <>
       <PageHeader title="Users" description={`${users.length} user(s)`} />
       <form>
-        <Input name="q" defaultValue={q} placeholder="Search by email or name" aria-label="Search users" />
+        <Input
+          name="q"
+          defaultValue={q}
+          placeholder="Search by email or name"
+          aria-label="Search users"
+        />
       </form>
       <Card className="overflow-x-auto py-0">
         <table className="w-full text-sm">
@@ -42,9 +47,20 @@ export default async function AdminUsersPage({ searchParams }: PageProps<'/admin
                 </td>
                 <td className="p-3">{u.teams}</td>
                 <td className="p-3">{u.machines}</td>
-                <td className="p-3 text-xs text-muted-foreground">{u.lastSeenAt ? timeAgo(u.lastSeenAt) : '—'}</td>
+                <td className="p-3 text-xs text-muted-foreground">
+                  {u.lastSeenAt ? timeAgo(u.lastSeenAt) : '—'}
+                </td>
                 <td className="p-3 text-xs text-muted-foreground">{timeAgo(u.createdAt)}</td>
-                <td className="p-3 text-right">{u.id === user.id ? null : <SuspendButton kind="user" id={u.id} suspended={!!u.suspendedAt} label={u.email} />}</td>
+                <td className="p-3 text-right">
+                  {u.id === user.id ? null : (
+                    <SuspendButton
+                      kind="user"
+                      id={u.id}
+                      suspended={!!u.suspendedAt}
+                      label={u.email}
+                    />
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

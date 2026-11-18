@@ -12,7 +12,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { authClient } from '@/lib/auth-client';
 
-export function UserMenu({ name, email, platformAdmin = false }: { name: string; email: string; platformAdmin?: boolean }) {
+export function UserMenu({
+  name,
+  email,
+  platformAdmin = false,
+}: {
+  name: string;
+  email: string;
+  platformAdmin?: boolean;
+}) {
   const router = useRouter();
   return (
     <DropdownMenu>

@@ -7,7 +7,10 @@ import {
 } from '@aws-sdk/client-s3';
 import { serverEnv } from '../env';
 
-const globalForS3 = globalThis as unknown as { __devsyncS3?: S3Client; __devsyncS3Public?: S3Client };
+const globalForS3 = globalThis as unknown as {
+  __devsyncS3?: S3Client;
+  __devsyncS3Public?: S3Client;
+};
 
 export function storage(): S3Client {
   const env = serverEnv();

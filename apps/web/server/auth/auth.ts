@@ -67,7 +67,13 @@ function createAuth() {
         await mailer().send({
           to: user.email,
           subject: 'Verify your email for DevSync AI',
-          text: [`Hi ${user.name},`, '', `Confirm your email address: ${url}`, '', 'If you did not create an account, ignore this email.'].join('\n'),
+          text: [
+            `Hi ${user.name},`,
+            '',
+            `Confirm your email address: ${url}`,
+            '',
+            'If you did not create an account, ignore this email.',
+          ].join('\n'),
         });
       },
     },
@@ -76,14 +82,23 @@ function createAuth() {
         create: {
           // Instance sign-up policy (platform admin console): open, invitation only or closed.
           before: async (user) => {
-            const settings = await getDatabase().platformSettings.findUnique({ where: { id: 'platform' } });
+            const settings = await getDatabase().platformSettings.findUnique({
+              where: { id: 'platform' },
+            });
             const email = String(user.email ?? '').toLowerCase();
             const hasPendingInvitation = !!(await getDatabase().teamInvitation.findFirst({
               where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
               select: { id: true },
             }));
-            const decision = canSignUp(settings?.signupMode ?? 'OPEN', email, { adminEmails: parseAdminEmails(process.env.PLATFORM_ADMIN_EMAILS), hasPendingInvitation });
-            if (!decision.allowed) throw new APIError('FORBIDDEN', { message: decision.reason, code: 'SIGNUP_RESTRICTED' });
+            const decision = canSignUp(settings?.signupMode ?? 'OPEN', email, {
+              adminEmails: parseAdminEmails(process.env.PLATFORM_ADMIN_EMAILS),
+              hasPendingInvitation,
+            });
+            if (!decision.allowed)
+              throw new APIError('FORBIDDEN', {
+                message: decision.reason,
+                code: 'SIGNUP_RESTRICTED',
+              });
           },
         },
       },

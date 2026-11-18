@@ -19,6 +19,9 @@ export async function rateLimit(key: string, max: number, windowSeconds: number)
  */
 export function clientIp(request: Request): string {
   const hops = Math.max(1, Number(process.env.TRUSTED_PROXY_HOPS ?? 1));
-  const chain = (request.headers.get('x-forwarded-for') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const chain = (request.headers.get('x-forwarded-for') ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   return chain[chain.length - hops] ?? request.headers.get('x-real-ip') ?? 'unknown';
 }

@@ -75,7 +75,12 @@ export class TeamDirectoryService {
         })),
       // Same developer, other machines: their own work, not a teammate to coordinate with.
       yourOtherMachines: agents
-        .filter((a) => a.status !== 'OFFLINE' && a.user.id === device.userId && a.machine.id !== device.machineId)
+        .filter(
+          (a) =>
+            a.status !== 'OFFLINE' &&
+            a.user.id === device.userId &&
+            a.machine.id !== device.machineId,
+        )
         .map((a) => ({
           machine: a.machine.name,
           status: a.status,

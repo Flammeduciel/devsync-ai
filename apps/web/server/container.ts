@@ -52,7 +52,12 @@ function createContainer() {
     knowledge: new KnowledgeService(deps, deliverables),
     tasks: new TasksService(deps),
     git: new GitService(deps),
-    platform: new PlatformAdminService(deps, publishControl, () => parseAdminEmails(process.env.PLATFORM_ADMIN_EMAILS), embeddingWorkerCount),
+    platform: new PlatformAdminService(
+      deps,
+      publishControl,
+      () => parseAdminEmails(process.env.PLATFORM_ADMIN_EMAILS),
+      embeddingWorkerCount,
+    ),
     notifications: new NotificationsService(deps),
     autonomy: new AutonomyService(deps),
     devices: new DevicesService(
