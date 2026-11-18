@@ -27,6 +27,8 @@ export const envelopeSchema = z.object({
   /** Correlates a response/event with the request or command that caused it. */
   correlationId: idSchema.optional(),
   payload: z.unknown(),
+  /** Internal routing (web → gateway): only these users receive the event. Stripped before delivery. */
+  audience: z.array(idSchema).optional(),
 });
 export type Envelope<P = unknown> = Omit<z.infer<typeof envelopeSchema>, 'payload'> & {
   payload: P;
