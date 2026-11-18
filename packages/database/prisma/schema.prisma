@@ -194,6 +194,8 @@ model User {
   createdAt     DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
   deletedAt     DateTime? @db.Timestamptz(3)
+  /// Suspended by a platform admin: sessions, device tokens and realtime access are refused.
+  suspendedAt   DateTime? @db.Timestamptz(3)
 
   sessions                Session[]
   accounts                Account[]
@@ -279,12 +281,14 @@ model Verification {
 // ─────────────────────────── Teams (tenants) ───────────────────────────
 
 model Team {
-  id        String    @id @default(uuid(7)) @db.Uuid
-  name      String
-  slug      String    @unique
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
-  deletedAt DateTime? @db.Timestamptz(3)
+  id          String    @id @default(uuid(7)) @db.Uuid
+  name        String
+  slug        String    @unique
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  /// Suspended by a platform admin: the team behaves as if it did not exist for its members.
+  suspendedAt DateTime? @db.Timestamptz(3)
 
   members                 TeamMember[]
   invitations             TeamInvitation[]
@@ -1180,4 +1184,36 @@ model WebhookEndpoint {
 
   @@index([teamId, enabled])
   @@map("webhook_endpoints")
+}
+
+// ───────────────────────────── Platform administration ─────────────────────────────
+
+enum SignupMode {
+  OPEN
+  INVITE_ONLY
+  CLOSED
+}
+
+/// Single row (id = "platform") of instance-wide settings managed in the platform admin console.
+model PlatformSettings {
+  id          String     @id @default("platform")
+  signupMode  SignupMode @default(OPEN)
+  updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
+  updatedById String?    @db.Uuid
+
+  @@map("platform_settings")
+}
+
+/// Actions of platform admins (not team-scoped, kept apart from team audit logs).
+model PlatformAuditLog {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  adminUserId String   @db.Uuid
+  action      String
+  targetType  String
+  targetId    String?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([createdAt(sort: Desc)])
+  @@map("platform_audit_logs")
 }
