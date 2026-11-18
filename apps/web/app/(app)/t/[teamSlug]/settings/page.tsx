@@ -1,18 +1,22 @@
 import type { Metadata } from 'next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AutonomyForm } from '@/features/settings/autonomy-form';
 import { DeleteTeamButton } from '@/features/settings/delete-team-button';
+import { NotificationPreferences } from '@/features/settings/notification-preferences';
 import { TeamSettingsForm } from '@/features/settings/team-settings-form';
 import { PageHeader } from '@/features/shell/page-header';
 import { roleLabel } from '@/lib/format';
 import { hasTeamPermission } from '@/server/domain/permissions';
 import { loadTeamPage } from '@/server/http/page';
+import { services } from '@/server/container';
 
 export const metadata: Metadata = { title: 'Settings' };
 
 export default async function SettingsPage({ params }: PageProps<'/t/[teamSlug]/settings'>) {
   const { teamSlug } = await params;
-  const { team } = await loadTeamPage(teamSlug);
+  const { user, team } = await loadTeamPage(teamSlug);
   const canUpdate = hasTeamPermission(team.role, 'team:update');
+  const [autonomy, preferences] = await Promise.all([services().autonomy.list(user.id, team.id), services().notifications.preferences(user.id, team.id)]);
 
   return (
     <>
@@ -32,6 +36,24 @@ export default async function SettingsPage({ params }: PageProps<'/t/[teamSlug]/
               Only owners and admins can change team settings.
             </p>
           )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Agent autonomy</CardTitle>
+          <CardDescription>What agents may do on their own when they need something from a teammate. Every agent request is audited.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AutonomyForm teamId={team.id} policy={autonomy.teamDefault} editable={hasTeamPermission(team.role, 'settings:manage')} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>My notifications</CardTitle>
+          <CardDescription>How you are told about events in this team.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <NotificationPreferences teamId={team.id} initial={preferences} />
         </CardContent>
       </Card>
       {hasTeamPermission(team.role, 'team:delete') ? (
