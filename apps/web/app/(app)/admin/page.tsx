@@ -1,5 +1,4 @@
 import { Bot, FolderGit2, GitMerge, Inbox, Laptop, Library, UserPlus, Users, Users2 } from 'lucide-react';
-import type { Metadata } from 'next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SignupModeSelect } from '@/features/admin/controls';
 import { StatCard } from '@/features/dashboard/stat-card';
@@ -10,8 +9,6 @@ import { db } from '@/server/infrastructure/database';
 import { redis } from '@/server/infrastructure/redis';
 import { bucketExists } from '@/server/infrastructure/storage';
 import { checkHealth } from '@/server/services/health.service';
-
-export const metadata: Metadata = { title: 'Platform admin' };
 
 export default async function AdminOverviewPage() {
   const user = await requireUser();

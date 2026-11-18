@@ -1,8 +1,16 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { requireUser } from '@/server/auth/session';
+import type { Metadata } from 'next';
+import { getCurrentUser, requireUser } from '@/server/auth/session';
 import { services } from '@/server/container';
+
+/** The title must not reveal the console to non-admins (they get a 404 page). */
+export async function generateMetadata(): Promise<Metadata> {
+  const user = await getCurrentUser();
+  const admin = user ? await services().platform.isAdmin(user.id) : false;
+  return admin ? { title: 'Platform admin', robots: { index: false } } : { title: 'Not found', robots: { index: false } };
+}
 
 /** Platform owner console. Hidden (404) for everyone who is not a verified platform admin. */
 export default async function AdminLayout({ children }: { children: ReactNode }) {

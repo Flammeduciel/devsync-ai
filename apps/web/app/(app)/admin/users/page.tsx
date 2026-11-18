@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SuspendButton } from '@/features/admin/controls';
@@ -6,8 +5,6 @@ import { PageHeader } from '@/features/shell/page-header';
 import { timeAgo } from '@/lib/format';
 import { requireUser } from '@/server/auth/session';
 import { services } from '@/server/container';
-
-export const metadata: Metadata = { title: 'Users · Platform admin' };
 
 export default async function AdminUsersPage({ searchParams }: PageProps<'/admin/users'>) {
   const user = await requireUser();

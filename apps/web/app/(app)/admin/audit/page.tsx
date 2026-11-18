@@ -1,11 +1,8 @@
-import type { Metadata } from 'next';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/features/shell/page-header';
 import { actionLabel, timeAgo } from '@/lib/format';
 import { requireUser } from '@/server/auth/session';
 import { services } from '@/server/container';
-
-export const metadata: Metadata = { title: 'Audit log · Platform admin' };
 
 export default async function AdminAuditPage() {
   const user = await requireUser();
