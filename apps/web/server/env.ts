@@ -10,6 +10,11 @@ const serverEnvSchema = z.object({
   ...authEnv,
   REALTIME_URL: z.url(),
   REALTIME_JWT_SECRET: z.string().min(32),
+  SMTP_HOST: z.string().min(1),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  EMAIL_FROM: z.string().min(3),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
