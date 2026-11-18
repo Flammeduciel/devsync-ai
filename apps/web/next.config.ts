@@ -1,4 +1,9 @@
+import { loadEnvConfig } from '@next/env';
+import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
+
+// The monorepo keeps a single .env at the root.
+loadEnvConfig(fileURLToPath(new URL('../..', import.meta.url)));
 
 const nextConfig: NextConfig = {
   // Workspace packages ship TypeScript sources.
