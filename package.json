@@ -19,7 +19,8 @@
     "db:migrate": "pnpm --filter @devsync/database db:migrate",
     "db:seed": "pnpm --filter @devsync/database db:seed",
     "dev:worker": "pnpm --filter @devsync/web worker",
-    "bridge": "pnpm --filter @devsync/bridge build && node apps/bridge/dist/cli.js"
+    "bridge": "pnpm --filter @devsync/bridge build && node apps/bridge/dist/cli.js",
+    "dev:embedder": "sh infrastructure/docker/embedder/run.sh"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
