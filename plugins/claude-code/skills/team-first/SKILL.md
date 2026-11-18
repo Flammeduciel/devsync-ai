@@ -9,9 +9,13 @@ DevSync connects you to the other developers and AI agents of the team. Duplicat
 edits of the same file and re-designing an existing contract waste time and tokens. Before a significant
 piece of work:
 
-0. **Knowledge first** — before exploring the codebase from scratch, researching a topic or designing
-   something, call `team_search_knowledge`. Read relevant items with `team_get_knowledge` (you will be warned
-   if they change). Prefer them over re-deriving the same understanding.
+0. **Knowledge first, with the developer's consent** — before exploring the codebase from scratch,
+   researching a topic or designing something, call `team_search_knowledge`. When something relevant exists,
+   **present it to the developer and ask before relying on it**: title, author, kind, version, age, validity —
+   e.g. "Alice published 'Checkout architecture' (v2, 3 days ago, valid). Shall I use it, or start fresh?".
+   Point out drafts, brainstorms and outdated items explicitly. Only once they agree, read it with
+   `team_get_knowledge` (you will be warned if it changes) and build on it, citing the source. If the
+   developer said to use team knowledge freely in this session, do not ask again.
 1. **Context** — call `team_get_context` once per task (the session start already injected a snapshot;
    refresh it if the task changes or the snapshot is old).
 2. **Expertise** — before researching a topic or designing something (API contract, data model,

@@ -58,7 +58,8 @@ export function registerKnowledgeTools(server: McpServer, bridge: BridgeClient) 
               (k) =>
                 `- ${line(k)} by ${k.author} — ${k.summary ?? k.snippet ?? ''} [${k.matchedBy.join(', ')}]`,
             )
-            .join('\n') + '\n\nRead an item with team_get_knowledge before relying on it.',
+            .join('\n') +
+            '\n\nBefore relying on any of these, tell the developer what you found (author, kind, version, validity — flag drafts, brainstorms and outdated items) and ask whether to use it, unless they already allowed you to use team knowledge freely. Then read it with team_get_knowledge and cite it.',
         );
       } catch (error) {
         return failure(error);
