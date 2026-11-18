@@ -209,6 +209,7 @@ model User {
   attachments             Attachment[]
   knowledge               Knowledge[]
   knowledgeVersions       KnowledgeVersion[]
+  knowledgeUsages         KnowledgeUsage[]
   notifications           Notification[]
   notificationPreferences NotificationPreference[]
   auditLogs               AuditLog[]
@@ -301,6 +302,7 @@ model Team {
   knowledge               Knowledge[]
   knowledgeVersions       KnowledgeVersion[]
   knowledgeTags           KnowledgeTag[]
+  knowledgeUsages         KnowledgeUsage[]
   resourceClaims          ResourceClaim[]
   gitActivities           GitActivity[]
   gitConflicts            GitConflict[]
@@ -868,6 +870,7 @@ model Knowledge {
 
   versions KnowledgeVersion[]
   tags     KnowledgeTag[]
+  usages   KnowledgeUsage[]
 
   @@unique([id, teamId])
   @@index([teamId, projectId, validity])
@@ -901,6 +904,26 @@ model KnowledgeVersion {
 
   @@unique([knowledgeId, version])
   @@map("knowledge_versions")
+}
+
+/// Who relies on which version of a knowledge item (read by an agent or a developer). When a new version
+/// is published or the item is marked outdated/deprecated, these users are told their basis changed.
+model KnowledgeUsage {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  teamId      String   @db.Uuid
+  knowledgeId String   @db.Uuid
+  userId      String   @db.Uuid
+  agentId     String?  @db.Uuid
+  version     Int
+  lastUsedAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  knowledge Knowledge @relation(fields: [knowledgeId, teamId], references: [id, teamId], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([knowledgeId, userId])
+  @@index([teamId, userId])
+  @@map("knowledge_usages")
 }
 
 /// Tag assignment. Tags are free-form, normalized lowercase strings scoped by team (no separate Tag table needed).
