@@ -2,7 +2,6 @@ import type { Db } from '@devsync/database';
 import { AppError } from '@devsync/shared';
 import {
   heartbeatSchema,
-  normalizeRemoteUrl,
   publishActivitySchema,
   registerSessionSchema,
   type AgentStatus,
@@ -12,11 +11,10 @@ import {
 } from '@devsync/validation';
 import { aggregateAgentStatus, SESSION_STALE_AFTER_MS } from '../domain/agent-status';
 import { hasTeamPermission } from '../domain/permissions';
-import { projectAccess } from '../domain/project-access';
 import { agentsRepository } from '../repositories/agents.repository';
-import { membersRepository } from '../repositories/members.repository';
 import { projectsRepository } from '../repositories/projects.repository';
 import { requireTeamMember } from './access.service';
+import { resolveDeviceProject } from './device-project.service';
 import type { DeviceActor } from './devices.service';
 import { withEvents, type DraftEvent } from './events.service';
 import { clock, type ServiceDeps } from './ports';
@@ -33,7 +31,7 @@ export class AgentsService {
 
   async registerSession(device: DeviceActor, rawInput: RegisterSessionInput) {
     const input = registerSessionSchema.parse(rawInput);
-    const projectId = await this.resolveProject(device, input.projectId, input.repositoryRemote);
+    const projectId = (await resolveDeviceProject(this.deps, device, { projectId: input.projectId, remote: input.repositoryRemote }))?.projectId ?? null;
     const now = clock(this.deps);
 
     return withEvents(this.deps, async (tx, emit) => {
@@ -340,34 +338,5 @@ export class AgentsService {
 
   private actor(device: DeviceActor, agentId: string) {
     return { type: 'AGENT' as const, userId: device.userId, agentId };
-  }
-
-  /** The project must belong to the device's team and be accessible to its owner. */
-  private async resolveProject(
-    device: DeviceActor,
-    projectId?: string,
-    remote?: string,
-  ): Promise<string | null> {
-    const membership = await membersRepository.find(this.deps.db, device.teamId, device.userId);
-    if (!membership)
-      throw new AppError('UNAUTHENTICATED', 'Device owner is no longer a team member');
-    const canAccess = async (id: string) => {
-      const project = await projectsRepository.findActiveById(this.deps.db, id);
-      if (!project || project.teamId !== device.teamId) return false;
-      const member = await projectsRepository.findProjectMember(this.deps.db, id, device.userId);
-      return projectAccess(membership.role, member?.role ?? null) !== 'none';
-    };
-    if (projectId) {
-      if (!(await canAccess(projectId))) throw new AppError('NOT_FOUND', 'Project not found');
-      return projectId;
-    }
-    const normalized = remote ? normalizeRemoteUrl(remote) : null;
-    if (!normalized) return null;
-    const repositories = await this.deps.db.repository.findMany({
-      where: { teamId: device.teamId, remoteUrl: normalized, deletedAt: null },
-      select: { projectId: true },
-    });
-    for (const repo of repositories) if (await canAccess(repo.projectId)) return repo.projectId;
-    return null;
   }
 }
