@@ -2,6 +2,8 @@ import 'server-only';
 import { getDatabase } from '@devsync/database';
 import { newId } from '@devsync/shared';
 import { betterAuth } from 'better-auth';
+import { APIError } from 'better-auth/api';
+import { canSignUp, parseAdminEmails } from '../domain/platform';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { nextCookies } from 'better-auth/next-js';
 import { serverEnv } from '../env';
@@ -56,6 +58,34 @@ function createAuth() {
             'This link expires in one hour. If you did not ask for it, ignore this email.',
           ].join('\n'),
         });
+      },
+    },
+    emailVerification: {
+      sendOnSignUp: true,
+      autoSignInAfterVerification: true,
+      sendVerificationEmail: async ({ user, url }) => {
+        await mailer().send({
+          to: user.email,
+          subject: 'Verify your email for DevSync AI',
+          text: [`Hi ${user.name},`, '', `Confirm your email address: ${url}`, '', 'If you did not create an account, ignore this email.'].join('\n'),
+        });
+      },
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          // Instance sign-up policy (platform admin console): open, invitation only or closed.
+          before: async (user) => {
+            const settings = await getDatabase().platformSettings.findUnique({ where: { id: 'platform' } });
+            const email = String(user.email ?? '').toLowerCase();
+            const hasPendingInvitation = !!(await getDatabase().teamInvitation.findFirst({
+              where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
+              select: { id: true },
+            }));
+            const decision = canSignUp(settings?.signupMode ?? 'OPEN', email, { adminEmails: parseAdminEmails(process.env.PLATFORM_ADMIN_EMAILS), hasPendingInvitation });
+            if (!decision.allowed) throw new APIError('FORBIDDEN', { message: decision.reason, code: 'SIGNUP_RESTRICTED' });
+          },
+        },
       },
     },
     advanced: {
