@@ -2,6 +2,7 @@ export * from './agents';
 export * from './auth';
 export * from './collaboration';
 export * from './enums';
+export * from './git';
 export * from './knowledge';
 export * from './primitives';
 export * from './projects';
