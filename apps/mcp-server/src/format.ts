@@ -1,4 +1,4 @@
-import type { ActivityEntry, ClaimInfo, Expert, InboxItem, TeamContext } from '@devsync/sdk';
+import type { ActivityEntry, ClaimInfo, DeliveredItem, DependencyGraph, Expert, InboxItem, RequestDetail, TeamContext } from '@devsync/sdk';
 
 const ago = (iso: string) => {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -76,4 +76,43 @@ export function formatContext(ctx: TeamContext): string {
   lines.push('', '## Claimed resources', formatClaims(ctx.claims));
   lines.push('', '## Recent activity', formatActivity(ctx.recentActivity));
   return lines.join('\n');
+}
+
+export function formatDelivered(items: DeliveredItem[]): string {
+  if (items.length === 0) return '';
+  return [
+    'Delivered to you (read with team_read_deliverable):',
+    ...items.flatMap((d) => [
+      `- "${d.title}" (${d.project.name}) by ${d.assigneeUser?.name ?? '?'} — request ${d.id}`,
+      ...d.deliverables.map((x) => `  · ${x.format.toLowerCase()} "${x.title}" v${x.currentVersion} (deliverableId ${x.id})`),
+    ]),
+  ].join('\n');
+}
+
+export function formatRequest(r: RequestDetail): string {
+  const lines = [
+    `# ${r.title}`,
+    `${r.type.toLowerCase()} · ${r.priority} · status ${r.status}${r.awaitingApproval ? ' (awaiting a developer approval)' : ''} · project ${r.project.name}`,
+    `From ${r.initiatorAgent ? `${r.createdBy.name}'s agent` : r.createdBy.name} → ${r.assigneeUser?.name ?? '?'}${r.assigneeAgent ? ` (agent ${r.assigneeAgent.name})` : ''}`,
+    `Your role: ${r.yourRoles.join(', ') || 'observer'} · actions available to you: ${r.availableActions.join(', ') || 'none'}`,
+    '',
+    r.description,
+  ];
+  if (r.instructions) lines.push('', '## Instructions', r.instructions);
+  if (r.expectedDeliverables.length) lines.push('', '## Expected deliverables', ...r.expectedDeliverables.map((d) => `- ${d.title} (${d.format})${d.description ? ` — ${d.description}` : ''}`));
+  if (r.comments.length) lines.push('', '## Conversation', ...r.comments.map((c) => `- ${c.author}: ${c.body}`));
+  if (r.deliverables.length) lines.push('', '## Deliverables', ...r.deliverables.map((d) => `- ${d.status.toLowerCase()} ${d.format.toLowerCase()} "${d.title}" v${d.currentVersion} by ${d.by} (deliverableId ${d.id})`));
+  if (r.tasks.length) lines.push('', `Tasks: ${r.tasks.map((t) => `${t.title} [${t.status}] (taskId ${t.id})`).join('; ')}`);
+  return lines.join('\n');
+}
+
+export function formatDependencies(g: DependencyGraph): string {
+  const line = (e: DependencyGraph['blockedBy'][number]) => `- [${e.status.toLowerCase()}] ${e.task.title} (${e.task.status.toLowerCase()}, taskId ${e.task.id}${e.task.requestId ? `, request ${e.task.requestId}` : ''})`;
+  return [
+    `Tasks: ${g.tasks.map((t) => `${t.title} [${t.status}]`).join('; ')}`,
+    'Blocked by:',
+    ...(g.blockedBy.length ? g.blockedBy.map(line) : ['- nothing']),
+    'Blocking:',
+    ...(g.blocking.length ? g.blocking.map(line) : ['- nothing']),
+  ].join('\n');
 }

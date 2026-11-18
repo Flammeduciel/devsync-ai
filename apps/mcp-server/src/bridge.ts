@@ -1,7 +1,25 @@
 import { callBridge, type BridgeError } from '@devsync/sdk';
 
 export type ApiOperation =
-  'context' | 'searchAgents' | 'activity' | 'experts' | 'inbox' | 'claim' | 'releaseClaim';
+  | 'context'
+  | 'searchAgents'
+  | 'activity'
+  | 'experts'
+  | 'inbox'
+  | 'claim'
+  | 'releaseClaim'
+  | 'createRequest'
+  | 'getRequest'
+  | 'requestAction'
+  | 'comment'
+  | 'requestDependencies'
+  | 'taskDependencies'
+  | 'createDeliverable'
+  | 'addDeliverableVersion'
+  | 'publishDeliverable'
+  | 'readDeliverable'
+  | 'uploadDeliverableFile'
+  | 'broadcast';
 
 export interface BridgeClient {
   api<T>(operation: ApiOperation, params?: Record<string, unknown>): Promise<T>;

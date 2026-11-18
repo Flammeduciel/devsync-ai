@@ -53,18 +53,29 @@ const textOf = (result: Awaited<ReturnType<Client['callTool']>>) =>
   (result.content as { text: string }[])[0]!.text;
 
 describe('DevSync MCP server', () => {
-  it('lists the Phase 3 tools with descriptions and schemas', async () => {
+  it('lists every team tool with descriptions and schemas', async () => {
     const client = await connect({ api: async () => ({}), call: async () => ({}) } as BridgeClient);
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
+      'team_ask_agent',
+      'team_broadcast',
       'team_claim_resource',
+      'team_create_request',
       'team_find_expert',
       'team_get_activity',
       'team_get_context',
+      'team_get_dependencies',
       'team_get_inbox',
+      'team_get_request',
+      'team_publish_deliverable',
+      'team_read_deliverable',
       'team_release_resource',
+      'team_request_clarification',
       'team_search_agents',
       'team_set_status',
+      'team_submit_deliverable',
+      'team_suggest_collaboration',
+      'team_update_request',
     ]);
     expect(tools.every((t) => (t.description ?? '').length > 40)).toBe(true);
     expect(tools.find((t) => t.name === 'team_claim_resource')?.inputSchema.required).toEqual([
@@ -130,6 +141,30 @@ describe('DevSync MCP server', () => {
     const result = await client.callTool({ name: 'team_get_inbox', arguments: {} });
     expect(result.isError).toBe(true);
     expect(textOf(result)).toContain('devsync start');
+  });
+
+  it('creates requests, reports approval holds and duplicates', async () => {
+    const calls: [string, Record<string, unknown>][] = [];
+    const summary = { id: 'r1', status: 'PENDING', awaitingApproval: false, createdBy: { name: 'Bob' }, assigneeUser: { name: 'Alice' }, assigneeAgent: { name: 'claude-code' }, availableActions: [] };
+    const client = await connect({ api: async (op: string, p: Record<string, unknown>) => (calls.push([op, p]), summary), call: async () => ({}) } as unknown as BridgeClient);
+    const sent = textOf(await client.callTool({ name: 'team_create_request', arguments: { type: 'WORK', title: 'Payment API contract', description: 'Need POST /payments', assigneeAgentId: '01a1ee8d-715d-7b0d-8f27-918b280a01ce' } }));
+    expect(sent).toContain("sent to Alice's agent");
+    await client.callTool({ name: 'team_suggest_collaboration', arguments: { type: 'REVIEW', title: 'Review webhook', description: 'x', assigneeUserId: '01a1ee8d-715d-7b0d-8f27-918b280a01ce' } });
+    expect(calls[1]![1]).toMatchObject({ suggestOnly: true });
+
+    const duplicate = Object.assign(new Error('The same request is already open'), { status: 409, details: { requestId: 'r0' } });
+    const dupClient = await connect({ api: async () => { throw duplicate; }, call: async () => ({}) } as BridgeClient);
+    const dup = await dupClient.callTool({ name: 'team_create_request', arguments: { type: 'WORK', title: 'Payment API contract', description: 'x', assigneeUserId: '01a1ee8d-715d-7b0d-8f27-918b280a01ce' } });
+    expect(textOf(dup)).toContain('Existing request: r0');
+  });
+
+  it('submits inline content, then tells the agent to publish', async () => {
+    const calls: [string, Record<string, unknown>][] = [];
+    const client = await connect({ api: async (op: string, p: Record<string, unknown>) => (calls.push([op, p]), op === 'createDeliverable' ? { id: 'd1' } : { version: 1 }), call: async () => ({}) } as unknown as BridgeClient);
+    const result = textOf(await client.callTool({ name: 'team_submit_deliverable', arguments: { requestId: '01a1ee8d-715d-7b0d-8f27-918b280a01ce', title: 'Payments OpenAPI', format: 'OPENAPI', content: 'openapi: 3.1.0' } }));
+    expect(calls.map((c) => c[0])).toEqual(['createDeliverable', 'addDeliverableVersion']);
+    expect(calls[1]![1]).toMatchObject({ deliverableId: 'd1', kind: 'inline' });
+    expect(result).toContain('team_publish_deliverable');
   });
 
   it('rejects invalid arguments before calling the Bridge', async () => {
