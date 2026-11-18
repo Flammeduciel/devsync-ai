@@ -13,16 +13,22 @@ import { createLocalEmbeddings } from './infrastructure/embeddings';
 import { logger } from './infrastructure/logger';
 import { EMBEDDINGS_QUEUE, jobs, MAINTENANCE_QUEUE } from './jobs/queues';
 
-const roles = new Set((process.env.WORKER_ROLES ?? 'maintenance,embeddings').split(',').map((r) => r.trim()));
+const roles = new Set(
+  (process.env.WORKER_ROLES ?? 'maintenance,embeddings').split(',').map((r) => r.trim()),
+);
 const connection = new Redis(serverEnv().REDIS_URL, { maxRetriesPerRequest: null });
 const closers: (() => Promise<void>)[] = [];
 
 if (roles.has('maintenance')) {
   const queue = new Queue(MAINTENANCE_QUEUE, { connection });
-  await queue.upsertJobScheduler(jobs.sweepStaleSessions.name, { every: jobs.sweepStaleSessions.everyMs }, {
-    name: jobs.sweepStaleSessions.name,
-    opts: { removeOnComplete: 100, removeOnFail: 500 },
-  });
+  await queue.upsertJobScheduler(
+    jobs.sweepStaleSessions.name,
+    { every: jobs.sweepStaleSessions.everyMs },
+    {
+      name: jobs.sweepStaleSessions.name,
+      opts: { removeOnComplete: 100, removeOnFail: 500 },
+    },
+  );
   const worker = new Worker(
     MAINTENANCE_QUEUE,
     async (job) => {
@@ -35,7 +41,10 @@ if (roles.has('maintenance')) {
     { connection, concurrency: 1 },
   );
   worker.on('failed', (job, error) => logger.error({ job: job?.name, err: error }, 'job failed'));
-  closers.push(() => worker.close(), () => queue.close());
+  closers.push(
+    () => worker.close(),
+    () => queue.close(),
+  );
   logger.info('maintenance role started');
 }
 
@@ -46,7 +55,11 @@ if (roles.has('embeddings')) {
     await provider.embedQuery('warm up'); // downloads the model on first run
     logger.info({ model: provider.model, ms: Date.now() - started }, 'embedding model ready');
     const queue = new Queue(EMBEDDINGS_QUEUE, { connection });
-    await queue.upsertJobScheduler(jobs.embedPending.name, { every: jobs.embedPending.everyMs }, { name: jobs.embedPending.name, opts: { removeOnComplete: 50, removeOnFail: 100 } });
+    await queue.upsertJobScheduler(
+      jobs.embedPending.name,
+      { every: jobs.embedPending.everyMs },
+      { name: jobs.embedPending.name, opts: { removeOnComplete: 50, removeOnFail: 100 } },
+    );
     const worker = new Worker(
       EMBEDDINGS_QUEUE,
       async (job) => {
@@ -64,12 +77,20 @@ if (roles.has('embeddings')) {
       },
       { connection, concurrency: 2 },
     );
-    worker.on('failed', (job, error) => logger.error({ job: job?.name, err: error }, 'embedding job failed'));
-    closers.push(() => worker.close(), () => queue.close());
+    worker.on('failed', (job, error) =>
+      logger.error({ job: job?.name, err: error }, 'embedding job failed'),
+    );
+    closers.push(
+      () => worker.close(),
+      () => queue.close(),
+    );
     logger.info('embeddings role started');
   } catch (error) {
     // Without a worker on the queue, search transparently falls back to full-text.
-    logger.error({ err: (error as Error).message }, 'embedding model unavailable on this platform: semantic search disabled (run `pnpm dev:embedder`)');
+    logger.error(
+      { err: (error as Error).message },
+      'embedding model unavailable on this platform: semantic search disabled (run `pnpm dev:embedder`)',
+    );
   }
 }
 

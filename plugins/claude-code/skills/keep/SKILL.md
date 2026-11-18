@@ -2,8 +2,12 @@
 disable-model-invocation: true
 name: keep
 description: Save this session's result privately so the developer's future sessions can find it, without sharing it with the team
-argument-hint: "[what to keep]"
-allowed-tools: [mcp__plugin_devsync_devsync__team_publish_knowledge, mcp__plugin_devsync_devsync__team_search_knowledge]
+argument-hint: '[what to keep]'
+allowed-tools:
+  [
+    mcp__plugin_devsync_devsync__team_publish_knowledge,
+    mcp__plugin_devsync_devsync__team_search_knowledge,
+  ]
 ---
 
 # Keep for myself

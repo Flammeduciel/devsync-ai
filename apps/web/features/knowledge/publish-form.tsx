@@ -10,13 +10,28 @@ import { NativeSelect } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { publishKnowledgeAction } from './actions';
 
-const KINDS = ['DOCUMENTATION', 'DECISION', 'API_CONTRACT', 'SOLUTION', 'ANALYSIS', 'INSTRUCTION', 'BRAINSTORM'];
+const KINDS = [
+  'DOCUMENTATION',
+  'DECISION',
+  'API_CONTRACT',
+  'SOLUTION',
+  'ANALYSIS',
+  'INSTRUCTION',
+  'BRAINSTORM',
+];
 
-export function PublishKnowledgeForm({ teamSlug, projects }: { teamSlug: string; projects: { id: string; name: string }[] }) {
+export function PublishKnowledgeForm({
+  teamSlug,
+  projects,
+}: {
+  teamSlug: string;
+  projects: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  if (projects.length === 0) return <p className="text-sm text-muted-foreground">You need write access to a project.</p>;
+  if (projects.length === 0)
+    return <p className="text-sm text-muted-foreground">You need write access to a project.</p>;
   return (
     <form
       className="grid gap-3"
@@ -30,7 +45,10 @@ export function PublishKnowledgeForm({ teamSlug, projects }: { teamSlug: string;
             title: String(f.get('title')),
             summary: String(f.get('summary')) || undefined,
             content: String(f.get('content')),
-            tags: String(f.get('tags')).split(',').map((t) => t.trim()).filter(Boolean),
+            tags: String(f.get('tags'))
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean),
             visibility: f.get('private') ? 'PRIVATE' : 'PROJECT',
           });
           if (!r.ok) {
@@ -66,7 +84,12 @@ export function PublishKnowledgeForm({ teamSlug, projects }: { teamSlug: string;
         <Input id="k-title" name="title" required minLength={3} maxLength={200} />
       </FormField>
       <FormField id="k-summary" label="Summary">
-        <Input id="k-summary" name="summary" maxLength={1000} placeholder="One sentence shown in search results" />
+        <Input
+          id="k-summary"
+          name="summary"
+          maxLength={1000}
+          placeholder="One sentence shown in search results"
+        />
       </FormField>
       <FormField id="k-content" label="Content (Markdown)" error={errors.content}>
         <Textarea id="k-content" name="content" required rows={8} />

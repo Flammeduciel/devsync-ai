@@ -10,5 +10,12 @@ export const GET = handler(async (request: Request) => {
   const query = readQuery(request);
   const teamId = teamOf(resolved, typeof query.teamId === 'string' ? query.teamId : null);
   const tags = query.tags === undefined ? undefined : ([] as string[]).concat(query.tags);
-  return json(await services().knowledge.search(resolved.actor, teamId, searchKnowledgeSchema.parse({ ...query, tags }), resolved.device ?? undefined));
+  return json(
+    await services().knowledge.search(
+      resolved.actor,
+      teamId,
+      searchKnowledgeSchema.parse({ ...query, tags }),
+      resolved.device ?? undefined,
+    ),
+  );
 });

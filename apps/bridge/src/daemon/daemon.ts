@@ -218,10 +218,22 @@ export async function runDaemon(
       const { remote: _remote, ...query } = p;
       return api.listKnowledge(query);
     },
-    getKnowledge: (p) => api.getKnowledge(String(p.knowledgeId), typeof p.version === 'number' ? p.version : undefined),
+    getKnowledge: (p) =>
+      api.getKnowledge(
+        String(p.knowledgeId),
+        typeof p.version === 'number' ? p.version : undefined,
+      ),
     publishKnowledge: (p) => api.publishKnowledge(p),
-    setKnowledgeVisibility: (p) => api.setKnowledgeVisibility(String(p.knowledgeId), p.visibility === 'PRIVATE' ? 'PRIVATE' : 'PROJECT'),
-    setKnowledgeValidity: (p) => api.setKnowledgeValidity(String(p.knowledgeId), { validity: String(p.validity), ...(p.reason ? { reason: String(p.reason) } : {}) }),
+    setKnowledgeVisibility: (p) =>
+      api.setKnowledgeVisibility(
+        String(p.knowledgeId),
+        p.visibility === 'PRIVATE' ? 'PRIVATE' : 'PROJECT',
+      ),
+    setKnowledgeValidity: (p) =>
+      api.setKnowledgeValidity(String(p.knowledgeId), {
+        validity: String(p.validity),
+        ...(p.reason ? { reason: String(p.reason) } : {}),
+      }),
     promoteDeliverable: (p) => api.promoteDeliverable(p as { deliverableId: string }),
     /** Reads a project file locally, registers an upload version and sends the bytes to storage. */
     uploadDeliverableFile: async (p) => {

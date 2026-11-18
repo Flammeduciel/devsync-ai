@@ -1,4 +1,13 @@
-import { Bell, BookOpen, Bot, FolderGit2, Handshake, LayoutDashboard, Settings, Users } from 'lucide-react';
+import {
+  Bell,
+  BookOpen,
+  Bot,
+  FolderGit2,
+  Handshake,
+  LayoutDashboard,
+  Settings,
+  Users,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from './nav-link';
 import { TeamSwitcher } from './team-switcher';

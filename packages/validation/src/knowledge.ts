@@ -2,7 +2,16 @@ import { z } from 'zod';
 import { idSchema } from './primitives';
 import { projectLocatorSchema } from './team';
 
-export const knowledgeKindSchema = z.enum(['DECISION', 'BRAINSTORM', 'DOCUMENTATION', 'API_CONTRACT', 'SOLUTION', 'ANALYSIS', 'INSTRUCTION', 'DELIVERABLE']);
+export const knowledgeKindSchema = z.enum([
+  'DECISION',
+  'BRAINSTORM',
+  'DOCUMENTATION',
+  'API_CONTRACT',
+  'SOLUTION',
+  'ANALYSIS',
+  'INSTRUCTION',
+  'DELIVERABLE',
+]);
 export type KnowledgeKind = z.infer<typeof knowledgeKindSchema>;
 
 export const knowledgeValiditySchema = z.enum(['DRAFT', 'VALID', 'OUTDATED', 'DEPRECATED']);

@@ -21,7 +21,13 @@ export function KnowledgeSearchBox() {
         go(next);
       }}
     >
-      <Input name="q" aria-label="Search knowledge" defaultValue={params.get('q') ?? ''} placeholder="Search by words or meaning, e.g. « format des montants »" className="flex-1" />
+      <Input
+        name="q"
+        aria-label="Search knowledge"
+        defaultValue={params.get('q') ?? ''}
+        placeholder="Search by words or meaning, e.g. « format des montants »"
+        className="flex-1"
+      />
       <NativeSelect
         aria-label="Filter"
         value={params.get('filter') ?? ''}

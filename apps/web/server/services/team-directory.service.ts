@@ -81,12 +81,31 @@ export class TeamDirectoryService {
       recentKnowledge: resolved
         ? (
             await this.deps.db.knowledge.findMany({
-              where: { projectId: resolved.projectId, deletedAt: null, validity: { in: ['VALID', 'DRAFT'] }, OR: [{ visibility: 'PROJECT' }, { authorUserId: device.userId }] },
-              select: { id: true, title: true, kind: true, visibility: true, currentVersion: true, publishedAt: true },
+              where: {
+                projectId: resolved.projectId,
+                deletedAt: null,
+                validity: { in: ['VALID', 'DRAFT'] },
+                OR: [{ visibility: 'PROJECT' }, { authorUserId: device.userId }],
+              },
+              select: {
+                id: true,
+                title: true,
+                kind: true,
+                visibility: true,
+                currentVersion: true,
+                publishedAt: true,
+              },
               orderBy: { publishedAt: 'desc' },
               take: 8,
             })
-          ).map((k) => ({ id: k.id, title: k.title, kind: k.kind, private: k.visibility === 'PRIVATE', version: k.currentVersion, publishedAt: k.publishedAt }))
+          ).map((k) => ({
+            id: k.id,
+            title: k.title,
+            kind: k.kind,
+            private: k.visibility === 'PRIVATE',
+            version: k.currentVersion,
+            publishedAt: k.publishedAt,
+          }))
         : [],
     };
   }

@@ -53,7 +53,11 @@ export class KnowledgeService {
     private readonly deliverables?: DeliverablesService,
   ) {}
 
-  async publish(actor: Actor, rawInput: PublishKnowledgeInput, device?: { teamId: string; machineId: string; userId: string }) {
+  async publish(
+    actor: Actor,
+    rawInput: PublishKnowledgeInput,
+    device?: { teamId: string; machineId: string; userId: string },
+  ) {
     const input = publishKnowledgeSchema.parse(rawInput);
     const db = this.deps.db;
     const now = clock(this.deps);
@@ -61,35 +65,67 @@ export class KnowledgeService {
     let projectId: string;
     let existing: Awaited<ReturnType<typeof db.knowledge.findFirst>> = null;
     if (input.knowledgeId) {
-      existing = await db.knowledge.findFirst({ where: { id: input.knowledgeId, deletedAt: null } });
-      if (!existing || !(await this.canSee(actor.userId, existing))) throw new AppError('NOT_FOUND', 'Knowledge not found');
-      if (existing.visibility !== input.visibility && existing.authorUserId !== actor.userId) throw new AppError('FORBIDDEN', 'Only the author can change who sees this');
+      existing = await db.knowledge.findFirst({
+        where: { id: input.knowledgeId, deletedAt: null },
+      });
+      if (!existing || !(await this.canSee(actor.userId, existing)))
+        throw new AppError('NOT_FOUND', 'Knowledge not found');
+      if (existing.visibility !== input.visibility && existing.authorUserId !== actor.userId)
+        throw new AppError('FORBIDDEN', 'Only the author can change who sees this');
       projectId = existing.projectId;
     } else if (device) {
       const resolved = await resolveDeviceProject(this.deps, device, input);
-      if (!resolved) throw new AppError('NOT_FOUND', 'No project matches this repository; pass projectId');
+      if (!resolved)
+        throw new AppError('NOT_FOUND', 'No project matches this repository; pass projectId');
       projectId = resolved.projectId;
     } else {
       if (!input.projectId) throw new AppError('VALIDATION_FAILED', 'projectId is required');
       projectId = input.projectId;
     }
-    if (!hasProjectAccess(await this.accessOf(actor.userId, projectId), 'write')) throw new AppError('NOT_FOUND', 'Project not found');
+    if (!hasProjectAccess(await this.accessOf(actor.userId, projectId), 'write'))
+      throw new AppError('NOT_FOUND', 'Project not found');
     const project = await projectsRepository.findActiveById(db, projectId);
     if (!project) throw new AppError('NOT_FOUND', 'Project not found');
 
     const version = (existing?.currentVersion ?? 0) + 1;
-    const searchText = [input.summary ?? '', input.tags.join(' '), input.content].filter(Boolean).join('\n').slice(0, 200_000);
+    const searchText = [input.summary ?? '', input.tags.join(' '), input.content]
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, 200_000);
 
     const result = await withEvents(this.deps, async (tx, emit) => {
       const knowledge = existing
         ? await tx.knowledge.update({
             where: { id: existing.id },
-            data: { title: input.title, kind: input.kind, validity: input.validity, visibility: input.visibility, currentVersion: version, searchText, publishedAt: now, embeddedAt: null, embeddingModel: null },
+            data: {
+              title: input.title,
+              kind: input.kind,
+              validity: input.validity,
+              visibility: input.visibility,
+              currentVersion: version,
+              searchText,
+              publishedAt: now,
+              embeddedAt: null,
+              embeddingModel: null,
+            },
           })
         : await tx.knowledge.create({
-            data: { teamId: project.teamId, projectId, kind: input.kind, title: input.title, validity: input.validity, visibility: input.visibility, currentVersion: 1, authorUserId: actor.userId, sourceAgentId: actorAgentId(actor), searchText, publishedAt: now },
+            data: {
+              teamId: project.teamId,
+              projectId,
+              kind: input.kind,
+              title: input.title,
+              validity: input.validity,
+              visibility: input.visibility,
+              currentVersion: 1,
+              authorUserId: actor.userId,
+              sourceAgentId: actorAgentId(actor),
+              searchText,
+              publishedAt: now,
+            },
           });
-      if (existing) await tx.$executeRaw`UPDATE "knowledge" SET "embedding" = NULL WHERE "id" = ${knowledge.id}::uuid`;
+      if (existing)
+        await tx.$executeRaw`UPDATE "knowledge" SET "embedding" = NULL WHERE "id" = ${knowledge.id}::uuid`;
       const versionRow = await tx.knowledgeVersion.create({
         data: {
           teamId: project.teamId,
@@ -104,38 +140,80 @@ export class KnowledgeService {
         },
       });
       await tx.knowledgeTag.deleteMany({ where: { knowledgeId: knowledge.id } });
-      if (input.tags.length) await tx.knowledgeTag.createMany({ data: input.tags.map((tag) => ({ teamId: project.teamId, knowledgeId: knowledge.id, tag })) });
+      if (input.tags.length)
+        await tx.knowledgeTag.createMany({
+          data: input.tags.map((tag) => ({
+            teamId: project.teamId,
+            knowledgeId: knowledge.id,
+            tag,
+          })),
+        });
       await this.emitPublished(tx, emit, knowledge, versionRow.id, input.tags, actor);
       if (existing && knowledge.visibility === 'PROJECT') {
-        await this.notifyReaders(tx, emit, knowledge, actor, `Updated: ${knowledge.title} (v${version - 1} → v${version})`, `knowledge-v${version}:${knowledge.id}`, 'A new version of something you relied on was published. Check what changed before continuing.');
+        await this.notifyReaders(
+          tx,
+          emit,
+          knowledge,
+          actor,
+          `Updated: ${knowledge.title} (v${version - 1} → v${version})`,
+          `knowledge-v${version}:${knowledge.id}`,
+          'A new version of something you relied on was published. Check what changed before continuing.',
+        );
       }
       return { knowledgeId: knowledge.id, version, projectId, visibility: knowledge.visibility };
     });
-    await (this.deps.jobs ?? noJobs).enqueue('embed-knowledge', { knowledgeId: result.knowledgeId }, { jobId: `embed:${result.knowledgeId}:v${version}` });
+    await (this.deps.jobs ?? noJobs).enqueue(
+      'embed-knowledge',
+      { knowledgeId: result.knowledgeId },
+      { jobId: `embed:${result.knowledgeId}:v${version}` },
+    );
     return result;
   }
 
   /** Full item. `trackUsage` records that this user (and agent) now relies on this version. */
-  async get(actor: Actor, knowledgeId: string, options: { version?: number; trackUsage?: boolean } = {}) {
+  async get(
+    actor: Actor,
+    knowledgeId: string,
+    options: { version?: number; trackUsage?: boolean } = {},
+  ) {
     const k = await this.deps.db.knowledge.findFirst({
       where: { id: knowledgeId, deletedAt: null },
-      include: { project: { select: { id: true, name: true } }, author: { select: { name: true } }, sourceAgent: { select: { name: true } }, tags: true },
+      include: {
+        project: { select: { id: true, name: true } },
+        author: { select: { name: true } },
+        sourceAgent: { select: { name: true } },
+        tags: true,
+      },
     });
-    if (!k || !(await this.canSee(actor.userId, k))) throw new AppError('NOT_FOUND', 'Knowledge not found');
+    if (!k || !(await this.canSee(actor.userId, k)))
+      throw new AppError('NOT_FOUND', 'Knowledge not found');
     const version = options.version ?? k.currentVersion;
     const v = await this.deps.db.knowledgeVersion.findUnique({
       where: { knowledgeId_version: { knowledgeId, version } },
-      include: { createdBy: { select: { name: true } }, createdByAgent: { select: { name: true } } },
+      include: {
+        createdBy: { select: { name: true } },
+        createdByAgent: { select: { name: true } },
+      },
     });
     if (!v) throw new AppError('NOT_FOUND', 'Version not found');
     if (options.trackUsage) {
       await this.deps.db.knowledgeUsage.upsert({
         where: { knowledgeId_userId: { knowledgeId, userId: actor.userId } },
-        create: { teamId: k.teamId, knowledgeId, userId: actor.userId, agentId: actorAgentId(actor), version },
+        create: {
+          teamId: k.teamId,
+          knowledgeId,
+          userId: actor.userId,
+          agentId: actorAgentId(actor),
+          version,
+        },
         update: { version, agentId: actorAgentId(actor), lastUsedAt: clock(this.deps) },
       });
     }
-    const versions = await this.deps.db.knowledgeVersion.findMany({ where: { knowledgeId }, select: { version: true, createdAt: true, createdBy: { select: { name: true } } }, orderBy: { version: 'desc' } });
+    const versions = await this.deps.db.knowledgeVersion.findMany({
+      where: { knowledgeId },
+      select: { version: true, createdAt: true, createdBy: { select: { name: true } } },
+      orderBy: { version: 'desc' },
+    });
     return {
       id: k.id,
       title: v.title,
@@ -148,21 +226,39 @@ export class KnowledgeService {
       currentVersion: k.currentVersion,
       content: v.content,
       summary: v.summary,
-      references: (Array.isArray(v.references) ? v.references : []) as { type: string; ref: string }[],
+      references: (Array.isArray(v.references) ? v.references : []) as {
+        type: string;
+        ref: string;
+      }[],
       isAuthor: k.authorUserId === actor.userId,
       author: k.sourceAgent ? `${k.author.name} (agent ${k.sourceAgent.name})` : k.author.name,
-      versionBy: v.createdByAgent ? `${v.createdBy.name} (agent ${v.createdByAgent.name})` : v.createdBy.name,
+      versionBy: v.createdByAgent
+        ? `${v.createdBy.name} (agent ${v.createdByAgent.name})`
+        : v.createdBy.name,
       publishedAt: k.publishedAt,
-      versions: versions.map((x) => ({ version: x.version, at: x.createdAt, by: x.createdBy.name })),
+      versions: versions.map((x) => ({
+        version: x.version,
+        at: x.createdAt,
+        by: x.createdBy.name,
+      })),
     };
   }
 
   /** Hybrid search: full-text + fuzzy title + semantic (when the embedder is available). */
-  async search(actor: Actor, teamId: string, rawInput: SearchKnowledgeInput, device?: { teamId: string; machineId: string; userId: string }) {
+  async search(
+    actor: Actor,
+    teamId: string,
+    rawInput: SearchKnowledgeInput,
+    device?: { teamId: string; machineId: string; userId: string },
+  ) {
     const input = searchKnowledgeSchema.parse(rawInput);
     let visible = await this.visibleProjectIds(actor.userId, teamId);
     if (input.projectId || input.remote) {
-      const scoped = device ? await resolveDeviceProject(this.deps, device, input) : input.projectId ? { projectId: input.projectId } : null;
+      const scoped = device
+        ? await resolveDeviceProject(this.deps, device, input)
+        : input.projectId
+          ? { projectId: input.projectId }
+          : null;
       if (scoped) visible = visible.filter((id) => id === scoped.projectId);
     }
     if (visible.length === 0) return { items: [], semantic: false };
@@ -176,7 +272,9 @@ export class KnowledgeService {
 
     const vector = await (this.deps.embedder ?? noEmbeddings).embedQuery(input.query);
     const vec = vector ? toVectorLiteral(vector) : null;
-    const cosineExpr = vec ? Prisma.sql`CASE WHEN k."embedding" IS NULL THEN NULL ELSE 1 - (k."embedding" <=> ${vec}::vector) END` : Prisma.sql`NULL::float8`;
+    const cosineExpr = vec
+      ? Prisma.sql`CASE WHEN k."embedding" IS NULL THEN NULL ELSE 1 - (k."embedding" <=> ${vec}::vector) END`
+      : Prisma.sql`NULL::float8`;
 
     const lexical = await this.deps.db.$queryRaw<Candidate[]>`
       WITH q AS (SELECT websearch_to_tsquery('simple', ${input.query}) AS tsq)
@@ -198,14 +296,31 @@ export class KnowledgeService {
     const merged = new Map<string, Candidate>();
     for (const c of [...lexical, ...semantic]) {
       const prev = merged.get(c.id);
-      merged.set(c.id, prev ? { ...prev, fts: Math.max(prev.fts, c.fts), cosine: prev.cosine ?? c.cosine, snippet: prev.snippet ?? c.snippet } : c);
+      merged.set(
+        c.id,
+        prev
+          ? {
+              ...prev,
+              fts: Math.max(prev.fts, c.fts),
+              cosine: prev.cosine ?? c.cosine,
+              snippet: prev.snippet ?? c.snippet,
+            }
+          : c,
+      );
     }
     const ranked = [...merged.values()]
       .filter((c) => c.fts > 0 || c.trgm > 0.2 || (c.cosine ?? 0) >= SEMANTIC_ONLY_MIN)
       .map((c) => {
         const sem = c.cosine === null ? 0 : semanticScore(c.cosine);
-        const score = (vec ? 0.5 * sem : 0) + (vec ? 0.35 : 0.7) * Math.min(1, c.fts * 5) + (vec ? 0.15 : 0.3) * c.trgm;
-        const reasons = [c.fts > 0 ? 'text match' : null, c.trgm > 0.2 ? 'similar title' : null, c.cosine !== null && c.cosine >= SEMANTIC_ONLY_MIN ? 'similar meaning' : null].filter(Boolean) as string[];
+        const score =
+          (vec ? 0.5 * sem : 0) +
+          (vec ? 0.35 : 0.7) * Math.min(1, c.fts * 5) +
+          (vec ? 0.15 : 0.3) * c.trgm;
+        const reasons = [
+          c.fts > 0 ? 'text match' : null,
+          c.trgm > 0.2 ? 'similar title' : null,
+          c.cosine !== null && c.cosine >= SEMANTIC_ONLY_MIN ? 'similar meaning' : null,
+        ].filter(Boolean) as string[];
         return { ...c, score, reasons };
       })
       .sort((a, b) => b.score - a.score)
@@ -214,7 +329,12 @@ export class KnowledgeService {
 
     const rows = await this.deps.db.knowledge.findMany({
       where: { id: { in: ranked.map((r) => r.id) } },
-      include: { project: { select: { name: true } }, author: { select: { name: true } }, tags: true, versions: { orderBy: { version: 'desc' }, take: 1, select: { summary: true } } },
+      include: {
+        project: { select: { name: true } },
+        author: { select: { name: true } },
+        tags: true,
+        versions: { orderBy: { version: 'desc' }, take: 1, select: { summary: true } },
+      },
     });
     const byId = new Map(rows.map((r) => [r.id, r]));
     return {
@@ -222,14 +342,33 @@ export class KnowledgeService {
       items: ranked.flatMap((r) => {
         const k = byId.get(r.id);
         if (!k) return [];
-        return [{ id: k.id, title: k.title, kind: k.kind, validity: k.validity, visibility: k.visibility, version: k.currentVersion, project: k.project.name, author: k.author.name, tags: k.tags.map((t) => t.tag), summary: k.versions[0]?.summary ?? null, snippet: r.snippet, score: Number(r.score.toFixed(3)), matchedBy: r.reasons, publishedAt: k.publishedAt }];
+        return [
+          {
+            id: k.id,
+            title: k.title,
+            kind: k.kind,
+            validity: k.validity,
+            visibility: k.visibility,
+            version: k.currentVersion,
+            project: k.project.name,
+            author: k.author.name,
+            tags: k.tags.map((t) => t.tag),
+            summary: k.versions[0]?.summary ?? null,
+            snippet: r.snippet,
+            score: Number(r.score.toFixed(3)),
+            matchedBy: r.reasons,
+            publishedAt: k.publishedAt,
+          },
+        ];
       }),
     };
   }
 
   async list(userId: string, teamId: string, rawInput: ListKnowledgeInput) {
     const input = listKnowledgeSchema.parse(rawInput);
-    const visible = (await this.visibleProjectIds(userId, teamId)).filter((id) => !input.projectId || id === input.projectId);
+    const visible = (await this.visibleProjectIds(userId, teamId)).filter(
+      (id) => !input.projectId || id === input.projectId,
+    );
     const rows = await this.deps.db.knowledge.findMany({
       where: {
         teamId,
@@ -242,43 +381,105 @@ export class KnowledgeService {
         ...(input.validity ? { validity: input.validity } : {}),
         ...(input.tag ? { tags: { some: { tag: input.tag } } } : {}),
       },
-      include: { project: { select: { name: true } }, author: { select: { name: true } }, tags: true, _count: { select: { usages: true } } },
+      include: {
+        project: { select: { name: true } },
+        author: { select: { name: true } },
+        tags: true,
+        _count: { select: { usages: true } },
+      },
       orderBy: { publishedAt: 'desc' },
       take: input.limit,
     });
-    return rows.map((k) => ({ id: k.id, title: k.title, kind: k.kind, validity: k.validity, visibility: k.visibility, version: k.currentVersion, project: k.project.name, author: k.author.name, tags: k.tags.map((t) => t.tag), readers: k._count.usages, publishedAt: k.publishedAt }));
+    return rows.map((k) => ({
+      id: k.id,
+      title: k.title,
+      kind: k.kind,
+      validity: k.validity,
+      visibility: k.visibility,
+      version: k.currentVersion,
+      project: k.project.name,
+      author: k.author.name,
+      tags: k.tags.map((t) => t.tag),
+      readers: k._count.usages,
+      publishedAt: k.publishedAt,
+    }));
   }
 
   /** Author or project manager. Outdated/deprecated items warn everyone who relied on them. */
   async setValidity(actor: Actor, knowledgeId: string, rawInput: SetValidityInput) {
     const input = setValiditySchema.parse(rawInput);
-    const k = await this.deps.db.knowledge.findFirst({ where: { id: knowledgeId, deletedAt: null } });
+    const k = await this.deps.db.knowledge.findFirst({
+      where: { id: knowledgeId, deletedAt: null },
+    });
     if (!k) throw new AppError('NOT_FOUND', 'Knowledge not found');
     const access = await this.accessOf(actor.userId, k.projectId);
-    if (access === 'none' || !(await this.canSee(actor.userId, k))) throw new AppError('NOT_FOUND', 'Knowledge not found');
-    if (k.authorUserId !== actor.userId && access !== 'manage') throw new AppError('FORBIDDEN', 'Only the author or a project maintainer can change validity');
+    if (access === 'none' || !(await this.canSee(actor.userId, k)))
+      throw new AppError('NOT_FOUND', 'Knowledge not found');
+    if (k.authorUserId !== actor.userId && access !== 'manage')
+      throw new AppError(
+        'FORBIDDEN',
+        'Only the author or a project maintainer can change validity',
+      );
     await withEvents(this.deps, async (tx, emit) => {
       await tx.knowledge.update({ where: { id: knowledgeId }, data: { validity: input.validity } });
-      await recordAudit(tx, { teamId: k.teamId, actorUserId: actor.userId, actorAgentId: actorAgentId(actor) ?? undefined, action: 'knowledge.validity_changed', targetType: 'knowledge', targetId: knowledgeId, metadata: { from: k.validity, to: input.validity, reason: input.reason ?? null } });
+      await recordAudit(tx, {
+        teamId: k.teamId,
+        actorUserId: actor.userId,
+        actorAgentId: actorAgentId(actor) ?? undefined,
+        action: 'knowledge.validity_changed',
+        targetType: 'knowledge',
+        targetId: knowledgeId,
+        metadata: { from: k.validity, to: input.validity, reason: input.reason ?? null },
+      });
       if (input.validity === 'OUTDATED' || input.validity === 'DEPRECATED') {
-        await this.notifyReaders(tx, emit, k, actor, `${input.validity === 'OUTDATED' ? 'Outdated' : 'Deprecated'}: ${k.title}`, `knowledge-validity:${knowledgeId}:${input.validity}`, input.reason ?? 'Something you relied on is no longer valid. Check before continuing.');
+        await this.notifyReaders(
+          tx,
+          emit,
+          k,
+          actor,
+          `${input.validity === 'OUTDATED' ? 'Outdated' : 'Deprecated'}: ${k.title}`,
+          `knowledge-validity:${knowledgeId}:${input.validity}`,
+          input.reason ?? 'Something you relied on is no longer valid. Check before continuing.',
+        );
       }
     });
     return { knowledgeId, validity: input.validity };
   }
 
   /** The author decides who sees an item; sharing a private one announces it to the project. */
-  async setVisibility(actor: Actor, knowledgeId: string, rawInput: { visibility: KnowledgeVisibility }) {
+  async setVisibility(
+    actor: Actor,
+    knowledgeId: string,
+    rawInput: { visibility: KnowledgeVisibility },
+  ) {
     const { visibility } = setVisibilitySchema.parse(rawInput);
-    const k = await this.deps.db.knowledge.findFirst({ where: { id: knowledgeId, deletedAt: null }, include: { tags: true } });
-    if (!k || !(await this.canSee(actor.userId, k))) throw new AppError('NOT_FOUND', 'Knowledge not found');
-    if (k.authorUserId !== actor.userId) throw new AppError('FORBIDDEN', 'Only the author can change who sees this');
+    const k = await this.deps.db.knowledge.findFirst({
+      where: { id: knowledgeId, deletedAt: null },
+      include: { tags: true },
+    });
+    if (!k || !(await this.canSee(actor.userId, k)))
+      throw new AppError('NOT_FOUND', 'Knowledge not found');
+    if (k.authorUserId !== actor.userId)
+      throw new AppError('FORBIDDEN', 'Only the author can change who sees this');
     if (k.visibility === visibility) return { knowledgeId, visibility };
     await withEvents(this.deps, async (tx, emit) => {
-      const updated = await tx.knowledge.update({ where: { id: knowledgeId }, data: { visibility } });
+      const updated = await tx.knowledge.update({
+        where: { id: knowledgeId },
+        data: { visibility },
+      });
       if (visibility === 'PROJECT') {
-        const v = await tx.knowledgeVersion.findUniqueOrThrow({ where: { knowledgeId_version: { knowledgeId, version: k.currentVersion } }, select: { id: true } });
-        await this.emitPublished(tx, emit, updated, v.id, k.tags.map((t) => t.tag), actor);
+        const v = await tx.knowledgeVersion.findUniqueOrThrow({
+          where: { knowledgeId_version: { knowledgeId, version: k.currentVersion } },
+          select: { id: true },
+        });
+        await this.emitPublished(
+          tx,
+          emit,
+          updated,
+          v.id,
+          k.tags.map((t) => t.tag),
+          actor,
+        );
       }
     });
     return { knowledgeId, visibility };
@@ -289,8 +490,15 @@ export class KnowledgeService {
     if (!this.deliverables) throw new AppError('INTERNAL', 'Deliverables service unavailable');
     const input = promoteDeliverableSchema.parse(rawInput);
     const d = await this.deliverables.read(actor, input.deliverableId, { inline: true });
-    if (!d.content) throw new AppError('BAD_REQUEST', 'Only text deliverables (Markdown, JSON, OpenAPI) can become knowledge');
-    const row = await this.deps.db.deliverable.findUniqueOrThrow({ where: { id: input.deliverableId }, select: { projectId: true, requestId: true, description: true } });
+    if (!d.content)
+      throw new AppError(
+        'BAD_REQUEST',
+        'Only text deliverables (Markdown, JSON, OpenAPI) can become knowledge',
+      );
+    const row = await this.deps.db.deliverable.findUniqueOrThrow({
+      where: { id: input.deliverableId },
+      select: { projectId: true, requestId: true, description: true },
+    });
     return this.publish(actor, {
       projectId: row.projectId,
       kind: input.kind,
@@ -298,7 +506,10 @@ export class KnowledgeService {
       content: d.content,
       summary: row.description ?? `${d.format} deliverable v${d.version}`,
       tags: input.tags,
-      references: [{ type: 'deliverable', ref: input.deliverableId }, ...(row.requestId ? [{ type: 'request' as const, ref: row.requestId }] : [])],
+      references: [
+        { type: 'deliverable', ref: input.deliverableId },
+        ...(row.requestId ? [{ type: 'request' as const, ref: row.requestId }] : []),
+      ],
     });
   }
 
@@ -311,12 +522,25 @@ export class KnowledgeService {
   }
 
   async embedOne(provider: EmbeddingProvider, knowledgeId: string) {
-    const k = await this.deps.db.knowledge.findUnique({ where: { id: knowledgeId }, include: { tags: true } });
+    const k = await this.deps.db.knowledge.findUnique({
+      where: { id: knowledgeId },
+      include: { tags: true },
+    });
     if (!k || k.deletedAt) return;
-    const v = await this.deps.db.knowledgeVersion.findUnique({ where: { knowledgeId_version: { knowledgeId, version: k.currentVersion } } });
+    const v = await this.deps.db.knowledgeVersion.findUnique({
+      where: { knowledgeId_version: { knowledgeId, version: k.currentVersion } },
+    });
     if (!v) return;
-    const vector = await provider.embedPassage(passageText({ title: v.title, summary: v.summary, content: v.content, tags: k.tags.map((t) => t.tag) }));
-    if (vector.length !== provider.dimensions) throw new Error(`Embedding has ${vector.length} dimensions, expected ${provider.dimensions}`);
+    const vector = await provider.embedPassage(
+      passageText({
+        title: v.title,
+        summary: v.summary,
+        content: v.content,
+        tags: k.tags.map((t) => t.tag),
+      }),
+    );
+    if (vector.length !== provider.dimensions)
+      throw new Error(`Embedding has ${vector.length} dimensions, expected ${provider.dimensions}`);
     // Only store it if the version did not change meanwhile.
     await this.deps.db.$executeRaw`
       UPDATE "knowledge" SET "embedding" = ${toVectorLiteral(vector)}::vector, "embeddingModel" = ${provider.model}, "embeddedAt" = now()
@@ -325,34 +549,87 @@ export class KnowledgeService {
 
   // ── helpers ──
 
-  private async emitPublished(tx: Db, emit: Emit, knowledge: { id: string; teamId: string; projectId: string; title: string; currentVersion: number; visibility: KnowledgeVisibility; authorUserId: string }, versionId: string, tags: string[], actor: Actor) {
-    const audience = knowledge.visibility === 'PRIVATE' ? [knowledge.authorUserId] : await this.projectAudience(tx, knowledge.teamId, knowledge.projectId);
+  private async emitPublished(
+    tx: Db,
+    emit: Emit,
+    knowledge: {
+      id: string;
+      teamId: string;
+      projectId: string;
+      title: string;
+      currentVersion: number;
+      visibility: KnowledgeVisibility;
+      authorUserId: string;
+    },
+    versionId: string,
+    tags: string[],
+    actor: Actor,
+  ) {
+    const audience =
+      knowledge.visibility === 'PRIVATE'
+        ? [knowledge.authorUserId]
+        : await this.projectAudience(tx, knowledge.teamId, knowledge.projectId);
     await emit({
       type: 'knowledge.published',
       teamId: knowledge.teamId,
       projectId: knowledge.projectId,
       actor: actorRef(actor),
       audience,
-      payload: { knowledgeId: knowledge.id, versionId, version: knowledge.currentVersion, title: knowledge.title, tags },
+      payload: {
+        knowledgeId: knowledge.id,
+        versionId,
+        version: knowledge.currentVersion,
+        title: knowledge.title,
+        tags,
+      },
     });
   }
 
-  private async notifyReaders(tx: Db, emit: Emit, knowledge: { id: string; teamId: string; title: string }, actor: Actor, title: string, dedupeKey: string, body: string) {
-    const readers = await tx.knowledgeUsage.findMany({ where: { knowledgeId: knowledge.id, userId: { not: actor.userId } }, select: { userId: true, version: true } });
+  private async notifyReaders(
+    tx: Db,
+    emit: Emit,
+    knowledge: { id: string; teamId: string; title: string },
+    actor: Actor,
+    title: string,
+    dedupeKey: string,
+    body: string,
+  ) {
+    const readers = await tx.knowledgeUsage.findMany({
+      where: { knowledgeId: knowledge.id, userId: { not: actor.userId } },
+      select: { userId: true, version: true },
+    });
     for (const r of readers) {
-      await notify(tx, emit, { teamId: knowledge.teamId, userId: r.userId, kind: 'KNOWLEDGE_PUBLISHED', title, body: `${body} (you used v${r.version})`, link: `/knowledge/${knowledge.id}`, dedupeKey, data: { knowledgeId: knowledge.id } });
+      await notify(tx, emit, {
+        teamId: knowledge.teamId,
+        userId: r.userId,
+        kind: 'KNOWLEDGE_PUBLISHED',
+        title,
+        body: `${body} (you used v${r.version})`,
+        link: `/knowledge/${knowledge.id}`,
+        dedupeKey,
+        data: { knowledgeId: knowledge.id },
+      });
     }
   }
 
   /** Project access, and private items only for their author. */
-  private async canSee(userId: string, k: { projectId: string; visibility: KnowledgeVisibility; authorUserId: string }): Promise<boolean> {
+  private async canSee(
+    userId: string,
+    k: { projectId: string; visibility: KnowledgeVisibility; authorUserId: string },
+  ): Promise<boolean> {
     if (k.visibility === 'PRIVATE' && k.authorUserId !== userId) return false;
     return (await this.accessOf(userId, k.projectId)) !== 'none';
   }
 
   private async projectAudience(db: Db, teamId: string, projectId: string): Promise<string[]> {
     const members = await db.teamMember.findMany({
-      where: { teamId, OR: [{ role: { in: ['OWNER', 'ADMIN'] } }, { user: { projectMemberships: { some: { projectId } } } }] },
+      where: {
+        teamId,
+        OR: [
+          { role: { in: ['OWNER', 'ADMIN'] } },
+          { user: { projectMemberships: { some: { projectId } } } },
+        ],
+      },
       select: { userId: true },
     });
     return members.map((m) => m.userId);
@@ -361,7 +638,11 @@ export class KnowledgeService {
   private async visibleProjectIds(userId: string, teamId: string): Promise<string[]> {
     const membership = await membersRepository.find(this.deps.db, teamId, userId);
     if (!membership) throw new AppError('NOT_FOUND', 'Team not found');
-    const projects = await projectsRepository.list(this.deps.db, teamId, hasTeamPermission(membership.role, 'project:read_all') ? {} : { memberUserId: userId });
+    const projects = await projectsRepository.list(
+      this.deps.db,
+      teamId,
+      hasTeamPermission(membership.role, 'project:read_all') ? {} : { memberUserId: userId },
+    );
     return projects.map((p) => p.id);
   }
 

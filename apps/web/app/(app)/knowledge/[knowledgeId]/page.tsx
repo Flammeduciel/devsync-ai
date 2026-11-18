@@ -10,7 +10,12 @@ export default async function KnowledgeLink({ params }: PageProps<'/knowledge/[k
   const { knowledgeId } = await params;
   if (!isUuid(knowledgeId)) notFound();
   const user = await requireUser();
-  const k = await orNotFound(services().knowledge.get({ type: 'HUMAN', userId: user.id }, knowledgeId));
-  const project = await db().project.findUniqueOrThrow({ where: { id: k.project.id }, select: { team: { select: { slug: true } } } });
+  const k = await orNotFound(
+    services().knowledge.get({ type: 'HUMAN', userId: user.id }, knowledgeId),
+  );
+  const project = await db().project.findUniqueOrThrow({
+    where: { id: k.project.id },
+    select: { team: { select: { slug: true } } },
+  });
   redirect(`/t/${project.team.slug}/knowledge/${knowledgeId}` as never);
 }

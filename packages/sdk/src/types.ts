@@ -97,7 +97,14 @@ export interface TeamContext {
   inbox: InboxItem[];
   claims: ClaimInfo[];
   recentActivity: ActivityEntry[];
-  recentKnowledge?: { id: string; title: string; kind: string; private: boolean; version: number; publishedAt: string }[];
+  recentKnowledge?: {
+    id: string;
+    title: string;
+    kind: string;
+    private: boolean;
+    version: number;
+    publishedAt: string;
+  }[];
   /** Continuity with this machine's previous conversations (facts only). */
   yourWork?: {
     lastDeclaredTask: { task: string; at: string } | null;
@@ -190,7 +197,22 @@ export interface DeliverableContent {
 
 export interface KnowledgeSearchResult {
   semantic: boolean;
-  items: { id: string; title: string; kind: string; validity: string; visibility: string; version: number; project: string; author: string; tags: string[]; summary: string | null; snippet: string | null; score: number; matchedBy: string[]; publishedAt: string }[];
+  items: {
+    id: string;
+    title: string;
+    kind: string;
+    validity: string;
+    visibility: string;
+    version: number;
+    project: string;
+    author: string;
+    tags: string[];
+    summary: string | null;
+    snippet: string | null;
+    score: number;
+    matchedBy: string[];
+    publishedAt: string;
+  }[];
 }
 
 export interface KnowledgeListItem {

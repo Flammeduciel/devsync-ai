@@ -7,5 +7,11 @@ import { handler, json } from '@/server/http/respond';
 /** Turn a published text deliverable into searchable knowledge. */
 export const POST = handler(async (request: Request) => {
   const { actor } = await requireActor(request);
-  return json(await services().knowledge.promoteDeliverable(actor, promoteDeliverableSchema.parse(await readJson(request))), 201);
+  return json(
+    await services().knowledge.promoteDeliverable(
+      actor,
+      promoteDeliverableSchema.parse(await readJson(request)),
+    ),
+    201,
+  );
 });

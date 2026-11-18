@@ -11,13 +11,23 @@ import { loadTeamPage, orNotFound } from '@/server/http/page';
 
 export const metadata: Metadata = { title: 'Knowledge' };
 
-export default async function KnowledgeItemPage({ params, searchParams }: PageProps<'/t/[teamSlug]/knowledge/[knowledgeId]'>) {
+export default async function KnowledgeItemPage({
+  params,
+  searchParams,
+}: PageProps<'/t/[teamSlug]/knowledge/[knowledgeId]'>) {
   const { teamSlug, knowledgeId } = await params;
   if (!isUuid(knowledgeId)) notFound();
   const query = await searchParams;
   const { user } = await loadTeamPage(teamSlug);
-  const version = typeof query.v === 'string' && /^\d+$/.test(query.v) ? Number(query.v) : undefined;
-  const k = await orNotFound(services().knowledge.get({ type: 'HUMAN', userId: user.id }, knowledgeId, version ? { version } : {}));
+  const version =
+    typeof query.v === 'string' && /^\d+$/.test(query.v) ? Number(query.v) : undefined;
+  const k = await orNotFound(
+    services().knowledge.get(
+      { type: 'HUMAN', userId: user.id },
+      knowledgeId,
+      version ? { version } : {},
+    ),
+  );
   const project = await services().projects.get(user.id, k.project.id);
 
   return (
@@ -25,13 +35,27 @@ export default async function KnowledgeItemPage({ params, searchParams }: PagePr
       <PageHeader
         title={k.title}
         description={`${k.kind.toLowerCase().replace('_', ' ')} · ${k.project.name} · by ${k.author} · ${timeAgo(k.publishedAt)}`}
-        actions={<KnowledgeControls knowledgeId={k.id} visibility={k.visibility} validity={k.validity} isAuthor={k.isAuthor} canManage={project.access === 'manage'} />}
+        actions={
+          <KnowledgeControls
+            knowledgeId={k.id}
+            visibility={k.visibility}
+            validity={k.validity}
+            isAuthor={k.isAuthor}
+            canManage={project.access === 'manage'}
+          />
+        }
       />
       <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
         <Card>
           <CardContent className="space-y-3">
-            {k.visibility === 'PRIVATE' ? <p className="rounded-md bg-warning/20 p-3 text-sm">Private: only you and your agents can see this.</p> : null}
-            {k.validity !== 'VALID' ? <p className="rounded-md bg-muted p-3 text-sm">Marked {k.validity.toLowerCase()}.</p> : null}
+            {k.visibility === 'PRIVATE' ? (
+              <p className="rounded-md bg-warning/20 p-3 text-sm">
+                Private: only you and your agents can see this.
+              </p>
+            ) : null}
+            {k.validity !== 'VALID' ? (
+              <p className="rounded-md bg-muted p-3 text-sm">Marked {k.validity.toLowerCase()}.</p>
+            ) : null}
             {k.version !== k.currentVersion ? (
               <p className="text-sm">
                 You are viewing v{k.version}.{' '}
@@ -53,7 +77,14 @@ export default async function KnowledgeItemPage({ params, searchParams }: PagePr
               <ul className="space-y-1 text-sm">
                 {k.versions.map((v) => (
                   <li key={v.version}>
-                    <Link className={v.version === k.version ? 'font-medium' : 'text-muted-foreground hover:underline'} href={`/t/${teamSlug}/knowledge/${k.id}?v=${v.version}` as never}>
+                    <Link
+                      className={
+                        v.version === k.version
+                          ? 'font-medium'
+                          : 'text-muted-foreground hover:underline'
+                      }
+                      href={`/t/${teamSlug}/knowledge/${k.id}?v=${v.version}` as never}
+                    >
                       v{v.version}
                     </Link>{' '}
                     <span className="text-xs text-muted-foreground">
