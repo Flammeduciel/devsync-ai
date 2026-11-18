@@ -102,8 +102,14 @@ Example — deliverable ready:
 }
 ```
 
-## Bridge local IPC (Phase 2)
+## Delivery guarantees
+
+Events are persisted (outbox) before being pushed. Live delivery is best effort over the socket; a client that
+reconnects sends `lastSequence` and receives everything after `lastSequence - 50` (sequences are allocated at
+insert time, so a slow transaction may commit after a later one). Clients must dedupe by `id`. The `audience`
+field used internally for routing is removed before delivery.
+
+## Bridge local IPC
 
 Newline-delimited JSON over a Unix socket (`~/.devsync/bridge.sock`, mode 0600) / named pipe on
-Windows. Requests `{ id, method, params }`, responses `{ id, result | error }`. Methods:
-`session.register`, `session.heartbeat`, `session.end`, `event.publish`, `inbox.list`, `api.call`.
+Windows. Requests `{ id, method, params }`, responses `{ id, result | error }`. Methods are documented in [docs/development/bridge.md](../development/bridge.md).
