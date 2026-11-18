@@ -9,6 +9,9 @@ import type {
   DeliveredItem,
   DependencyGraph,
   InboxItem,
+  KnowledgeItem,
+  KnowledgeListItem,
+  KnowledgeSearchResult,
   ProjectLocator,
   RequestDetail,
   RequestSummary,
@@ -244,6 +247,29 @@ export class DevSyncClient {
         'UPLOAD_FAILED',
         `Upload failed with status ${response.status}`,
       );
+  }
+
+  // ── Knowledge ──
+  searchKnowledge(query: ProjectLocator & { query: string; tags?: string[]; kind?: string; includeOutdated?: boolean; limit?: number }) {
+    return this.request<KnowledgeSearchResult>('GET', withQuery('/knowledge/search', query));
+  }
+  listKnowledge(query: { mine?: boolean; visibility?: string; kind?: string; tag?: string; limit?: number }) {
+    return this.request<{ items: KnowledgeListItem[] }>('GET', withQuery('/knowledge', { ...query, mine: query.mine ? 1 : undefined }));
+  }
+  getKnowledge(knowledgeId: string, version?: number) {
+    return this.request<KnowledgeItem>('GET', withQuery(`/knowledge/${encodeURIComponent(knowledgeId)}`, { version }));
+  }
+  publishKnowledge(body: Record<string, unknown>) {
+    return this.request<{ knowledgeId: string; version: number; visibility: string }>('POST', '/knowledge', body);
+  }
+  setKnowledgeVisibility(knowledgeId: string, visibility: 'PRIVATE' | 'PROJECT') {
+    return this.request<{ knowledgeId: string; visibility: string }>('PATCH', `/knowledge/${encodeURIComponent(knowledgeId)}/visibility`, { visibility });
+  }
+  setKnowledgeValidity(knowledgeId: string, body: { validity: string; reason?: string }) {
+    return this.request<{ knowledgeId: string; validity: string }>('PATCH', `/knowledge/${encodeURIComponent(knowledgeId)}/validity`, body);
+  }
+  promoteDeliverable(body: { deliverableId: string; kind?: string; tags?: string[] }) {
+    return this.request<{ knowledgeId: string; version: number }>('POST', '/knowledge/promote', body);
   }
 }
 /** Builds `path?key=value&key=v2`, skipping undefined values. */

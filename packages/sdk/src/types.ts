@@ -97,6 +97,7 @@ export interface TeamContext {
   inbox: InboxItem[];
   claims: ClaimInfo[];
   recentActivity: ActivityEntry[];
+  recentKnowledge?: { id: string; title: string; kind: string; private: boolean; version: number; publishedAt: string }[];
   /** Continuity with this machine's previous conversations (facts only). */
   yourWork?: {
     lastDeclaredTask: { task: string; at: string } | null;
@@ -185,4 +186,42 @@ export interface DeliverableContent {
   gitRef: { commit: string; branch: string | null; path: string | null } | null;
   url: string | null;
   content: string | null;
+}
+
+export interface KnowledgeSearchResult {
+  semantic: boolean;
+  items: { id: string; title: string; kind: string; validity: string; visibility: string; version: number; project: string; author: string; tags: string[]; summary: string | null; snippet: string | null; score: number; matchedBy: string[]; publishedAt: string }[];
+}
+
+export interface KnowledgeListItem {
+  id: string;
+  title: string;
+  kind: string;
+  validity: string;
+  visibility: string;
+  version: number;
+  project: string;
+  author: string;
+  tags: string[];
+  readers: number;
+  publishedAt: string;
+}
+
+export interface KnowledgeItem {
+  id: string;
+  title: string;
+  kind: string;
+  validity: string;
+  visibility: string;
+  project: { id: string; name: string };
+  tags: string[];
+  version: number;
+  currentVersion: number;
+  content: string;
+  summary: string | null;
+  references: { type: string; ref: string }[];
+  author: string;
+  versionBy: string;
+  publishedAt: string;
+  versions: { version: number; at: string; by: string }[];
 }
