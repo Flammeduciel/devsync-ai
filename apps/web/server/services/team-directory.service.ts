@@ -113,18 +113,37 @@ export class TeamDirectoryService {
 
   /** Open overlap alerts involving this machine's agents. */
   private async gitAlerts(device: DeviceActor) {
-    const agents = await this.deps.db.agent.findMany({ where: { machineId: device.machineId }, select: { id: true } });
+    const agents = await this.deps.db.agent.findMany({
+      where: { machineId: device.machineId },
+      select: { id: true },
+    });
     const ids = agents.map((a) => a.id);
     if (ids.length === 0) return [];
     const rows = await this.deps.db.gitConflict.findMany({
-      where: { teamId: device.teamId, status: { in: ['OPEN', 'ACKNOWLEDGED'] }, OR: [{ agentAId: { in: ids } }, { agentBId: { in: ids } }] },
-      include: { agentA: { select: { id: true, user: { select: { name: true } } } }, agentB: { select: { id: true, user: { select: { name: true } } } } },
+      where: {
+        teamId: device.teamId,
+        status: { in: ['OPEN', 'ACKNOWLEDGED'] },
+        OR: [{ agentAId: { in: ids } }, { agentBId: { in: ids } }],
+      },
+      include: {
+        agentA: { select: { id: true, user: { select: { name: true } } } },
+        agentB: { select: { id: true, user: { select: { name: true } } } },
+      },
       orderBy: { lastDetectedAt: 'desc' },
       take: 10,
     });
     return rows.map((c) => {
-      const other = ids.includes(c.agentAId) ? { owner: c.agentB.user.name, branch: c.branchB } : { owner: c.agentA.user.name, branch: c.branchA };
-      return { id: c.id, kind: c.kind, filePath: c.filePath, otherOwner: other.owner, otherBranch: other.branch, sharedLines: (c.details as { sharedLines?: string }).sharedLines ?? '' };
+      const other = ids.includes(c.agentAId)
+        ? { owner: c.agentB.user.name, branch: c.branchB }
+        : { owner: c.agentA.user.name, branch: c.branchA };
+      return {
+        id: c.id,
+        kind: c.kind,
+        filePath: c.filePath,
+        otherOwner: other.owner,
+        otherBranch: other.branch,
+        sharedLines: (c.details as { sharedLines?: string }).sharedLines ?? '',
+      };
     });
   }
 

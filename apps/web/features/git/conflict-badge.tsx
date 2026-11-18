@@ -9,5 +9,9 @@ const STYLE = {
 
 export function ConflictBadge({ kind }: { kind: keyof typeof STYLE }) {
   const [label, style] = STYLE[kind];
-  return <span className={cn('rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap', style)}>{label}</span>;
+  return (
+    <span className={cn('rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap', style)}>
+      {label}
+    </span>
+  );
 }

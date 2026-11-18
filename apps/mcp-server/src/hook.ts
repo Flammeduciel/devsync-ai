@@ -119,7 +119,10 @@ export async function handleHook(event: string, input: HookInput): Promise<strin
         );
         if (warnings.length) {
           return JSON.stringify({
-            hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: formatOverlapWarning(rel, warnings) },
+            hookSpecificOutput: {
+              hookEventName: 'PostToolUse',
+              additionalContext: formatOverlapWarning(rel, warnings),
+            },
           });
         }
       } catch {

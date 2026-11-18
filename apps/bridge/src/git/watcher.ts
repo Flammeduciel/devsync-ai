@@ -30,16 +30,33 @@ export class GitWatcher {
   ) {}
 
   /** Snapshot one worktree now (also called by the PostToolUse hook right after an edit). */
-  async observe(workingDirectory: string, externalSessionId?: string, force = false): Promise<GitSnapshotResult | null> {
+  async observe(
+    workingDirectory: string,
+    externalSessionId?: string,
+    force = false,
+  ): Promise<GitSnapshotResult | null> {
     const snapshot = await takeSnapshot(workingDirectory);
     if (!snapshot) return null;
     const now = (this.options.now ?? Date.now)();
     const previous = this.tracked.get(snapshot.worktreePath);
-    if (!force && previous?.fingerprint === snapshot.fingerprint && now - previous.sentAt < KEEPALIVE_MS) return previous.result;
+    if (
+      !force &&
+      previous?.fingerprint === snapshot.fingerprint &&
+      now - previous.sentAt < KEEPALIVE_MS
+    )
+      return previous.result;
     try {
-      const result = await this.api.reportGitSnapshot({ ...snapshot, ...(externalSessionId ? { externalSessionId } : {}) });
-      this.tracked.set(snapshot.worktreePath, { fingerprint: snapshot.fingerprint, sentAt: now, result });
-      if (result.tracked && result.repositoryId) await this.runMergeChecks(snapshot.worktreePath, result.repositoryId, result.mergeChecks);
+      const result = await this.api.reportGitSnapshot({
+        ...snapshot,
+        ...(externalSessionId ? { externalSessionId } : {}),
+      });
+      this.tracked.set(snapshot.worktreePath, {
+        fingerprint: snapshot.fingerprint,
+        sentAt: now,
+        result,
+      });
+      if (result.tracked && result.repositoryId)
+        await this.runMergeChecks(snapshot.worktreePath, result.repositoryId, result.mergeChecks);
       return result;
     } catch (error) {
       if (error instanceof DevSyncApiError && error.status === 401) throw error;
@@ -54,11 +71,17 @@ export class GitWatcher {
     for (const s of sessions) {
       if (!s.workingDirectory || seen.has(s.workingDirectory)) continue;
       seen.add(s.workingDirectory);
-      await this.observe(s.workingDirectory, s.externalSessionId).catch((error: unknown) => this.logger.warn({ err: (error as Error).message }, 'git observe failed'));
+      await this.observe(s.workingDirectory, s.externalSessionId).catch((error: unknown) =>
+        this.logger.warn({ err: (error as Error).message }, 'git observe failed'),
+      );
     }
   }
 
-  private async runMergeChecks(cwd: string, repositoryId: string, checks: GitSnapshotResult['mergeChecks']) {
+  private async runMergeChecks(
+    cwd: string,
+    repositoryId: string,
+    checks: GitSnapshotResult['mergeChecks'],
+  ) {
     for (const check of checks) {
       const ref = await this.resolveRef(cwd, check.otherBranch);
       if (!ref) continue; // the other branch is not available here (not pushed): line overlap stays the signal
@@ -69,7 +92,13 @@ export class GitWatcher {
       const verdict = relevant.sort().join(',');
       if (this.checked.get(key) === verdict) continue;
       this.checked.set(key, verdict);
-      if (relevant.length) await this.api.reportMergeCheck({ repositoryId, otherAgentId: check.otherAgentId, otherBranch: check.otherBranch, conflictingFiles: relevant });
+      if (relevant.length)
+        await this.api.reportMergeCheck({
+          repositoryId,
+          otherAgentId: check.otherAgentId,
+          otherBranch: check.otherBranch,
+          conflictingFiles: relevant,
+        });
     }
   }
 
@@ -77,7 +106,9 @@ export class GitWatcher {
   private async resolveRef(cwd: string, branch: string): Promise<string | null> {
     const exists = async (ref: string) => {
       try {
-        await run('git', ['-C', cwd, 'rev-parse', '--verify', '--quiet', `${ref}^{commit}`], { timeout: 3000 });
+        await run('git', ['-C', cwd, 'rev-parse', '--verify', '--quiet', `${ref}^{commit}`], {
+          timeout: 3000,
+        });
         return true;
       } catch {
         return false;
@@ -88,7 +119,19 @@ export class GitWatcher {
     if (this.options.fetchForChecks === false) return null;
     try {
       // Updates only the remote-tracking ref of that branch; the working tree and local branches are untouched.
-      await run('git', ['-C', cwd, 'fetch', '--quiet', '--no-tags', 'origin', `refs/heads/${branch}:refs/remotes/origin/${branch}`], { timeout: 15_000 });
+      await run(
+        'git',
+        [
+          '-C',
+          cwd,
+          'fetch',
+          '--quiet',
+          '--no-tags',
+          'origin',
+          `refs/heads/${branch}:refs/remotes/origin/${branch}`,
+        ],
+        { timeout: 15_000 },
+      );
       return (await exists(`origin/${branch}`)) ? `origin/${branch}` : null;
     } catch {
       return null;

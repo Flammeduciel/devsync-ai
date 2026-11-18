@@ -7,7 +7,10 @@ import type { DevSyncClient } from '@devsync/sdk';
 import { describe, expect, it } from 'vitest';
 import { GitWatcher } from '../src/git/watcher';
 
-const git = (cwd: string, ...args: string[]) => execFileSync('git', ['-C', cwd, '-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { encoding: 'utf8' });
+const git = (cwd: string, ...args: string[]) =>
+  execFileSync('git', ['-C', cwd, '-c', 'user.email=t@t', '-c', 'user.name=t', ...args], {
+    encoding: 'utf8',
+  });
 const lines = (n: number) => Array.from({ length: n }, (_, i) => `line ${i + 1}`).join('\n') + '\n';
 
 describe('GitWatcher', () => {
@@ -36,17 +39,35 @@ describe('GitWatcher', () => {
     const api = {
       reportGitSnapshot: async (body: Record<string, unknown>) => {
         sent.push(body);
-        return { tracked: true, repositoryId: 'r1', conflicts: [], mergeChecks: [{ otherAgentId: 'a2', otherBranch: 'feat/other', files: ['pay.ts'] }] };
+        return {
+          tracked: true,
+          repositoryId: 'r1',
+          conflicts: [],
+          mergeChecks: [{ otherAgentId: 'a2', otherBranch: 'feat/other', files: ['pay.ts'] }],
+        };
       },
       reportMergeCheck: async (body: Record<string, unknown>) => void checks.push(body),
     } as unknown as DevSyncClient;
-    const watcher = new GitWatcher(api, createLogger('test', { level: 'silent' }), { fetchForChecks: false });
+    const watcher = new GitWatcher(api, createLogger('test', { level: 'silent' }), {
+      fetchForChecks: false,
+    });
 
     await watcher.tick([{ externalSessionId: 's1', workingDirectory: dir }]);
     await watcher.tick([{ externalSessionId: 's1', workingDirectory: dir }]);
     expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatchObject({ branch: 'feat/mine', externalSessionId: 's1', changedHunks: { 'pay.ts': [[20, 20]] } });
-    expect(checks).toEqual([{ repositoryId: 'r1', otherAgentId: 'a2', otherBranch: 'feat/other', conflictingFiles: ['pay.ts'] }]);
+    expect(sent[0]).toMatchObject({
+      branch: 'feat/mine',
+      externalSessionId: 's1',
+      changedHunks: { 'pay.ts': [[20, 20]] },
+    });
+    expect(checks).toEqual([
+      {
+        repositoryId: 'r1',
+        otherAgentId: 'a2',
+        otherBranch: 'feat/other',
+        conflictingFiles: ['pay.ts'],
+      },
+    ]);
 
     await writeFile(join(dir, 'notes.md'), 'x');
     await watcher.tick([{ externalSessionId: 's1', workingDirectory: dir }]);

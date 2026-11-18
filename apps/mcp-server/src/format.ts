@@ -129,7 +129,12 @@ export function formatContext(ctx: TeamContext): string {
           .join('\n')
       : 'Nobody else is connected.',
   );
-  if (ctx.gitAlerts?.length) lines.push('', '## Git overlaps with teammates (check before editing these files)', formatGitAlerts(ctx.gitAlerts));
+  if (ctx.gitAlerts?.length)
+    lines.push(
+      '',
+      '## Git overlaps with teammates (check before editing these files)',
+      formatGitAlerts(ctx.gitAlerts),
+    );
   lines.push('', '## Requests for you', formatInbox(ctx.inbox));
   lines.push('', '## Claimed resources', formatClaims(ctx.claims));
   lines.push('', '## Recent activity', formatActivity(ctx.recentActivity));
@@ -208,7 +213,10 @@ const ALERT_LABEL: Record<GitAlert['kind'], string> = {
 
 export function formatGitAlerts(alerts: GitAlert[]): string {
   return alerts
-    .map((a) => `- \`${a.filePath}\`: ${a.otherOwner} (branch ${a.otherBranch}) ${ALERT_LABEL[a.kind]}${a.sharedLines ? ` — base lines ${a.sharedLines}` : ''}`)
+    .map(
+      (a) =>
+        `- \`${a.filePath}\`: ${a.otherOwner} (branch ${a.otherBranch}) ${ALERT_LABEL[a.kind]}${a.sharedLines ? ` — base lines ${a.sharedLines}` : ''}`,
+    )
     .join('\n');
 }
 

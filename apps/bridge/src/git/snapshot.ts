@@ -8,7 +8,10 @@ const MAX_FILES = 500;
 
 async function git(cwd: string, args: string[], timeout = 5000): Promise<string | null> {
   try {
-    const { stdout } = await run('git', ['-C', cwd, ...args], { timeout, maxBuffer: 20 * 1024 * 1024 });
+    const { stdout } = await run('git', ['-C', cwd, ...args], {
+      timeout,
+      maxBuffer: 20 * 1024 * 1024,
+    });
     return stdout;
   } catch {
     return null;
@@ -39,10 +42,13 @@ export interface GitSnapshot {
 
 /** The repository's main branch as known locally: origin/HEAD, else origin/main|master, else main|master. */
 async function baseRef(cwd: string): Promise<string | null> {
-  const originHead = (await git(cwd, ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD']))?.trim();
+  const originHead = (
+    await git(cwd, ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'])
+  )?.trim();
   if (originHead) return originHead;
   for (const ref of ['origin/main', 'origin/master', 'main', 'master']) {
-    if ((await git(cwd, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]))?.trim()) return ref;
+    if ((await git(cwd, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]))?.trim())
+      return ref;
   }
   return null;
 }
@@ -67,15 +73,24 @@ export async function takeSnapshot(cwd: string): Promise<GitSnapshot | null> {
 
   const base = await baseRef(root);
   const mergeBase = base ? (await git(root, ['merge-base', 'HEAD', base]))?.trim() || null : null;
-  const counts = base ? (await git(root, ['rev-list', '--left-right', '--count', `${base}...HEAD`]))?.trim().split(/\s+/) : null;
+  const counts = base
+    ? (await git(root, ['rev-list', '--left-right', '--count', `${base}...HEAD`]))
+        ?.trim()
+        .split(/\s+/)
+    : null;
   // Diff of the working tree against the merge-base: committed and uncommitted changes of this branch.
-  const diff = await git(root, ['diff', '-U0', '--no-color', '--no-ext-diff', mergeBase ?? 'HEAD'], 10_000);
+  const diff = await git(
+    root,
+    ['diff', '-U0', '--no-color', '--no-ext-diff', mergeBase ?? 'HEAD'],
+    10_000,
+  );
   const hunks = parseZeroContextDiff(diff ?? '');
   const st = parsePorcelainStatus(status ?? '');
   for (const path of st.untracked) hunks[path] ??= [[1, 1]]; // new file: any change on the same path overlaps
 
   const changedHunks: Record<string, LineRange[]> = {};
-  for (const path of Object.keys(hunks).sort().slice(0, MAX_FILES)) changedHunks[path] = compactRanges(hunks[path]!);
+  for (const path of Object.keys(hunks).sort().slice(0, MAX_FILES))
+    changedHunks[path] = compactRanges(hunks[path]!);
   const [lastSha, ...subject] = (log ?? '').trim().split('\0');
   const snapshot: Omit<GitSnapshot, 'fingerprint'> = {
     remote: remote.trim(),
@@ -95,7 +110,9 @@ export async function takeSnapshot(cwd: string): Promise<GitSnapshot | null> {
     unmergedFiles: st.unmerged.slice(0, MAX_FILES),
     changedHunks,
   };
-  const fingerprint = createHash('sha256').update(JSON.stringify({ ...snapshot, lastCommitMessage: null })).digest('hex');
+  const fingerprint = createHash('sha256')
+    .update(JSON.stringify({ ...snapshot, lastCommitMessage: null }))
+    .digest('hex');
   return { ...snapshot, fingerprint };
 }
 
@@ -104,14 +121,23 @@ export async function takeSnapshot(cwd: string): Promise<GitSnapshot | null> {
  * computes the merge in memory without touching the working tree, index or refs.
  */
 export async function mergeTreeConflicts(cwd: string, otherRef: string): Promise<string[] | null> {
-  if (!(await git(cwd, ['rev-parse', '--verify', '--quiet', `${otherRef}^{commit}`]))?.trim()) return null;
+  if (!(await git(cwd, ['rev-parse', '--verify', '--quiet', `${otherRef}^{commit}`]))?.trim())
+    return null;
   try {
-    await run('git', ['-C', cwd, 'merge-tree', '--write-tree', '--name-only', '--no-messages', 'HEAD', otherRef], { timeout: 10_000 });
+    await run(
+      'git',
+      ['-C', cwd, 'merge-tree', '--write-tree', '--name-only', '--no-messages', 'HEAD', otherRef],
+      { timeout: 10_000 },
+    );
     return []; // exit 0: clean merge
   } catch (error) {
     const e = error as { code?: number; stdout?: string };
     if (e.code !== 1 || typeof e.stdout !== 'string') return null; // not a conflict result (missing ref, old git…)
     // stdout: tree OID, then the conflicted paths (one per line).
-    return e.stdout.split('\n').slice(1).map((l) => l.trim()).filter(Boolean);
+    return e.stdout
+      .split('\n')
+      .slice(1)
+      .map((l) => l.trim())
+      .filter(Boolean);
   }
 }

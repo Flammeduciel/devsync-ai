@@ -26,7 +26,8 @@ export function parseZeroContextDiff(diff: string): Record<string, LineRange[]> 
     if (hunk && current) {
       const start = Number(hunk[1]);
       const count = hunk[2] === undefined ? 1 : Number(hunk[2]);
-      const range: LineRange = count === 0 ? [Math.max(start, 1), Math.max(start, 1)] : [start, start + count - 1];
+      const range: LineRange =
+        count === 0 ? [Math.max(start, 1), Math.max(start, 1)] : [start, start + count - 1];
       (result[current] ??= []).push(range);
     }
   }
@@ -70,5 +71,10 @@ export function parsePorcelainStatus(output: string) {
     if (x !== ' ' && x !== '!') staged.add(path);
     if (y !== ' ' && y !== '!') modified.add(path);
   }
-  return { staged: [...staged], modified: [...modified], untracked: [...untracked], unmerged: [...unmerged] };
+  return {
+    staged: [...staged],
+    modified: [...modified],
+    untracked: [...untracked],
+    unmerged: [...unmerged],
+  };
 }

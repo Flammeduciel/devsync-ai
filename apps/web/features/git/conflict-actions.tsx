@@ -16,14 +16,29 @@ export function ConflictActions({ conflictId, status }: { conflictId: string; st
   return (
     <div className="flex gap-1">
       {status === 'OPEN' ? (
-        <Button size="sm" variant="outline" disabled={pending} onClick={() => run('ACKNOWLEDGED', 'Acknowledged')}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          onClick={() => run('ACKNOWLEDGED', 'Acknowledged')}
+        >
           Acknowledge
         </Button>
       ) : null}
-      <Button size="sm" variant="ghost" disabled={pending} onClick={() => run('RESOLVED', 'Marked resolved')}>
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={pending}
+        onClick={() => run('RESOLVED', 'Marked resolved')}
+      >
         Resolved
       </Button>
-      <Button size="sm" variant="ghost" disabled={pending} onClick={() => run('DISMISSED', 'Dismissed')}>
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={pending}
+        onClick={() => run('DISMISSED', 'Dismissed')}
+      >
         Dismiss
       </Button>
     </div>

@@ -6,8 +6,12 @@ import { describe, expect, it } from 'vitest';
 import { compactRanges, parsePorcelainStatus, parseZeroContextDiff } from '../src/git/diff';
 import { mergeTreeConflicts, takeSnapshot } from '../src/git/snapshot';
 
-const git = (cwd: string, ...args: string[]) => execFileSync('git', ['-C', cwd, '-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { encoding: 'utf8' });
-const lines = (n: number, tag = 'line') => Array.from({ length: n }, (_, i) => `${tag} ${i + 1}`).join('\n') + '\n';
+const git = (cwd: string, ...args: string[]) =>
+  execFileSync('git', ['-C', cwd, '-c', 'user.email=t@t', '-c', 'user.name=t', ...args], {
+    encoding: 'utf8',
+  });
+const lines = (n: number, tag = 'line') =>
+  Array.from({ length: n }, (_, i) => `${tag} ${i + 1}`).join('\n') + '\n';
 
 async function repo() {
   const origin = await mkdtemp(join(tmpdir(), 'ds-origin-'));
@@ -38,15 +42,59 @@ describe('diff parsing', () => {
       '+++ /dev/null',
       '@@ -1,5 +0,0 @@',
     ].join('\n');
-    expect(parseZeroContextDiff(diff)).toEqual({ 'src/a.ts': [[10, 12], [40, 40], [55, 55]], 'old.ts': [[1, 5]] });
+    expect(parseZeroContextDiff(diff)).toEqual({
+      'src/a.ts': [
+        [10, 12],
+        [40, 40],
+        [55, 55],
+      ],
+      'old.ts': [[1, 5]],
+    });
   });
   it('compacts ranges', () => {
-    expect(compactRanges([[5, 6], [1, 2], [3, 3], [4, 4], [10, 12]])).toEqual([[1, 6], [10, 12]]);
-    expect(compactRanges([[1, 2], [5, 6]])).toEqual([[1, 2], [5, 6]]);
-    expect(compactRanges([[1, 1], [5, 5], [9, 9]], 2)).toEqual([[1, 9]]);
+    expect(
+      compactRanges([
+        [5, 6],
+        [1, 2],
+        [3, 3],
+        [4, 4],
+        [10, 12],
+      ]),
+    ).toEqual([
+      [1, 6],
+      [10, 12],
+    ]);
+    expect(
+      compactRanges([
+        [1, 2],
+        [5, 6],
+      ]),
+    ).toEqual([
+      [1, 2],
+      [5, 6],
+    ]);
+    expect(
+      compactRanges(
+        [
+          [1, 1],
+          [5, 5],
+          [9, 9],
+        ],
+        2,
+      ),
+    ).toEqual([[1, 9]]);
   });
   it('parses porcelain status with renames and conflicts', () => {
-    const out = ['M  staged.ts', ' M dirty.ts', 'MM both.ts', '?? new.ts', 'UU conflict.ts', 'R  renamed.ts', 'original.ts', ''].join('\0');
+    const out = [
+      'M  staged.ts',
+      ' M dirty.ts',
+      'MM both.ts',
+      '?? new.ts',
+      'UU conflict.ts',
+      'R  renamed.ts',
+      'original.ts',
+      '',
+    ].join('\0');
     expect(parsePorcelainStatus(out)).toEqual({
       staged: ['staged.ts', 'both.ts', 'renamed.ts'],
       modified: ['dirty.ts', 'both.ts'],
@@ -62,11 +110,28 @@ describe('takeSnapshot (real repositories)', () => {
     git(dir, 'checkout', '-qb', 'feat/refund');
     await writeFile(join(dir, 'payment.ts'), lines(100).replace('line 30\n', 'refund 30\n'));
     git(dir, 'commit', '-qam', 'refund');
-    await writeFile(join(dir, 'payment.ts'), lines(100).replace('line 30\n', 'refund 30\n').replace('line 70\n', 'refund 70\n'));
+    await writeFile(
+      join(dir, 'payment.ts'),
+      lines(100).replace('line 30\n', 'refund 30\n').replace('line 70\n', 'refund 70\n'),
+    );
     await writeFile(join(dir, 'notes.md'), 'x');
     const s = (await takeSnapshot(join(dir)))!;
-    expect(s).toMatchObject({ branch: 'feat/refund', baseRef: 'origin/main', aheadBy: 1, behindBy: 0, isLinkedWorktree: false, modifiedFiles: ['payment.ts'], untrackedFiles: ['notes.md'] });
-    expect(s.changedHunks).toEqual({ 'notes.md': [[1, 1]], 'payment.ts': [[30, 30], [70, 70]] });
+    expect(s).toMatchObject({
+      branch: 'feat/refund',
+      baseRef: 'origin/main',
+      aheadBy: 1,
+      behindBy: 0,
+      isLinkedWorktree: false,
+      modifiedFiles: ['payment.ts'],
+      untrackedFiles: ['notes.md'],
+    });
+    expect(s.changedHunks).toEqual({
+      'notes.md': [[1, 1]],
+      'payment.ts': [
+        [30, 30],
+        [70, 70],
+      ],
+    });
     expect(s.lastCommitMessage).toBe('refund');
     expect((await takeSnapshot(dir))!.fingerprint).toBe(s.fingerprint);
   });

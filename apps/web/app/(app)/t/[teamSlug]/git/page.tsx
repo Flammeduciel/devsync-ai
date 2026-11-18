@@ -18,11 +18,17 @@ export default async function GitPage({ params }: PageProps<'/t/[teamSlug]/git'>
 
   return (
     <>
-      <PageHeader title="Git intelligence" description="What each agent is changing, from read-only snapshots of their worktrees. DevSync never pushes, merges or edits code." />
+      <PageHeader
+        title="Git intelligence"
+        description="What each agent is changing, from read-only snapshots of their worktrees. DevSync never pushes, merges or edits code."
+      />
       <Card>
         <CardHeader>
           <CardTitle>Overlap alerts</CardTitle>
-          <CardDescription>Agents changing the same files or lines on different branches. Alerts close themselves when the overlap disappears.</CardDescription>
+          <CardDescription>
+            Agents changing the same files or lines on different branches. Alerts close themselves
+            when the overlap disappears.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {conflicts.length === 0 ? (
@@ -30,20 +36,35 @@ export default async function GitPage({ params }: PageProps<'/t/[teamSlug]/git'>
           ) : (
             <ul className="divide-y">
               {conflicts.map((c) => (
-                <li key={c.id} className="flex flex-wrap items-start justify-between gap-3 py-3 text-sm">
+                <li
+                  key={c.id}
+                  className="flex flex-wrap items-start justify-between gap-3 py-3 text-sm"
+                >
                   <div className="min-w-0 space-y-1">
                     <p className="flex flex-wrap items-center gap-2">
-                      <ConflictBadge kind={c.kind} /> <code className="font-mono text-xs">{c.filePath}</code>
+                      <ConflictBadge kind={c.kind} />{' '}
+                      <code className="font-mono text-xs">{c.filePath}</code>
                       <span className="text-xs text-muted-foreground">{c.repository}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {c.a.owner} <span className="font-mono">({c.a.branch}{c.details.linesA ? `, lines ${c.details.linesA}` : ''})</span> ↔ {c.b.owner}{' '}
-                      <span className="font-mono">({c.b.branch}{c.details.linesB ? `, lines ${c.details.linesB}` : ''})</span>
-                      {c.details.sharedLines ? ` · shared base lines ${c.details.sharedLines}` : ''} · {timeAgo(c.lastDetectedAt)}
+                      {c.a.owner}{' '}
+                      <span className="font-mono">
+                        ({c.a.branch}
+                        {c.details.linesA ? `, lines ${c.details.linesA}` : ''})
+                      </span>{' '}
+                      ↔ {c.b.owner}{' '}
+                      <span className="font-mono">
+                        ({c.b.branch}
+                        {c.details.linesB ? `, lines ${c.details.linesB}` : ''})
+                      </span>
+                      {c.details.sharedLines ? ` · shared base lines ${c.details.sharedLines}` : ''}{' '}
+                      · {timeAgo(c.lastDetectedAt)}
                       {c.status === 'ACKNOWLEDGED' ? ' · acknowledged' : ''}
                     </p>
                   </div>
-                  {[c.a.userId, c.b.userId].includes(user.id) ? <ConflictActions conflictId={c.id} status={c.status} /> : null}
+                  {[c.a.userId, c.b.userId].includes(user.id) ? (
+                    <ConflictActions conflictId={c.id} status={c.status} />
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -51,7 +72,9 @@ export default async function GitPage({ params }: PageProps<'/t/[teamSlug]/git'>
         </CardContent>
       </Card>
       {repositories.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Link repositories to your projects to see Git activity.</p>
+        <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+          Link repositories to your projects to see Git activity.
+        </p>
       ) : (
         repositories.map((repo) => (
           <Card key={repo.id}>
@@ -60,12 +83,15 @@ export default async function GitPage({ params }: PageProps<'/t/[teamSlug]/git'>
                 <GitFork className="size-4" /> {repo.name}
               </CardTitle>
               <CardDescription>
-                {repo.project} · <span className="font-mono">{repo.remoteUrl}</span> · default branch {repo.defaultBranch}
+                {repo.project} · <span className="font-mono">{repo.remoteUrl}</span> · default
+                branch {repo.defaultBranch}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {repo.worktrees.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No agent activity in the last 24 hours.</p>
+                <p className="text-sm text-muted-foreground">
+                  No agent activity in the last 24 hours.
+                </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -83,7 +109,10 @@ export default async function GitPage({ params }: PageProps<'/t/[teamSlug]/git'>
                         <tr key={`${w.machine}${w.worktreePath}`}>
                           <td className="py-2 pr-3">
                             {w.owner}
-                            <span className="block text-xs text-muted-foreground">{w.machine}{w.isLinkedWorktree ? ' · linked worktree' : ''}</span>
+                            <span className="block text-xs text-muted-foreground">
+                              {w.machine}
+                              {w.isLinkedWorktree ? ' · linked worktree' : ''}
+                            </span>
                           </td>
                           <td className="py-2 pr-3 font-mono text-xs">
                             <span className="inline-flex items-center gap-1">
@@ -94,10 +123,19 @@ export default async function GitPage({ params }: PageProps<'/t/[teamSlug]/git'>
                             </span>
                           </td>
                           <td className="py-2 pr-3">
-                            {w.changedFiles} file(s){w.unmergedFiles ? <span className="block text-xs text-destructive">{w.unmergedFiles} in merge conflict</span> : null}
+                            {w.changedFiles} file(s)
+                            {w.unmergedFiles ? (
+                              <span className="block text-xs text-destructive">
+                                {w.unmergedFiles} in merge conflict
+                              </span>
+                            ) : null}
                           </td>
-                          <td className="max-w-56 truncate py-2 pr-3 text-xs text-muted-foreground">{w.lastCommitMessage ?? '—'}</td>
-                          <td className="py-2 text-xs text-muted-foreground">{timeAgo(w.capturedAt)}</td>
+                          <td className="max-w-56 truncate py-2 pr-3 text-xs text-muted-foreground">
+                            {w.lastCommitMessage ?? '—'}
+                          </td>
+                          <td className="py-2 text-xs text-muted-foreground">
+                            {timeAgo(w.capturedAt)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

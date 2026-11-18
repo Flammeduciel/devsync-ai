@@ -24,7 +24,9 @@ export const gitSnapshotSchema = z.object({
   stagedFiles: z.array(path).max(500),
   untrackedFiles: z.array(path).max(500),
   unmergedFiles: z.array(path).max(500),
-  changedHunks: z.record(path, z.array(lineRange).max(50)).refine((h) => Object.keys(h).length <= 500, 'Too many files'),
+  changedHunks: z
+    .record(path, z.array(lineRange).max(50))
+    .refine((h) => Object.keys(h).length <= 500, 'Too many files'),
   fingerprint: z.string().regex(/^[0-9a-f]{64}$/),
 });
 export type GitSnapshotInput = z.input<typeof gitSnapshotSchema>;

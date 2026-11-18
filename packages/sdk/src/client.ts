@@ -314,7 +314,12 @@ export class DevSyncClient {
   reportGitSnapshot(body: Record<string, unknown>) {
     return this.request<GitSnapshotResult>('POST', '/git/snapshots', body);
   }
-  reportMergeCheck(body: { repositoryId: string; otherAgentId: string; otherBranch: string; conflictingFiles: string[] }) {
+  reportMergeCheck(body: {
+    repositoryId: string;
+    otherAgentId: string;
+    otherBranch: string;
+    conflictingFiles: string[];
+  }) {
     return this.request<{ escalated: number }>('POST', '/git/merge-checks', body);
   }
   checkOverlap(body: { remote?: string; projectId?: string; files: string[] }) {

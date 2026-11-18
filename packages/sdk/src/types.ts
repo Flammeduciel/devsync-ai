@@ -267,5 +267,15 @@ export interface GitSnapshotResult {
 
 export interface OverlapResult {
   tracked: boolean;
-  files: { file: string; touchedBy: { owner: string; agentId: string; branch: string; lines: string; capturedAt: string }[]; claimedBy: { owner: string; reason: string | null; expiresAt: string }[] }[];
+  files: {
+    file: string;
+    touchedBy: {
+      owner: string;
+      agentId: string;
+      branch: string;
+      lines: string;
+      capturedAt: string;
+    }[];
+    claimedBy: { owner: string; reason: string | null; expiresAt: string }[];
+  }[];
 }
