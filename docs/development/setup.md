@@ -21,7 +21,9 @@ pnpm db:migrate
 pnpm --filter @devsync/database db:test:prepare
 pnpm typecheck && pnpm test
 pnpm dev            # web on :3000, realtime on :4000
-pnpm dev:worker     # background jobs (stale session sweep)
+pnpm dev:worker     # background jobs: session sweeps + local embeddings (knowledge search)
+pnpm dev:embedder   # Intel Macs only: run the embeddings role in a Linux container
+                    # (then start the host worker with WORKER_ROLES=maintenance)
 curl localhost:3000/api/v1/health
 ```
 
@@ -77,3 +79,10 @@ Note: Prisma refuses `migrate reset` when run by an AI agent; a human must run i
 - **The dev server reloads in a loop**: a `.next` folder produced by `pnpm build` was reused by `next dev`.
   Stop the server, `rm -rf apps/web/.next`, start again.
 - **`devsync` says the daemon is not running**: `pnpm bridge start`, logs in `~/.devsync/bridge.log`.
+
+## Semantic search model
+
+The first start of the embeddings role downloads `Xenova/multilingual-e5-small` (~120 MB) into
+`~/.cache/devsync-models` (override with `DEVSYNC_MODELS_DIR`, model with `EMBEDDING_MODEL`). Without a running
+embeddings worker, knowledge search transparently uses full-text only. Smoke test on supported platforms:
+`pnpm --filter @devsync/web exec tsx tests/manual/embeddings-smoke.ts`.
