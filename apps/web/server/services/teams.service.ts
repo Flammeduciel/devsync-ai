@@ -20,6 +20,13 @@ export class TeamsService {
     return { ...team, role };
   }
 
+  /** Resolves a team from its URL slug; unknown and foreign teams are both NOT_FOUND. */
+  async getBySlug(userId: string, slug: string) {
+    const team = await teamsRepository.findActiveBySlug(this.deps.db, slug);
+    if (!team) throw new AppError('NOT_FOUND', 'Team not found');
+    return this.get(userId, team.id);
+  }
+
   /** Creates a team; the creator becomes OWNER and a default autonomy policy (level 2) is created. */
   async create(userId: string, rawInput: CreateTeamInput) {
     const input = createTeamSchema.parse(rawInput);
