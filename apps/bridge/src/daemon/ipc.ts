@@ -11,8 +11,14 @@ export interface IpcRequest {
   method: string;
   params?: unknown;
 }
-export type IpcResponse =
-  { id: number; result: unknown } | { id: number; error: { message: string } };
+export interface IpcError {
+  message: string;
+  /** Present when the error comes from the DevSync API. */
+  status?: number;
+  code?: string;
+  details?: unknown;
+}
+export type IpcResponse = { id: number; result: unknown } | { id: number; error: IpcError };
 
 export type IpcHandlers = Record<string, (params: unknown) => Promise<unknown>>;
 
@@ -48,9 +54,15 @@ export async function startIpcServer(path: string, handlers: IpcHandlers): Promi
     try {
       return { id: request.id, result: (await handler(request.params ?? {})) ?? null };
     } catch (error) {
+      const e = error as { message?: string; status?: unknown; code?: unknown; details?: unknown };
       return {
         id: request.id,
-        error: { message: error instanceof Error ? error.message : 'Request failed' },
+        error: {
+          message: e?.message ?? 'Request failed',
+          ...(typeof e?.status === 'number' ? { status: e.status } : {}),
+          ...(typeof e?.code === 'string' ? { code: e.code } : {}),
+          ...(e?.details !== undefined ? { details: e.details } : {}),
+        },
       };
     }
   }
@@ -86,7 +98,7 @@ export function ipcCall<T = unknown>(
       clearTimeout(timer);
       socket.end();
       const response = JSON.parse(buffer.slice(0, index)) as IpcResponse;
-      if ('error' in response) reject(new Error(response.error.message));
+      if ('error' in response) reject(Object.assign(new Error(response.error.message), response.error));
       else resolve(response.result as T);
     });
     socket.on('error', (error) => {
