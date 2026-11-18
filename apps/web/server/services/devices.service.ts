@@ -32,6 +32,7 @@ export class DevicesService {
     private readonly deps: ServiceDeps,
     private readonly store: DeviceFlowStore,
     private readonly onRevoked: (machine: { machineId: string; teamId: string }) => Promise<void> = async () => {},
+    private readonly presence: (machineIds: string[]) => Promise<Set<string>> = async () => new Set(),
   ) {}
 
   async authorize(rawInput: DeviceAuthorizeInput) {
@@ -142,7 +143,8 @@ export class DevicesService {
     const { role } = await requireTeamMember(this.deps.db, userId, teamId);
     const all = hasTeamPermission(role, 'member:remove');
     const machines = await machinesRepository.list(this.deps.db, teamId, all ? {} : { userId });
-    return machines.map(({ deviceTokenHash: _hash, ...machine }) => machine);
+    const connected = await this.presence(machines.map((m) => m.id));
+    return machines.map(({ deviceTokenHash: _hash, ...machine }) => ({ ...machine, connected: connected.has(machine.id) }));
   }
 
   async revoke(userId: string, teamId: string, machineId: string) {
