@@ -6,7 +6,13 @@ import { mailer } from './infrastructure/mailer';
 import { connectedMachines } from './infrastructure/presence';
 import { redisDeviceFlowStore } from './infrastructure/device-flow-store';
 import { publishControl } from './infrastructure/event-publisher';
+import { s3ObjectStorage } from './infrastructure/object-storage';
 import { AgentsService } from './services/agents.service';
+import { AutonomyService } from './services/autonomy.service';
+import { DeliverablesService } from './services/deliverables.service';
+import { NotificationsService } from './services/notifications.service';
+import { RequestsService } from './services/requests.service';
+import { TasksService } from './services/tasks.service';
 import { ClaimsService } from './services/claims.service';
 import { DashboardService } from './services/dashboard.service';
 import { DevicesService } from './services/devices.service';
@@ -33,6 +39,11 @@ function createContainer() {
     agents,
     claims,
     directory: new TeamDirectoryService(deps, agents, inbox, claims),
+    requests: new RequestsService(deps),
+    deliverables: new DeliverablesService(deps, s3ObjectStorage),
+    tasks: new TasksService(deps),
+    notifications: new NotificationsService(deps),
+    autonomy: new AutonomyService(deps),
     devices: new DevicesService(
       deps,
       redisDeviceFlowStore,
