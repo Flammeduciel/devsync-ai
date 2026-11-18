@@ -1,0 +1,24 @@
+{
+  "name": "@devsync/bridge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DevSync Bridge — local daemon and `devsync` CLI running on each developer machine",
+  "bin": { "devsync": "./dist/cli.js" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@devsync/config": "workspace:*",
+    "@devsync/event-schemas": "workspace:*",
+    "@devsync/protocol": "workspace:*",
+    "@devsync/sdk": "workspace:*",
+    "@devsync/shared": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vitest": "5.1.1"
+  }
+}
