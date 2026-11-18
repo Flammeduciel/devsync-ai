@@ -8,6 +8,9 @@ export type KnowledgeKind = z.infer<typeof knowledgeKindSchema>;
 export const knowledgeValiditySchema = z.enum(['DRAFT', 'VALID', 'OUTDATED', 'DEPRECATED']);
 export type KnowledgeValidity = z.infer<typeof knowledgeValiditySchema>;
 
+export const knowledgeVisibilitySchema = z.enum(['PRIVATE', 'PROJECT']);
+export type KnowledgeVisibility = z.infer<typeof knowledgeVisibilitySchema>;
+
 export const tagSchema = z
   .string()
   .trim()
@@ -32,6 +35,8 @@ export const publishKnowledgeSchema = projectLocatorSchema.extend({
   tags: z.array(tagSchema).max(20).default([]),
   references: z.array(knowledgeReferenceSchema).max(50).default([]),
   validity: z.enum(['DRAFT', 'VALID']).default('VALID'),
+  /** PRIVATE: only you (and your future sessions); PROJECT: the project's members. Nothing is shared without it. */
+  visibility: knowledgeVisibilitySchema.default('PROJECT'),
   agentName: z.string().trim().min(1).max(100).default('claude-code'),
 });
 export type PublishKnowledgeInput = z.input<typeof publishKnowledgeSchema>;
@@ -60,9 +65,14 @@ export type PromoteDeliverableInput = z.input<typeof promoteDeliverableSchema>;
 
 export const listKnowledgeSchema = z.object({
   projectId: idSchema.optional(),
+  /** Only items I authored (private and shared): "show me my results". */
+  mine: z.coerce.boolean().default(false),
+  visibility: knowledgeVisibilitySchema.optional(),
   kind: knowledgeKindSchema.optional(),
   tag: tagSchema.optional(),
   validity: knowledgeValiditySchema.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 export type ListKnowledgeInput = z.input<typeof listKnowledgeSchema>;
+
+export const setVisibilitySchema = z.object({ visibility: knowledgeVisibilitySchema });
