@@ -19,6 +19,8 @@
     "@devsync/protocol": "workspace:*",
     "@devsync/sdk": "workspace:*",
     "@devsync/shared": "workspace:*",
+    "@devsync/validation": "workspace:*",
+    "pino": "10.4.0",
     "socket.io-client": "4.8.4",
     "zod": "4.6.7"
   },
