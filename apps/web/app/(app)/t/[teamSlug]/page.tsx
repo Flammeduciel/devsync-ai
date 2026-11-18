@@ -18,7 +18,7 @@ export default async function DashboardPage({ params }: PageProps<'/t/[teamSlug]
   return (
     <>
       <PageHeader title={team.name} description="Your team at a glance." />
-      <section aria-label="Key figures" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <section aria-label="Key figures" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         <StatCard label="Developers" value={counts.members} icon={Users} hint={counts.pendingInvitations ? `${counts.pendingInvitations} invitation(s) pending` : undefined} />
         <StatCard label="Agents connected" value={counts.agentsOnline} icon={Bot} hint={`${counts.agentsActive} working`} />
         <StatCard label="Projects" value={counts.projects} icon={FolderGit2} />

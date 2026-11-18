@@ -8,7 +8,7 @@ export default async function TeamLayout({ children, params }: LayoutProps<'/t/[
   const { user } = await loadTeamPage(teamSlug);
   const teams = await services().teams.listMine(user.id);
   return (
-    <div className="grid min-h-dvh md:grid-cols-[15rem_1fr]">
+    <div className="grid min-h-dvh grid-cols-[minmax(0,1fr)] md:grid-cols-[15rem_minmax(0,1fr)]">
       <div className="hidden md:block">
         <div className="sticky top-0 h-dvh">
           <Sidebar teamSlug={teamSlug} teams={teams.map(({ slug, name }) => ({ slug, name }))} user={user} />
