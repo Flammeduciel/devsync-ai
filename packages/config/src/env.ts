@@ -41,6 +41,8 @@ export const redisEnv = {
 
 export const storageEnv = {
   S3_ENDPOINT: z.url(),
+  /** Public URL of the same storage, used in presigned links given to browsers and Bridges (defaults to S3_ENDPOINT). */
+  S3_PUBLIC_ENDPOINT: z.url().optional(),
   S3_REGION: z.string().min(1).default('us-east-1'),
   S3_BUCKET: z.string().min(3),
   S3_ACCESS_KEY_ID: z.string().min(1),

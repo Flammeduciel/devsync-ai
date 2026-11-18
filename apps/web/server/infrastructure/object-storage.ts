@@ -3,7 +3,7 @@ import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { ObjectStorage } from '../services/object-storage';
 import { serverEnv } from '../env';
-import { storage } from './storage';
+import { publicStorage, storage } from './storage';
 
 const bucket = () => serverEnv().S3_BUCKET;
 
@@ -15,7 +15,7 @@ export const s3ObjectStorage: ObjectStorage = {
   },
   presignPut(key, contentType, sizeBytes, expiresIn = 600) {
     return getSignedUrl(
-      storage(),
+      publicStorage(),
       new PutObjectCommand({
         Bucket: bucket(),
         Key: key,
@@ -27,7 +27,7 @@ export const s3ObjectStorage: ObjectStorage = {
   },
   presignGet(key, fileName, expiresIn = 300) {
     return getSignedUrl(
-      storage(),
+      publicStorage(),
       new GetObjectCommand({
         Bucket: bucket(),
         Key: key,
