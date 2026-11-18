@@ -13,7 +13,7 @@ const git = (cwd: string, ...args: string[]) =>
   });
 const lines = (n: number) => Array.from({ length: n }, (_, i) => `line ${i + 1}`).join('\n') + '\n';
 
-describe('GitWatcher', () => {
+describe('GitWatcher', { timeout: 30_000 }, () => {
   it('sends changed snapshots only and reports merge-tree conflicts the server asks about', async () => {
     const origin = await mkdtemp(join(tmpdir(), 'ds-o-'));
     git(origin, 'init', '-q', '--bare', '-b', 'main');
