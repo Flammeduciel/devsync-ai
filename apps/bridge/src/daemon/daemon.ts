@@ -33,6 +33,14 @@ const activity = sessionRef.extend({
   tool: z.string().max(64).optional(),
 });
 
+const API_OPERATIONS = ['context', 'searchAgents', 'activity', 'experts', 'inbox', 'claim', 'releaseClaim'] as const;
+type ApiOperation = (typeof API_OPERATIONS)[number];
+const apiCall = z.object({
+  operation: z.enum(API_OPERATIONS),
+  params: z.record(z.string(), z.unknown()).default({}),
+  workingDirectory: z.string().max(1024).optional(),
+});
+
 /** Long-running process: one per machine, many Claude Code sessions. */
 export async function runDaemon(
   paths: BridgePaths,
@@ -115,9 +123,33 @@ export async function runDaemon(
       await sessions.activity(externalSessionId, body);
     },
     'inbox.list': async () => (await api.inbox()).items,
+    /**
+     * Allow-listed API proxy for the MCP server: it never sees the device token. When a working
+     * directory is given and no project id, the project is found from the repository's origin remote.
+     */
+    'api.call': async (raw) => {
+      const { operation, params, workingDirectory } = apiCall.parse(raw);
+      const handler = apiOperations[operation];
+      let input = params;
+      if (workingDirectory && !('projectId' in input) && !('remote' in input)) {
+        const repo = await detectRepository(workingDirectory);
+        if (repo?.remote) input = { ...input, remote: repo.remote };
+      }
+      return handler(input);
+    },
     'notify.test': async () =>
       notify({ title: 'DevSync', body: `Notifications work on ${hostname()}`, sound: true }),
   });
+
+  const apiOperations: Record<ApiOperation, (p: Record<string, unknown>) => Promise<unknown>> = {
+    context: (p) => api.context(p),
+    searchAgents: (p) => api.searchAgents(p),
+    activity: (p) => api.activity(p),
+    experts: (p) => api.experts(p as { topic: string }),
+    inbox: () => api.inbox(),
+    claim: (p) => api.claim(p as { resourceType: string; resourceKey: string }),
+    releaseClaim: (p) => api.releaseClaim(String(p.claimId)),
+  };
 
   const timer = setInterval(
     () => void sessions.tick().catch((error) => logger.warn({ err: error }, 'tick failed')),
