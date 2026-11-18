@@ -992,6 +992,13 @@ model GitActivity {
   modifiedFiles     String[] @default([])
   stagedFiles       String[] @default([])
   untrackedFiles    String[] @default([])
+  /// Paths with unresolved merge conflicts in this worktree (a merge or rebase is in progress).
+  unmergedFiles     String[] @default([])
+  /// Branch the changes are compared to (e.g. origin/main) and the merge-base commit used for line ranges.
+  baseRef           String?
+  mergeBase         String?
+  /// Hash of the observable state, to skip storing identical snapshots.
+  fingerprint       String?
   /// { [path]: [[startLine, endLine], ...] } changed hunks relative to merge-base, for line-overlap detection.
   changedHunks      Json     @default("{}")
   aheadBy           Int      @default(0)
