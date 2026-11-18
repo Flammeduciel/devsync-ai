@@ -44,14 +44,14 @@ claude --plugin-dir ~/devsync-ai/plugins/claude-code
 
 ## Hooks
 
-| Event                                                | Sends to the Bridge                               | Output                                                                                   |
-| ---------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `SessionStart`                                       | `session.start` (session id, cwd, plugin version) | `additionalContext`: team context (≤ 6000 chars) or a one-line "Bridge not running" note |
-| `UserPromptSubmit`                                   | `session.update` status `WORKING`                 | –                                                                                        |
-| `PostToolUse` (Edit, MultiEdit, Write, NotebookEdit) | `activity.publish` "Edited <repo-relative path>"  | –                                                                                        |
-| `Notification`                                       | status `WAITING`                                  | –                                                                                        |
-| `Stop`                                               | status `IDLE`                                     | –                                                                                        |
-| `SessionEnd`                                         | `session.end`                                     | –                                                                                        |
+| Event                                                | Sends to the Bridge                                                    | Output                                                                                       |
+| ---------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `SessionStart`                                       | `session.start` (session id, cwd, plugin version)                      | `additionalContext`: team context (≤ 6000 chars) or a one-line "Bridge not running" note     |
+| `UserPromptSubmit`                                   | `session.update` status `WORKING`                                      | –                                                                                            |
+| `PostToolUse` (Edit, MultiEdit, Write, NotebookEdit) | `activity.publish` "Edited <repo-relative path>", then `git.afterEdit` | `additionalContext` when the edited file overlaps a teammate (once per conflict per session) |
+| `Notification`                                       | status `WAITING`                                                       | –                                                                                            |
+| `Stop`                                               | status `IDLE`                                                          | –                                                                                            |
+| `SessionEnd`                                         | `session.end`                                                          | –                                                                                            |
 
 Rules: 2 s IPC timeout, always exit 0, never print anything except the SessionStart JSON, never send prompts,
 file contents, shell commands, paths outside the project or reasoning. Unknown sessions (daemon restarted)

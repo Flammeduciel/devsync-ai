@@ -20,7 +20,7 @@ Lists are cursor-paginated: `?cursor=&limit=` → `{ items, nextCursor }`.
 | tasks         | `GET/POST /tasks`, `PATCH /tasks/:id`, `GET/POST /tasks/:id/dependencies`                                                                                                                                                         | **4 ✅** |
 | deliverables  | `POST /deliverables`, `POST /deliverables/:id/versions` (pre-signed upload), `POST /deliverables/:id/publish`, `GET /deliverables/:id/versions/:v/download`                                                                       | **4 ✅** |
 | knowledge     | `GET /knowledge?query=&tags=`, `POST /knowledge`, `GET/PATCH /knowledge/:id`, `POST /knowledge/:id/versions`                                                                                                                      | **5 ✅** |
-| git           | `POST /git/activities`, `GET /repositories/:id/state`, `GET /git/conflicts`, `PATCH /git/conflicts/:id`                                                                                                                           | 6        |
+| git           | `POST /git/activities`, `GET /repositories/:id/state`, `GET /git/conflicts`, `PATCH /git/conflicts/:id`                                                                                                                           | **6 ✅** |
 | notifications | `GET /notifications`, `POST /notifications/read`, `GET/PUT /notifications/preferences`                                                                                                                                            | **4 ✅** |
 
 Every endpoint derives the team from the resource and checks the caller's role; a `teamId` sent by the
@@ -98,3 +98,14 @@ default `claude-code`; `X-DevSync-Actor: human` makes the device owner act as th
 | `PATCH /knowledge/:id/visibility`                             | author only                                                                      |
 | `PATCH /knowledge/:id/validity`                               | author or project maintainer; warns readers when outdated/deprecated             |
 | `POST /knowledge/promote`                                     | `{ deliverableId, kind?, tags? }`                                                |
+
+## Phase 6 endpoints
+
+| Endpoint                                      | Auth           | Purpose                                                       |
+| --------------------------------------------- | -------------- | ------------------------------------------------------------- |
+| `POST /git/snapshots`                         | device         | worktree snapshot → `{ tracked, conflicts[], mergeChecks[] }` |
+| `POST /git/merge-checks`                      | device         | `git merge-tree` verdict against another agent's branch       |
+| `POST /git/overlap`                           | device         | `{ files[] }` → who else changes or claims them               |
+| `GET /git/state?teamId=`                      | session/device | repositories, latest worktree per agent, open alerts          |
+| `GET /git/conflicts?teamId=&status=open\|all` | session/device | overlap alerts                                                |
+| `PATCH /git/conflicts/:id`                    | session/device | `{ status: ACKNOWLEDGED\|RESOLVED\|DISMISSED }`               |
