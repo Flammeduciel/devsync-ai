@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "DevSync Bridge — local daemon and `devsync` CLI running on each developer machine",
-  "bin": { "devsync": "./dist/cli.js" },
+  "bin": {
+    "devsync": "./dist/cli.js"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

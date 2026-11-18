@@ -24,32 +24,32 @@ Migrations: `packages/database/prisma/migrations` · 36 tables.
 
 ## Constraints added in SQL (not expressible in Prisma)
 
-| Constraint | Purpose |
-| --- | --- |
-| `autonomy_policies_team_default_key` partial unique `(teamId) WHERE projectId IS NULL` | One team-default autonomy policy |
-| `resource_claims_active_key` partial unique `(projectId, resourceType, resourceKey) WHERE releasedAt IS NULL` | One active claim per resource |
-| `git_conflicts_distinct_agents_check` `agentAId < agentBId` | Canonical pair order, no self-conflict |
-| `dependencies_not_self_check` | A task cannot block itself |
-| `request_comments_author_check`, `collaboration_requests_origin_check` | Actor columns match actor type |
-| `users_email_lower_key` | Case-insensitive unique email |
-| extensions `vector`, `pg_trgm` | Semantic and fuzzy search (Phase 5) |
+| Constraint                                                                                                    | Purpose                                |
+| ------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `autonomy_policies_team_default_key` partial unique `(teamId) WHERE projectId IS NULL`                        | One team-default autonomy policy       |
+| `resource_claims_active_key` partial unique `(projectId, resourceType, resourceKey) WHERE releasedAt IS NULL` | One active claim per resource          |
+| `git_conflicts_distinct_agents_check` `agentAId < agentBId`                                                   | Canonical pair order, no self-conflict |
+| `dependencies_not_self_check`                                                                                 | A task cannot block itself             |
+| `request_comments_author_check`, `collaboration_requests_origin_check`                                        | Actor columns match actor type         |
+| `users_email_lower_key`                                                                                       | Case-insensitive unique email          |
+| extensions `vector`, `pg_trgm`                                                                                | Semantic and fuzzy search (Phase 5)    |
 
 These are covered by `packages/database/tests/tenant-isolation.test.ts`.
 
 ## Entities by module
 
-| Module | Tables |
-| --- | --- |
-| Auth | `users`, `sessions`, `accounts`, `verifications`, `api_keys` |
-| Teams | `teams`, `team_members`, `team_invitations` |
-| Projects | `projects`, `project_members`, `repositories` |
-| Agent registry | `agent_machines` (device token, revocation), `agents`, `agent_sessions`, `agent_activities` |
-| Autonomy | `autonomy_policies` (team default + per-project override) |
-| Collaboration | `collaboration_requests`, `request_history`, `request_comments`, `agent_tasks`, `dependencies`, `deliverables`, `deliverable_versions`, `attachments`, `resource_claims` |
-| Knowledge | `knowledge`, `knowledge_versions`, `knowledge_tags` |
-| Git | `git_activities` (snapshots), `git_conflicts` (pairwise) |
-| Notifications | `notifications` (dedupe key), `notification_preferences` (in-app/desktop/sound/email) |
-| Platform | `events` (outbox), `audit_logs`, `webhook_endpoints` |
+| Module         | Tables                                                                                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Auth           | `users`, `sessions`, `accounts`, `verifications`, `api_keys`                                                                                                             |
+| Teams          | `teams`, `team_members`, `team_invitations`                                                                                                                              |
+| Projects       | `projects`, `project_members`, `repositories`                                                                                                                            |
+| Agent registry | `agent_machines` (device token, revocation), `agents`, `agent_sessions`, `agent_activities`                                                                              |
+| Autonomy       | `autonomy_policies` (team default + per-project override)                                                                                                                |
+| Collaboration  | `collaboration_requests`, `request_history`, `request_comments`, `agent_tasks`, `dependencies`, `deliverables`, `deliverable_versions`, `attachments`, `resource_claims` |
+| Knowledge      | `knowledge`, `knowledge_versions`, `knowledge_tags`                                                                                                                      |
+| Git            | `git_activities` (snapshots), `git_conflicts` (pairwise)                                                                                                                 |
+| Notifications  | `notifications` (dedupe key), `notification_preferences` (in-app/desktop/sound/email)                                                                                    |
+| Platform       | `events` (outbox), `audit_logs`, `webhook_endpoints`                                                                                                                     |
 
 Tables beyond the initial list, and why: `request_history` (required "Historique"), `autonomy_policies`
 (section 6 limits), `resource_claims` (`team_claim_resource`), `events` (reconnection replay).
@@ -57,13 +57,13 @@ No `Tag` table: tags are normalized strings scoped by team.
 
 ## Main access paths and their indexes
 
-| Query | Index |
-| --- | --- |
-| Inbox of a user / agent | `collaboration_requests (assigneeUserId, status)`, `(assigneeAgentId, status)` |
-| Project board | `collaboration_requests (teamId, projectId, status)` |
-| Repetitive request detection | `collaboration_requests (teamId, fingerprint, createdAt desc)` |
-| Live agents | `agents (teamId, status)` |
-| Activity feed | `agent_activities (teamId, occurredAt desc)` |
-| Latest Git state per worktree | `git_activities (repositoryId, machineId, worktreePath, capturedAt desc)` |
-| Unread notifications | `notifications (userId, readAt, createdAt desc)` |
-| Replay | `events (teamId, sequence)` |
+| Query                         | Index                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| Inbox of a user / agent       | `collaboration_requests (assigneeUserId, status)`, `(assigneeAgentId, status)` |
+| Project board                 | `collaboration_requests (teamId, projectId, status)`                           |
+| Repetitive request detection  | `collaboration_requests (teamId, fingerprint, createdAt desc)`                 |
+| Live agents                   | `agents (teamId, status)`                                                      |
+| Activity feed                 | `agent_activities (teamId, occurredAt desc)`                                   |
+| Latest Git state per worktree | `git_activities (repositoryId, machineId, worktreePath, capturedAt desc)`      |
+| Unread notifications          | `notifications (userId, readAt, createdAt desc)`                               |
+| Replay                        | `events (teamId, sequence)`                                                    |

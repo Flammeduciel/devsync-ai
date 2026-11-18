@@ -24,12 +24,12 @@ Rooms are joined by the server after authorization: `team:<id>`, `project:<id>`,
 
 ## Channels
 
-| Channel | Direction | Ack |
-| --- | --- | --- |
-| `event:publish` | client → server | `Ack` |
-| `event:deliver` | server → client | client acks `{ ok: true, id }` |
+| Channel          | Direction                          | Ack                                            |
+| ---------------- | ---------------------------------- | ---------------------------------------------- |
+| `event:publish`  | client → server                    | `Ack`                                          |
+| `event:deliver`  | server → client                    | client acks `{ ok: true, id }`                 |
 | `session:resume` | client → server `{ lastSequence }` | server replays missed `event:deliver` in order |
-| `session:error` | server → client | – |
+| `session:error`  | server → client                    | –                                              |
 
 ## Envelope
 
@@ -44,7 +44,7 @@ Rooms are joined by the server after authorization: `team:<id>`, `project:<id>`,
   "actor": { "type": "AGENT", "userId": "0190…01", "agentId": "0190…a1" },
   "sequence": 1843,
   "correlationId": "0193a1b2-5c3d-7e4f-8a00-1b2c3d4e5f00",
-  "payload": { }
+  "payload": {}
 }
 ```
 
@@ -64,20 +64,20 @@ message from their local queue. `duplicate: true` means the server already had t
 
 ## Event catalog
 
-| Type | Payload (abridged) |
-| --- | --- |
-| `agent.connected` | `agentId, userId, sessionId?, machineId, pluginVersion?` |
-| `agent.disconnected` | `agentId, userId, sessionId?, reason: client\|timeout\|revoked\|server` |
-| `agent.status.updated` | `agentId, userId, status, previousStatus?` |
-| `agent.activity.updated` | `agentId, userId, kind, summary (≤500), tool?` |
+| Type                                          | Payload (abridged)                                                                             |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `agent.connected`                             | `agentId, userId, sessionId?, machineId, pluginVersion?`                                       |
+| `agent.disconnected`                          | `agentId, userId, sessionId?, reason: client\|timeout\|revoked\|server`                        |
+| `agent.status.updated`                        | `agentId, userId, status, previousStatus?`                                                     |
+| `agent.activity.updated`                      | `agentId, userId, kind, summary (≤500), tool?`                                                 |
 | `collaboration.request.created` / `.accepted` | `requestId, title, type, status, priority, requesterUserId, assigneeUserId?, assigneeAgentId?` |
-| `collaboration.request.updated` | same + `changes: string[]` |
-| `collaboration.request.rejected` | same + `reason?` |
-| `collaboration.deliverable.ready` | `requestId, deliverableId, versionId, version, title, format` |
-| `knowledge.published` | `knowledgeId, versionId, version, title, tags[]` |
-| `git.activity.detected` | `repositoryId, agentId?, branch, head, modifiedFiles[]` |
-| `git.conflict.detected` | `conflictId, repositoryId, kind, filePath, agentIds[]` |
-| `notification.created` | `notificationId, userId, kind, title, body?, link?, playSound` |
+| `collaboration.request.updated`               | same + `changes: string[]`                                                                     |
+| `collaboration.request.rejected`              | same + `reason?`                                                                               |
+| `collaboration.deliverable.ready`             | `requestId, deliverableId, versionId, version, title, format`                                  |
+| `knowledge.published`                         | `knowledgeId, versionId, version, title, tags[]`                                               |
+| `git.activity.detected`                       | `repositoryId, agentId?, branch, head, modifiedFiles[]`                                        |
+| `git.conflict.detected`                       | `conflictId, repositoryId, kind, filePath, agentIds[]`                                         |
+| `notification.created`                        | `notificationId, userId, kind, title, body?, link?, playSound`                                 |
 
 Example — deliverable ready:
 

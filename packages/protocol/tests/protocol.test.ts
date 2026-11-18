@@ -18,7 +18,10 @@ describe('envelope', () => {
     expect(envelopeSchema.safeParse({ ...base, type: 'AgentStatus' }).success).toBe(false);
   });
   it('validates acks', () => {
-    expect(ackSchema.parse({ ok: true, id: base.id })).toMatchObject({ ok: true, duplicate: false });
+    expect(ackSchema.parse({ ok: true, id: base.id })).toMatchObject({
+      ok: true,
+      duplicate: false,
+    });
     expect(ackSchema.safeParse({ ok: false, code: 'X', message: 'y' }).success).toBe(false);
   });
 });

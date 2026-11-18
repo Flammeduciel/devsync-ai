@@ -38,7 +38,7 @@
 - Validates tool inputs with Zod; the API re-validates and authorizes everything.
 - Returns concise, structured results sized for an LLM context.
 
-## What is *not* a separate service
+## What is _not_ a separate service
 
 Jobs (BullMQ workers) run in a worker entry of `apps/web`'s server code at first (same services,
 same repositories); they are split only if load requires it. No microservice per module.

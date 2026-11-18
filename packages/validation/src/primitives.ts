@@ -6,7 +6,10 @@ export const slugSchema = z
   .min(2)
   .max(48)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'lowercase letters, digits and dashes only');
-export const emailSchema = z.email().max(254).transform((v) => v.toLowerCase());
+export const emailSchema = z
+  .email()
+  .max(254)
+  .transform((v) => v.toLowerCase());
 export const isoDateSchema = z.iso.datetime({ offset: true });
 
 export const paginationSchema = z.object({

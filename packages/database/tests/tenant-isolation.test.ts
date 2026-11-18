@@ -26,7 +26,11 @@ describe.skipIf(!url)('database constraints', () => {
   async function seedTeam(name: string) {
     const user = await db.user.create({ data: { name, email: `${name}-${suffix}@test.local` } });
     const team = await db.team.create({
-      data: { name, slug: `${name}-${suffix}`, members: { create: { userId: user.id, role: 'OWNER' } } },
+      data: {
+        name,
+        slug: `${name}-${suffix}`,
+        members: { create: { userId: user.id, role: 'OWNER' } },
+      },
     });
     const project = await db.project.create({
       data: { teamId: team.id, name: 'Payments', slug: 'payments', createdById: user.id },
@@ -39,12 +43,22 @@ describe.skipIf(!url)('database constraints', () => {
     const b = await seedTeam('beta');
     await expect(
       db.repository.create({
-        data: { teamId: b.team.id, projectId: a.project.id, name: 'api', remoteUrl: 'github.com/x/api' },
+        data: {
+          teamId: b.team.id,
+          projectId: a.project.id,
+          name: 'api',
+          remoteUrl: 'github.com/x/api',
+        },
       }),
     ).rejects.toThrow();
     await expect(
       db.repository.create({
-        data: { teamId: a.team.id, projectId: a.project.id, name: 'api', remoteUrl: 'github.com/x/api' },
+        data: {
+          teamId: a.team.id,
+          projectId: a.project.id,
+          name: 'api',
+          remoteUrl: 'github.com/x/api',
+        },
       }),
     ).resolves.toMatchObject({ projectId: a.project.id });
   });
@@ -53,7 +67,9 @@ describe.skipIf(!url)('database constraints', () => {
     const { team, project } = await seedTeam('gamma');
     await db.autonomyPolicy.create({ data: { teamId: team.id } });
     await expect(db.autonomyPolicy.create({ data: { teamId: team.id } })).rejects.toThrow();
-    await expect(db.autonomyPolicy.create({ data: { teamId: team.id, projectId: project.id } })).resolves.toBeTruthy();
+    await expect(
+      db.autonomyPolicy.create({ data: { teamId: team.id, projectId: project.id } }),
+    ).resolves.toBeTruthy();
   });
 
   it('allows only one active claim per resource', async () => {

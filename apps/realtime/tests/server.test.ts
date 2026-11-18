@@ -15,7 +15,11 @@ afterEach(async () => {
 });
 
 async function start(authenticate?: Parameters<typeof createRealtimeServer>[0]['authenticate']) {
-  server = createRealtimeServer({ corsOrigin: '*', logger, ...(authenticate ? { authenticate } : {}) });
+  server = createRealtimeServer({
+    corsOrigin: '*',
+    logger,
+    ...(authenticate ? { authenticate } : {}),
+  });
   await new Promise<void>((resolve) => server!.http.listen(0, resolve));
   return `http://localhost:${(server.http.address() as AddressInfo).port}`;
 }
@@ -48,7 +52,9 @@ describe('realtime gateway', () => {
 
   it('rejects incompatible protocol versions', async () => {
     const url = await start(async () => ({ userId: 'u', teamIds: [] }));
-    await expect(connectError(url, { ...validAuth, protocolVersion: '99.0' })).resolves.toBe('BAD_REQUEST');
+    await expect(connectError(url, { ...validAuth, protocolVersion: '99.0' })).resolves.toBe(
+      'BAD_REQUEST',
+    );
   });
 
   it('refuses every connection while no authenticator is configured', async () => {
@@ -57,8 +63,12 @@ describe('realtime gateway', () => {
   });
 
   it('accepts a connection once the token is authenticated', async () => {
-    const url = await start(async (token) => (token === validAuth.token ? { userId: 'u1', teamIds: [] } : null));
+    const url = await start(async (token) =>
+      token === validAuth.token ? { userId: 'u1', teamIds: [] } : null,
+    );
     client = connect(url, { auth: validAuth, transports: ['websocket'], reconnection: false });
-    await expect(new Promise((resolve) => client!.on('connect', () => resolve(true)))).resolves.toBe(true);
+    await expect(
+      new Promise((resolve) => client!.on('connect', () => resolve(true))),
+    ).resolves.toBe(true);
   });
 });

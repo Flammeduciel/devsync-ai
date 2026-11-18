@@ -37,7 +37,11 @@ export class DevSyncClient {
     this.timeoutMs = options.timeoutMs ?? 15_000;
   }
 
-  async request<T>(method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
+  async request<T>(
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+    path: string,
+    body?: unknown,
+  ): Promise<T> {
     const url = `${this.baseUrl}${API_BASE_PATH}${path.startsWith('/') ? path : `/${path}`}`;
     const response = await this.fetchImpl(url, {
       method,
@@ -53,7 +57,9 @@ export class DevSyncClient {
     const text = await response.text();
     const data: unknown = text ? JSON.parse(text) : undefined;
     if (!response.ok) {
-      const error = (data as { error?: { code?: string; message?: string; details?: unknown } } | undefined)?.error;
+      const error = (
+        data as { error?: { code?: string; message?: string; details?: unknown } } | undefined
+      )?.error;
       throw new DevSyncApiError(
         response.status,
         error?.code ?? 'HTTP_ERROR',

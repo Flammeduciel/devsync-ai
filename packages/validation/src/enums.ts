@@ -4,13 +4,26 @@ import { z } from 'zod';
 export const teamRoleSchema = z.enum(['OWNER', 'ADMIN', 'DEVELOPER', 'VIEWER']);
 export type TeamRole = z.infer<typeof teamRoleSchema>;
 
-export const agentStatusSchema = z.enum(['ONLINE', 'OFFLINE', 'IDLE', 'WORKING', 'WAITING', 'ERROR']);
+export const agentStatusSchema = z.enum([
+  'ONLINE',
+  'OFFLINE',
+  'IDLE',
+  'WORKING',
+  'WAITING',
+  'ERROR',
+]);
 export type AgentStatus = z.infer<typeof agentStatusSchema>;
 
 export const actorTypeSchema = z.enum(['HUMAN', 'AGENT', 'SYSTEM']);
 export type ActorType = z.infer<typeof actorTypeSchema>;
 
-export const requestTypeSchema = z.enum(['KNOWLEDGE', 'WORK', 'DEPENDENCY', 'REVIEW', 'COLLABORATION']);
+export const requestTypeSchema = z.enum([
+  'KNOWLEDGE',
+  'WORK',
+  'DEPENDENCY',
+  'REVIEW',
+  'COLLABORATION',
+]);
 export type RequestType = z.infer<typeof requestTypeSchema>;
 
 export const requestStatusSchema = z.enum([
@@ -43,5 +56,10 @@ export const deliverableFormatSchema = z.enum([
 ]);
 export type DeliverableFormat = z.infer<typeof deliverableFormatSchema>;
 
-export const conflictKindSchema = z.enum(['FILE_OVERLAP', 'LINE_OVERLAP', 'POTENTIAL_CONFLICT', 'CONFIRMED_CONFLICT']);
+export const conflictKindSchema = z.enum([
+  'FILE_OVERLAP',
+  'LINE_OVERLAP',
+  'POTENTIAL_CONFLICT',
+  'CONFIRMED_CONFLICT',
+]);
 export type ConflictKind = z.infer<typeof conflictKindSchema>;

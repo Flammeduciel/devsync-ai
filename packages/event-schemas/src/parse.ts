@@ -7,7 +7,11 @@ export type TypedEnvelope<T extends EventType = EventType> = {
 
 export type ParseEventResult =
   | { ok: true; event: TypedEnvelope }
-  | { ok: false; code: 'INVALID_ENVELOPE' | 'UNKNOWN_EVENT_TYPE' | 'INVALID_PAYLOAD'; message: string };
+  | {
+      ok: false;
+      code: 'INVALID_ENVELOPE' | 'UNKNOWN_EVENT_TYPE' | 'INVALID_PAYLOAD';
+      message: string;
+    };
 
 /** Validates the envelope, then the payload against the catalog entry for its type. */
 export function parseEvent(raw: unknown): ParseEventResult {

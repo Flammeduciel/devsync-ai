@@ -22,26 +22,26 @@ context, knowledge and deliverables instead of solving the same problem twice.
  Browser dashboard ── HTTPS + WSS ─────────────►└───────────────────────────────────────────┘
 ```
 
-| Unit | Runtime | Owns |
-| --- | --- | --- |
-| `apps/web` | Next.js (Node) | UI, REST API, auth, **all business rules** (services/domain), writes to PostgreSQL, enqueues jobs, appends events to the outbox |
-| `apps/realtime` | Node + Socket.IO | Authenticated sockets, rooms, presence (Redis), fan-out of persisted events, replay by sequence, acks |
-| `apps/bridge` | Node daemon on dev machine | Device identity, local session multiplexing, offline queue, Git watching, OS notifications, `devsync` CLI |
-| `apps/mcp-server` | stdio, spawned by Claude Code | `team_*` tools; translates tool calls into Bridge/API calls |
-| `plugins/claude-code` | Claude Code plugin | Hooks, skills, commands, MCP registration |
-| `packages/*` | libraries | Contracts shared by all of the above (see below) |
+| Unit                  | Runtime                       | Owns                                                                                                                            |
+| --------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`            | Next.js (Node)                | UI, REST API, auth, **all business rules** (services/domain), writes to PostgreSQL, enqueues jobs, appends events to the outbox |
+| `apps/realtime`       | Node + Socket.IO              | Authenticated sockets, rooms, presence (Redis), fan-out of persisted events, replay by sequence, acks                           |
+| `apps/bridge`         | Node daemon on dev machine    | Device identity, local session multiplexing, offline queue, Git watching, OS notifications, `devsync` CLI                       |
+| `apps/mcp-server`     | stdio, spawned by Claude Code | `team_*` tools; translates tool calls into Bridge/API calls                                                                     |
+| `plugins/claude-code` | Claude Code plugin            | Hooks, skills, commands, MCP registration                                                                                       |
+| `packages/*`          | libraries                     | Contracts shared by all of the above (see below)                                                                                |
 
 ## Shared packages
 
-| Package | Content |
-| --- | --- |
-| `@devsync/config` | tsconfig presets, Zod env loader, structured logger (pino, secret redaction) |
-| `@devsync/shared` | `AppError` + codes, `Result`, UUIDv7 ids |
-| `@devsync/validation` | Zod primitives and enums mirrored from the Prisma schema |
-| `@devsync/protocol` | Wire envelope, ack, handshake, rooms, protocol/API versions |
-| `@devsync/event-schemas` | Catalog `event type → payload schema` + `parseEvent` |
-| `@devsync/database` | Prisma schema, migrations, client factory (driver adapter `pg`) |
-| `@devsync/sdk` | Typed REST client used by the Bridge and the MCP server |
+| Package                  | Content                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| `@devsync/config`        | tsconfig presets, Zod env loader, structured logger (pino, secret redaction) |
+| `@devsync/shared`        | `AppError` + codes, `Result`, UUIDv7 ids                                     |
+| `@devsync/validation`    | Zod primitives and enums mirrored from the Prisma schema                     |
+| `@devsync/protocol`      | Wire envelope, ack, handshake, rooms, protocol/API versions                  |
+| `@devsync/event-schemas` | Catalog `event type → payload schema` + `parseEvent`                         |
+| `@devsync/database`      | Prisma schema, migrations, client factory (driver adapter `pg`)              |
+| `@devsync/sdk`           | Typed REST client used by the Bridge and the MCP server                      |
 
 Packages ship TypeScript sources (no build step). Next.js transpiles them; Node services bundle them with tsup.
 

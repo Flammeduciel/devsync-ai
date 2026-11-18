@@ -1,10 +1,10 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - 'apps/*'
+  - 'packages/*'
 
 autoInstallPeers: true
 onlyBuiltDependencies:
-  - "@prisma/engines"
+  - '@prisma/engines'
   - prisma
   - esbuild
   - sharp

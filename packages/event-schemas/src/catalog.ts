@@ -27,11 +27,25 @@ const requestRef = z.object({
  * The key is the envelope `type`. Adding an event = adding an entry here.
  */
 export const eventCatalog = {
-  'agent.connected': agentRef.extend({ machineId: idSchema, pluginVersion: z.string().max(32).optional() }),
-  'agent.disconnected': agentRef.extend({ reason: z.enum(['client', 'timeout', 'revoked', 'server']) }),
-  'agent.status.updated': agentRef.extend({ status: agentStatusSchema, previousStatus: agentStatusSchema.optional() }),
+  'agent.connected': agentRef.extend({
+    machineId: idSchema,
+    pluginVersion: z.string().max(32).optional(),
+  }),
+  'agent.disconnected': agentRef.extend({
+    reason: z.enum(['client', 'timeout', 'revoked', 'server']),
+  }),
+  'agent.status.updated': agentRef.extend({
+    status: agentStatusSchema,
+    previousStatus: agentStatusSchema.optional(),
+  }),
   'agent.activity.updated': agentRef.extend({
-    kind: z.enum(['session_started', 'session_ended', 'tool_used', 'task_declared', 'summary_published']),
+    kind: z.enum([
+      'session_started',
+      'session_ended',
+      'tool_used',
+      'task_declared',
+      'summary_published',
+    ]),
     /** Structured, explicitly published summary — never raw reasoning. */
     summary: z.string().max(500),
     tool: z.string().max(64).optional(),
@@ -39,7 +53,9 @@ export const eventCatalog = {
 
   'collaboration.request.created': requestRef,
   'collaboration.request.accepted': requestRef,
-  'collaboration.request.updated': requestRef.extend({ changes: z.array(z.string().max(64)).max(20) }),
+  'collaboration.request.updated': requestRef.extend({
+    changes: z.array(z.string().max(64)).max(20),
+  }),
   'collaboration.request.rejected': requestRef.extend({ reason: z.string().max(1000).optional() }),
   'collaboration.deliverable.ready': z.object({
     requestId: idSchema,

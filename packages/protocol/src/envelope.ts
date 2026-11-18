@@ -28,11 +28,24 @@ export const envelopeSchema = z.object({
   correlationId: idSchema.optional(),
   payload: z.unknown(),
 });
-export type Envelope<P = unknown> = Omit<z.infer<typeof envelopeSchema>, 'payload'> & { payload: P };
+export type Envelope<P = unknown> = Omit<z.infer<typeof envelopeSchema>, 'payload'> & {
+  payload: P;
+};
 
 /** Acknowledgement returned through the Socket.IO ack callback. */
 export const ackSchema = z.discriminatedUnion('ok', [
-  z.object({ ok: z.literal(true), id: idSchema, sequence: z.number().int().optional(), duplicate: z.boolean().default(false) }),
-  z.object({ ok: z.literal(false), id: idSchema.optional(), code: z.string(), message: z.string(), retryable: z.boolean() }),
+  z.object({
+    ok: z.literal(true),
+    id: idSchema,
+    sequence: z.number().int().optional(),
+    duplicate: z.boolean().default(false),
+  }),
+  z.object({
+    ok: z.literal(false),
+    id: idSchema.optional(),
+    code: z.string(),
+    message: z.string(),
+    retryable: z.boolean(),
+  }),
 ]);
 export type Ack = z.infer<typeof ackSchema>;

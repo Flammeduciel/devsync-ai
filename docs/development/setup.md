@@ -24,14 +24,14 @@ pnpm dev            # web on :3000, realtime on :4000
 curl localhost:3000/api/v1/health
 ```
 
-| Service | URL |
-| --- | --- |
-| Web | http://localhost:3000 |
-| Realtime | http://localhost:4000/health |
-| PostgreSQL | `localhost:5433` (devsync/devsync) |
-| Redis | `localhost:6380` |
+| Service             | URL                                                                      |
+| ------------------- | ------------------------------------------------------------------------ |
+| Web                 | http://localhost:3000                                                    |
+| Realtime            | http://localhost:4000/health                                             |
+| PostgreSQL          | `localhost:5433` (devsync/devsync)                                       |
+| Redis               | `localhost:6380`                                                         |
 | MinIO API / console | http://localhost:9000 · http://localhost:9001 (devsync / devsync-secret) |
-| Mailpit | http://localhost:8025 |
+| Mailpit             | http://localhost:8025                                                    |
 
 Ports are shifted from defaults to coexist with locally installed services; override them with
 `POSTGRES_PORT`, `REDIS_PORT`, … when running `docker compose`.
@@ -40,16 +40,16 @@ Ports are shifted from defaults to coexist with locally installed services; over
 
 Every service validates its own variables at startup and exits with the list of invalid ones.
 
-| Variable | Used by | Notes |
-| --- | --- | --- |
-| `NODE_ENV`, `LOG_LEVEL` | all | defaults `development`, `info` |
-| `APP_URL` | web, realtime | public URL of the web app (CORS origin for sockets) |
-| `AUTH_SECRET` | web | ≥ 32 chars |
-| `DATABASE_URL` / `DATABASE_URL_TEST` | web, database | PostgreSQL |
-| `REDIS_URL` | web, realtime | |
-| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE` | web | any S3-compatible store |
-| `SMTP_HOST`, `SMTP_PORT`, `EMAIL_FROM` | web | Mailpit locally |
-| `REALTIME_PORT`, `REALTIME_URL`, `REALTIME_JWT_SECRET` | web, realtime | |
+| Variable                                                                                                   | Used by       | Notes                                               |
+| ---------------------------------------------------------------------------------------------------------- | ------------- | --------------------------------------------------- |
+| `NODE_ENV`, `LOG_LEVEL`                                                                                    | all           | defaults `development`, `info`                      |
+| `APP_URL`                                                                                                  | web, realtime | public URL of the web app (CORS origin for sockets) |
+| `AUTH_SECRET`                                                                                              | web           | ≥ 32 chars                                          |
+| `DATABASE_URL` / `DATABASE_URL_TEST`                                                                       | web, database | PostgreSQL                                          |
+| `REDIS_URL`                                                                                                | web, realtime |                                                     |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE` | web           | any S3-compatible store                             |
+| `SMTP_HOST`, `SMTP_PORT`, `EMAIL_FROM`                                                                     | web           | Mailpit locally                                     |
+| `REALTIME_PORT`, `REALTIME_URL`, `REALTIME_JWT_SECRET`                                                     | web, realtime |                                                     |
 
 ## Database workflow
 

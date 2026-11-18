@@ -1,5 +1,10 @@
 import 'server-only';
-import { CreateBucketCommand, HeadBucketCommand, PutBucketVersioningCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  CreateBucketCommand,
+  HeadBucketCommand,
+  PutBucketVersioningCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { serverEnv } from '../env';
 
 const globalForS3 = globalThis as unknown as { __devsyncS3?: S3Client };

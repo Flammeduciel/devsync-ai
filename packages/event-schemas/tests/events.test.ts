@@ -18,14 +18,22 @@ describe('parseEvent', () => {
   });
 
   it('parses a valid typed event', () => {
-    const r = parseEvent(env('agent.status.updated', { agentId: uuid, userId: uuid, status: 'WORKING' }));
+    const r = parseEvent(
+      env('agent.status.updated', { agentId: uuid, userId: uuid, status: 'WORKING' }),
+    );
     expect(r.ok).toBe(true);
-    if (r.ok && r.event.type === 'agent.status.updated') expect(r.event.payload.status).toBe('WORKING');
+    if (r.ok && r.event.type === 'agent.status.updated')
+      expect(r.event.payload.status).toBe('WORKING');
   });
 
   it('rejects unknown types and bad payloads', () => {
-    expect(parseEvent(env('agent.teleported', {}))).toMatchObject({ ok: false, code: 'UNKNOWN_EVENT_TYPE' });
-    expect(parseEvent(env('agent.status.updated', { agentId: uuid, userId: uuid, status: 'DREAMING' }))).toMatchObject({
+    expect(parseEvent(env('agent.teleported', {}))).toMatchObject({
+      ok: false,
+      code: 'UNKNOWN_EVENT_TYPE',
+    });
+    expect(
+      parseEvent(env('agent.status.updated', { agentId: uuid, userId: uuid, status: 'DREAMING' })),
+    ).toMatchObject({
       ok: false,
       code: 'INVALID_PAYLOAD',
     });

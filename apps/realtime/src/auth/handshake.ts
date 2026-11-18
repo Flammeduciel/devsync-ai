@@ -1,4 +1,9 @@
-import { handshakeSchema, isCompatibleProtocol, PROTOCOL_VERSION, type Handshake } from '@devsync/protocol';
+import {
+  handshakeSchema,
+  isCompatibleProtocol,
+  PROTOCOL_VERSION,
+  type Handshake,
+} from '@devsync/protocol';
 import { AppError } from '@devsync/shared';
 
 /**
