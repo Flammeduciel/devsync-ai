@@ -32,6 +32,7 @@ const sessionUpdateByDirectory = sessionUpdate
   .omit({ externalSessionId: true })
   .extend({ workingDirectory: z.string().min(1).max(1024) });
 const gitSnapshotRequest = z.object({ workingDirectory: z.string().min(1).max(1024), externalSessionId: z.string().max(200).optional() });
+const gitAfterEditRequest = z.object({ workingDirectory: z.string().min(1).max(1024), externalSessionId: z.string().min(1).max(200), file: z.string().min(1).max(1024) });
 const gitOverlapRequest = z.object({ workingDirectory: z.string().min(1).max(1024), files: z.array(z.string().min(1).max(1024)).min(1).max(100) });
 const sessionRef = z.object({ externalSessionId: z.string().min(1).max(200) });
 const activity = sessionRef.extend({
@@ -186,6 +187,19 @@ export async function runDaemon(
       const { workingDirectory, externalSessionId } = gitSnapshotRequest.parse(raw);
       return gitWatcher.observe(workingDirectory, externalSessionId);
     },
+    /**
+     * After an edit: fresh snapshot, then the overlaps on the edited file this session was not told about
+     * yet (each conflict is reported once per session, and again only if it gets more severe).
+     */
+    'git.afterEdit': async (raw) => {
+      const { workingDirectory, externalSessionId, file } = gitAfterEditRequest.parse(raw);
+      const result = await gitWatcher.observe(workingDirectory, externalSessionId, true);
+      if (!result?.tracked) return { warnings: [] };
+      const told = (warned.get(externalSessionId) ?? warned.set(externalSessionId, new Set()).get(externalSessionId))!;
+      const warnings = result.conflicts.filter((c) => c.filePath === file && !told.has(`${c.id}:${c.kind}`));
+      for (const w of warnings) told.add(`${w.id}:${w.kind}`);
+      return { warnings };
+    },
     'git.overlap': async (raw) => {
       const { workingDirectory, files } = gitOverlapRequest.parse(raw);
       const repo = await detectRepository(workingDirectory);
@@ -273,6 +287,7 @@ export async function runDaemon(
   };
 
   const gitWatcher = new GitWatcher(api, logger);
+  const warned = new Map<string, Set<string>>();
   const gitTimer = setInterval(() => void gitWatcher.tick(sessions.workingDirectories()).catch((error: unknown) => {
     if (error instanceof DevSyncApiError && error.status === 401) onUnauthorized();
   }), SNAPSHOT_INTERVAL_MS);
