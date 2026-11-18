@@ -218,6 +218,7 @@ export class AgentsService {
       this.deps.db,
       new Date(now.getTime() - SESSION_STALE_AFTER_MS),
       batchSize,
+      scope.teamId,
     );
     for (const session of stale) {
       await withEvents(this.deps, (tx, emit) =>
