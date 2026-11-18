@@ -9,7 +9,8 @@ serves every local Claude Code session.
 pnpm bridge login            # builds apps/bridge, prints a code and opens http://localhost:3000/device
 pnpm bridge start            # background daemon (logs in ~/.devsync/bridge.log)
 pnpm bridge status
-pnpm bridge inbox            # requests waiting for you or your agents
+pnpm bridge inbox            # requests waiting for you or your agents + deliverables received
+pnpm bridge request show <id>   # then accept|reject|start|complete|cancel|approve|comment|clarify|answer
 pnpm bridge notify-test      # check desktop notifications and sound
 pnpm bridge stop
 ```
@@ -64,3 +65,10 @@ Newline-delimited JSON: request `{ "id": 1, "method": "...", "params": { } }`, r
 | `session.end`      | `externalSessionId`                                                              | queued then sent                                                                                                                        |
 | `inbox.list`       | –                                                                                | requests assigned to the developer or their agents                                                                                      |
 | `notify.test`      | –                                                                                | desktop notification with sound                                                                                                         |
+
+## Deliverable files
+
+`team_submit_deliverable` with `filePath` makes the daemon read the file **only if it resolves (symlinks included)
+inside the session's project directory**, checks type and size (≤ 25 MB), sends its SHA-256, and uploads it to a
+pre-signed URL bound to the declared content type and length. The server checks the object exists with the declared
+size before the deliverable can be published.
