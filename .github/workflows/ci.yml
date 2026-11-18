@@ -44,3 +44,7 @@ jobs:
       - run: pnpm test
       - run: pnpm --filter @devsync/realtime build
       - run: pnpm --filter @devsync/bridge build
+      - name: Plugin bundles are up to date
+        run: |
+          pnpm --filter @devsync/mcp-server build
+          git diff --exit-code -- plugins/claude-code/dist || (echo "Run: pnpm --filter @devsync/mcp-server build" && exit 1)
