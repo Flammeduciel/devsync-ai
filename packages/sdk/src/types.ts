@@ -98,3 +98,58 @@ export interface TeamContext {
   claims: ClaimInfo[];
   recentActivity: ActivityEntry[];
 }
+
+export interface DeliveredItem {
+  id: string;
+  title: string;
+  updatedAt: string;
+  project: { id: string; name: string };
+  assigneeUser: { name: string } | null;
+  deliverables: { id: string; title: string; format: string; currentVersion: number }[];
+}
+
+export interface RequestSummary {
+  id: string;
+  type: string;
+  status: string;
+  priority: string;
+  origin: string;
+  title: string;
+  description: string;
+  instructions: string | null;
+  expectedDeliverables: { title: string; format: string; description?: string }[];
+  dueAt: string | null;
+  project: { id: string; name: string };
+  createdBy: { id: string; name: string };
+  initiatorAgent: { id: string; name: string } | null;
+  assigneeUser: { id: string; name: string } | null;
+  assigneeAgent: { id: string; name: string } | null;
+  awaitingApproval: boolean;
+  yourRoles: string[];
+  availableActions: string[];
+}
+
+export interface RequestDetail extends RequestSummary {
+  history: { at: string; action: string; fromStatus: string | null; toStatus: string | null; by: string }[];
+  comments: { id: string; at: string; body: string; author: string }[];
+  deliverables: { id: string; title: string; format: string; status: string; currentVersion: number; by: string; versions: { version: number; contentType: string | null; url: string | null; notes: string | null }[] }[];
+  tasks: { id: string; title: string; status: string }[];
+}
+
+export interface DependencyGraph {
+  tasks: { id: string; title: string; status: string; requestId: string | null }[];
+  blockedBy: { status: string; task: { id: string; title: string; status: string; requestId: string | null } }[];
+  blocking: { status: string; task: { id: string; title: string; status: string; requestId: string | null } }[];
+}
+
+export interface DeliverableContent {
+  deliverableId: string;
+  title: string;
+  format: string;
+  version: number;
+  contentType: string | null;
+  downloadUrl: string | null;
+  gitRef: { commit: string; branch: string | null; path: string | null } | null;
+  url: string | null;
+  content: string | null;
+}

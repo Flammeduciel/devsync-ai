@@ -5,8 +5,13 @@ import type {
   DeviceAuthorization,
   DeviceTokenResult,
   Expert,
+  DeliverableContent,
+  DeliveredItem,
+  DependencyGraph,
   InboxItem,
   ProjectLocator,
+  RequestDetail,
+  RequestSummary,
   RegisteredSession,
   TeamContext,
   WhoAmI,
@@ -16,6 +21,8 @@ export interface DevSyncClientOptions {
   baseUrl: string;
   /** API key or device token, sent as a Bearer token. Omitted for the public device-flow endpoints. */
   token?: string;
+  /** Agent acting through the device token (default on the server: "claude-code"). */
+  agentName?: string;
   fetch?: typeof fetch;
   timeoutMs?: number;
 }
@@ -39,12 +46,14 @@ export class DevSyncApiError extends Error {
 export class DevSyncClient {
   private readonly baseUrl: string;
   private readonly token: string | undefined;
+  private readonly agentName: string | undefined;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
 
   constructor(options: DevSyncClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, '');
     this.token = options.token;
+    this.agentName = options.agentName;
     this.fetchImpl = options.fetch ?? fetch;
     this.timeoutMs = options.timeoutMs ?? 15_000;
   }
@@ -59,6 +68,7 @@ export class DevSyncClient {
       method,
       headers: {
         ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
+        ...(this.agentName ? { 'x-devsync-agent': this.agentName } : {}),
         accept: 'application/json',
         ...(body === undefined ? {} : { 'content-type': 'application/json' }),
       },
@@ -107,7 +117,7 @@ export class DevSyncClient {
     return this.request<{ duplicate: boolean }>('POST', '/activities', input);
   }
   inbox() {
-    return this.request<{ items: InboxItem[] }>('GET', '/inbox');
+    return this.request<{ items: InboxItem[]; delivered: DeliveredItem[] }>('GET', '/inbox');
   }
 
   // ── Team directory (device-authenticated) ──
@@ -144,8 +154,56 @@ export class DevSyncClient {
   releaseClaim(claimId: string) {
     return this.request<void>('DELETE', `/claims/${encodeURIComponent(claimId)}`);
   }
-}
 
+  // ── Collaboration (device-authenticated; the agent is named by X-DevSync-Agent) ──
+  createRequest(body: Record<string, unknown>) {
+    return this.request<RequestSummary>('POST', '/collaboration', body);
+  }
+  getRequest(requestId: string) {
+    return this.request<RequestDetail>('GET', `/collaboration/${encodeURIComponent(requestId)}`);
+  }
+  requestAction(requestId: string, body: { action: string; comment?: string }) {
+    return this.request<RequestSummary>('POST', `/collaboration/${encodeURIComponent(requestId)}/actions`, body);
+  }
+  comment(requestId: string, body: { body: string }) {
+    return this.request<{ id: string }>('POST', `/collaboration/${encodeURIComponent(requestId)}/comments`, body);
+  }
+  requestDependencies(requestId: string) {
+    return this.request<DependencyGraph>('GET', `/collaboration/${encodeURIComponent(requestId)}/dependencies`);
+  }
+  taskDependencies(taskId: string) {
+    return this.request<DependencyGraph>('GET', `/tasks/${encodeURIComponent(taskId)}/dependencies`);
+  }
+  createTask(body: Record<string, unknown>) {
+    return this.request<{ id: string; title: string; status: string }>('POST', '/tasks', body);
+  }
+  createDeliverable(body: Record<string, unknown>) {
+    return this.request<{ id: string; title: string; format: string }>('POST', '/deliverables', body);
+  }
+  addDeliverableVersion(deliverableId: string, body: Record<string, unknown>) {
+    return this.request<{ deliverableId: string; version: number; versionId: string; uploadUrl: string | null }>('POST', `/deliverables/${encodeURIComponent(deliverableId)}/versions`, body);
+  }
+  publishDeliverable(deliverableId: string) {
+    return this.request<{ deliverableId: string; status: string }>('POST', `/deliverables/${encodeURIComponent(deliverableId)}/publish`);
+  }
+  readDeliverable(deliverableId: string, options: { version?: number; inline?: boolean } = {}) {
+    return this.request<DeliverableContent>('GET', withQuery(`/deliverables/${encodeURIComponent(deliverableId)}`, { version: options.version, inline: options.inline ? 1 : undefined }));
+  }
+  broadcast(body: Record<string, unknown>) {
+    return this.request<{ delivered: number }>('POST', '/broadcast', body);
+  }
+
+  /** Uploads bytes to a pre-signed URL (content type and length must match the signature). */
+  async upload(url: string, body: Uint8Array, contentType: string): Promise<void> {
+    const response = await this.fetchImpl(url, {
+      method: 'PUT',
+      headers: { 'content-type': contentType, 'content-length': String(body.byteLength) },
+      body,
+      signal: AbortSignal.timeout(120_000),
+    });
+    if (!response.ok) throw new DevSyncApiError(response.status, 'UPLOAD_FAILED', `Upload failed with status ${response.status}`);
+  }
+}
 /** Builds `path?key=value&key=v2`, skipping undefined values. */
 export function withQuery(path: string, query: object): string {
   const params = new URLSearchParams();
