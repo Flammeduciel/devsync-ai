@@ -1,5 +1,6 @@
 import { rm } from 'node:fs/promises';
-import { createConnection, createServer, type Server } from 'node:net';
+import { createServer, type Server } from 'node:net';
+import { callBridge } from '@devsync/sdk';
 import { chmod } from 'node:fs/promises';
 
 /**
@@ -75,39 +76,7 @@ export async function startIpcServer(path: string, handlers: IpcHandlers): Promi
   return server;
 }
 
-/** One request/response round trip. Rejects quickly when the daemon is not running. */
-export function ipcCall<T = unknown>(
-  path: string,
-  method: string,
-  params?: unknown,
-  timeoutMs = 5000,
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const socket = createConnection(path);
-    let buffer = '';
-    const timer = setTimeout(() => {
-      socket.destroy();
-      reject(new Error('DevSync daemon did not answer'));
-    }, timeoutMs);
-    socket.setEncoding('utf8');
-    socket.on('connect', () => socket.write(`${JSON.stringify({ id: 1, method, params })}\n`));
-    socket.on('data', (chunk: string) => {
-      buffer += chunk;
-      const index = buffer.indexOf('\n');
-      if (index < 0) return;
-      clearTimeout(timer);
-      socket.end();
-      const response = JSON.parse(buffer.slice(0, index)) as IpcResponse;
-      if ('error' in response) reject(Object.assign(new Error(response.error.message), response.error));
-      else resolve(response.result as T);
-    });
-    socket.on('error', (error) => {
-      clearTimeout(timer);
-      reject(
-        Object.assign(new Error('DevSync daemon is not running (start it with `devsync start`)'), {
-          cause: error,
-        }),
-      );
-    });
-  });
+/** Client side lives in @devsync/sdk (shared with the MCP server and the plugin hooks). */
+export function ipcCall<T = unknown>(path: string, method: string, params?: unknown, timeoutMs = 5000): Promise<T> {
+  return callBridge<T>(method, params, { path, timeoutMs });
 }
