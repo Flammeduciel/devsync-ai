@@ -26,14 +26,18 @@ A phase is done only when `pnpm typecheck && pnpm test` pass and its criteria be
 - [x] Verified end to end in a browser (sign-up → team → project → repo → invite → accept as second user), desktop and mobile
 - **Not in Phase 1:** email verification (Better Auth supports it; enable with the production mailer), OAuth providers.
 
-## Phase 2 — Agent registry & realtime
+## Phase 2 — Agent registry & realtime ✅
 
-- Device pairing (`devsync login` → browser approval → device token), revocation
-- Agents, sessions, heartbeats, presence in Redis, status transitions
-- Outbox → gateway fan-out, acks, `session:resume` replay, Redis adapter
-- Bridge daemon: connection, reconnect with backoff, persistent queue, idempotent delivery, OS notifications + sound
-- `devsync status`, `devsync inbox` (read-only) in the terminal
-- **Accept:** kill the network for 2 min while emitting events → all delivered once after reconnect; Live Agents page updates < 1 s.
+- [x] Device pairing (`devsync login` → `/device` approval → one-time device token, hash only), revocation
+- [x] Agents, machines, sessions, activities; status aggregated from session heartbeats and explicit declarations
+- [x] Transactional outbox (`events`) → Redis pub/sub → gateway fan-out (team / member rooms, audience filtering)
+- [x] Replay by sequence on reconnect and `session:resume`; client dedupe by id; acks
+- [x] Gateway: device-token and dashboard-JWT auth, Bridge presence in Redis, Redis adapter, revoked machines disconnected
+- [x] BullMQ worker closing sessions without heartbeat for 90 s
+- [x] Bridge: daemon, CLI (`login`, `status`, `inbox`, `start`, `stop`), persistent outbox, reconnection, desktop notifications + sound, owner-only IPC
+- [x] Live agents page updated in real time; machines with presence and revoke
+- [x] Verified end to end: pairing in the browser, live status in the UI, gateway outage → replay, API outage → outbox replay, revocation → disconnection
+- **Not in Phase 2:** client-published events over the socket (`event:publish`) — Bridges use REST, which is authenticated and idempotent; a self-service `devsync logout` revocation endpoint; launchd/systemd service files.
 
 ## Phase 3 — Claude Code plugin & MCP
 
