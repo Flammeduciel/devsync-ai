@@ -11,14 +11,20 @@ export class DashboardService {
   async overview(userId: string, teamId: string) {
     const { role } = await requireTeamMember(this.deps.db, userId, teamId);
     const seesAll = hasTeamPermission(role, 'project:read_all');
-    const projects = await projectsRepository.list(this.deps.db, teamId, seesAll ? {} : { memberUserId: userId });
+    const projects = await projectsRepository.list(
+      this.deps.db,
+      teamId,
+      seesAll ? {} : { memberUserId: userId },
+    );
     const counts = await dashboardRepository.counts(
       this.deps.db,
       teamId,
       projects.map((p) => p.id),
       clock(this.deps),
     );
-    const activity = hasTeamPermission(role, 'audit:read') ? await dashboardRepository.recentAudit(this.deps.db, teamId, 8) : [];
+    const activity = hasTeamPermission(role, 'audit:read')
+      ? await dashboardRepository.recentAudit(this.deps.db, teamId, 8)
+      : [];
     return {
       counts: { ...counts, projects: projects.length },
       recentProjects: projects.slice(0, 5),

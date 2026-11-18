@@ -11,7 +11,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export function TeamSwitcher({ current, teams }: { current: string; teams: { slug: string; name: string }[] }) {
+export function TeamSwitcher({
+  current,
+  teams,
+}: {
+  current: string;
+  teams: { slug: string; name: string }[];
+}) {
   const currentTeam = teams.find((t) => t.slug === current);
   return (
     <DropdownMenu>

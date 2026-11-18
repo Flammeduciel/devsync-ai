@@ -3,7 +3,14 @@ import type { Db, TeamRole } from '@devsync/database';
 export const invitationsRepository = {
   create(
     db: Db,
-    data: { teamId: string; email: string; role: TeamRole; tokenHash: string; invitedById: string; expiresAt: Date },
+    data: {
+      teamId: string;
+      email: string;
+      role: TeamRole;
+      tokenHash: string;
+      invitedById: string;
+      expiresAt: Date;
+    },
   ) {
     return db.teamInvitation.create({ data });
   },

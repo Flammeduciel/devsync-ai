@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { canGrantRole, checkMemberChange, hasTeamPermission, type TeamRole } from '../server/domain/permissions';
+import {
+  canGrantRole,
+  checkMemberChange,
+  hasTeamPermission,
+  type TeamRole,
+} from '../server/domain/permissions';
 import { hasProjectAccess, projectAccess } from '../server/domain/project-access';
 
 const roles: TeamRole[] = ['OWNER', 'ADMIN', 'DEVELOPER', 'VIEWER'];
@@ -26,23 +31,71 @@ describe('team permissions', () => {
 describe('checkMemberChange', () => {
   const base = { actorIsTarget: false, ownerCount: 2 };
   it('protects the last owner', () => {
-    expect(checkMemberChange({ ...base, actorRole: 'OWNER', targetRole: 'OWNER', newRole: 'ADMIN', ownerCount: 1 })).toBe('LAST_OWNER');
-    expect(checkMemberChange({ ...base, actorRole: 'OWNER', actorIsTarget: true, targetRole: 'OWNER', newRole: null, ownerCount: 1 })).toBe('LAST_OWNER');
+    expect(
+      checkMemberChange({
+        ...base,
+        actorRole: 'OWNER',
+        targetRole: 'OWNER',
+        newRole: 'ADMIN',
+        ownerCount: 1,
+      }),
+    ).toBe('LAST_OWNER');
+    expect(
+      checkMemberChange({
+        ...base,
+        actorRole: 'OWNER',
+        actorIsTarget: true,
+        targetRole: 'OWNER',
+        newRole: null,
+        ownerCount: 1,
+      }),
+    ).toBe('LAST_OWNER');
   });
   it('lets members leave but not change their own role', () => {
-    expect(checkMemberChange({ ...base, actorRole: 'VIEWER', actorIsTarget: true, targetRole: 'VIEWER', newRole: null })).toBeNull();
-    expect(checkMemberChange({ ...base, actorRole: 'ADMIN', actorIsTarget: true, targetRole: 'ADMIN', newRole: 'OWNER' })).toBe('SELF');
+    expect(
+      checkMemberChange({
+        ...base,
+        actorRole: 'VIEWER',
+        actorIsTarget: true,
+        targetRole: 'VIEWER',
+        newRole: null,
+      }),
+    ).toBeNull();
+    expect(
+      checkMemberChange({
+        ...base,
+        actorRole: 'ADMIN',
+        actorIsTarget: true,
+        targetRole: 'ADMIN',
+        newRole: 'OWNER',
+      }),
+    ).toBe('SELF');
   });
   it('prevents admins from touching owners or peers', () => {
-    expect(checkMemberChange({ ...base, actorRole: 'ADMIN', targetRole: 'OWNER', newRole: 'DEVELOPER' })).toBe('FORBIDDEN');
-    expect(checkMemberChange({ ...base, actorRole: 'ADMIN', targetRole: 'ADMIN', newRole: null })).toBe('FORBIDDEN');
-    expect(checkMemberChange({ ...base, actorRole: 'ADMIN', targetRole: 'DEVELOPER', newRole: 'VIEWER' })).toBeNull();
+    expect(
+      checkMemberChange({ ...base, actorRole: 'ADMIN', targetRole: 'OWNER', newRole: 'DEVELOPER' }),
+    ).toBe('FORBIDDEN');
+    expect(
+      checkMemberChange({ ...base, actorRole: 'ADMIN', targetRole: 'ADMIN', newRole: null }),
+    ).toBe('FORBIDDEN');
+    expect(
+      checkMemberChange({
+        ...base,
+        actorRole: 'ADMIN',
+        targetRole: 'DEVELOPER',
+        newRole: 'VIEWER',
+      }),
+    ).toBeNull();
   });
   it('prevents developers from managing members', () => {
-    expect(checkMemberChange({ ...base, actorRole: 'DEVELOPER', targetRole: 'VIEWER', newRole: null })).toBe('FORBIDDEN');
+    expect(
+      checkMemberChange({ ...base, actorRole: 'DEVELOPER', targetRole: 'VIEWER', newRole: null }),
+    ).toBe('FORBIDDEN');
   });
   it('lets owners demote other owners when another owner remains', () => {
-    expect(checkMemberChange({ ...base, actorRole: 'OWNER', targetRole: 'OWNER', newRole: 'ADMIN' })).toBeNull();
+    expect(
+      checkMemberChange({ ...base, actorRole: 'OWNER', targetRole: 'OWNER', newRole: 'ADMIN' }),
+    ).toBeNull();
   });
 });
 

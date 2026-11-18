@@ -9,11 +9,20 @@ type Ctx = RouteContext<'/api/v1/projects/[projectId]/members'>;
 export const GET = handler(async (_request: Request, ctx: Ctx) => {
   const user = await requireApiUser();
   const { projectId } = await ctx.params;
-  return json({ items: await services().projects.listMembers(user.id, pathId(projectId, 'Project')) });
+  return json({
+    items: await services().projects.listMembers(user.id, pathId(projectId, 'Project')),
+  });
 });
 
 export const POST = handler(async (request: Request, ctx: Ctx) => {
   const user = await requireApiUser();
   const { projectId } = await ctx.params;
-  return json(await services().projects.addMember(user.id, pathId(projectId, 'Project'), addProjectMemberSchema.parse(await readJson(request))), 201);
+  return json(
+    await services().projects.addMember(
+      user.id,
+      pathId(projectId, 'Project'),
+      addProjectMemberSchema.parse(await readJson(request)),
+    ),
+    201,
+  );
 });

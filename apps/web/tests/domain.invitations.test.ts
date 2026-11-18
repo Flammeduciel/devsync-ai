@@ -13,10 +13,18 @@ describe('invitations', () => {
     const now = new Date('2026-11-18T12:00:00Z');
     const future = new Date('2026-11-20T00:00:00Z');
     const past = new Date('2026-11-17T00:00:00Z');
-    expect(invitationState({ acceptedAt: null, revokedAt: null, expiresAt: future }, now)).toBe('pending');
-    expect(invitationState({ acceptedAt: null, revokedAt: null, expiresAt: past }, now)).toBe('expired');
-    expect(invitationState({ acceptedAt: null, revokedAt: now, expiresAt: future }, now)).toBe('revoked');
-    expect(invitationState({ acceptedAt: now, revokedAt: null, expiresAt: past }, now)).toBe('accepted');
+    expect(invitationState({ acceptedAt: null, revokedAt: null, expiresAt: future }, now)).toBe(
+      'pending',
+    );
+    expect(invitationState({ acceptedAt: null, revokedAt: null, expiresAt: past }, now)).toBe(
+      'expired',
+    );
+    expect(invitationState({ acceptedAt: null, revokedAt: now, expiresAt: future }, now)).toBe(
+      'revoked',
+    );
+    expect(invitationState({ acceptedAt: now, revokedAt: null, expiresAt: past }, now)).toBe(
+      'accepted',
+    );
   });
 });
 

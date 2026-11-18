@@ -6,11 +6,21 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/select';
 import { roleLabel } from '@/lib/format';
-import { addProjectMemberAction, removeProjectMemberAction, removeRepositoryAction } from './actions';
+import {
+  addProjectMemberAction,
+  removeProjectMemberAction,
+  removeRepositoryAction,
+} from './actions';
 
 const PROJECT_ROLES: ProjectRole[] = ['MAINTAINER', 'CONTRIBUTOR', 'VIEWER'];
 
-export function AddProjectMemberForm({ projectId, candidates }: { projectId: string; candidates: { id: string; name: string }[] }) {
+export function AddProjectMemberForm({
+  projectId,
+  candidates,
+}: {
+  projectId: string;
+  candidates: { id: string; name: string }[];
+}) {
   const [userId, setUserId] = useState(candidates[0]?.id ?? '');
   const [role, setRole] = useState<ProjectRole>('CONTRIBUTOR');
   const [pending, startTransition] = useTransition();
@@ -29,14 +39,23 @@ export function AddProjectMemberForm({ projectId, candidates }: { projectId: str
         });
       }}
     >
-      <NativeSelect aria-label="Team member" className="flex-1" value={userId} onChange={(e) => setUserId(e.target.value)}>
+      <NativeSelect
+        aria-label="Team member"
+        className="flex-1"
+        value={userId}
+        onChange={(e) => setUserId(e.target.value)}
+      >
         {candidates.map((c) => (
           <option key={c.id} value={c.id}>
             {c.name}
           </option>
         ))}
       </NativeSelect>
-      <NativeSelect aria-label="Project role" value={role} onChange={(e) => setRole(e.target.value as ProjectRole)}>
+      <NativeSelect
+        aria-label="Project role"
+        value={role}
+        onChange={(e) => setRole(e.target.value as ProjectRole)}
+      >
         {PROJECT_ROLES.map((r) => (
           <option key={r} value={r}>
             {roleLabel(r)}
@@ -50,7 +69,15 @@ export function AddProjectMemberForm({ projectId, candidates }: { projectId: str
   );
 }
 
-export function RemoveButton({ kind, projectId, id }: { kind: 'member' | 'repository'; projectId: string; id: string }) {
+export function RemoveButton({
+  kind,
+  projectId,
+  id,
+}: {
+  kind: 'member' | 'repository';
+  projectId: string;
+  id: string;
+}) {
   const [pending, startTransition] = useTransition();
   return (
     <Button
@@ -60,7 +87,9 @@ export function RemoveButton({ kind, projectId, id }: { kind: 'member' | 'reposi
       onClick={() =>
         startTransition(async () => {
           const result =
-            kind === 'member' ? await removeProjectMemberAction(projectId, id) : await removeRepositoryAction(projectId, id);
+            kind === 'member'
+              ? await removeProjectMemberAction(projectId, id)
+              : await removeRepositoryAction(projectId, id);
           if (!result.ok) toast.error(result.error);
         })
       }

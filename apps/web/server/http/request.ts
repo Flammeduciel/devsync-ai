@@ -11,7 +11,8 @@ export async function readJson(request: Request): Promise<unknown> {
     throw new AppError('UNSUPPORTED_MEDIA_TYPE', 'Expected application/json');
   }
   const text = await request.text();
-  if (text.length > MAX_JSON_BYTES) throw new AppError('PAYLOAD_TOO_LARGE', 'Request body is too large');
+  if (text.length > MAX_JSON_BYTES)
+    throw new AppError('PAYLOAD_TOO_LARGE', 'Request body is too large');
   try {
     return text ? JSON.parse(text) : {};
   } catch {

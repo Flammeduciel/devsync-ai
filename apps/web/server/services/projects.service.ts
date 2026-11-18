@@ -48,12 +48,24 @@ export class ProjectsService {
           description: input.description,
           createdById: userId,
         });
-        await projectsRepository.upsertMember(tx, { teamId, projectId: project.id, userId, role: 'MAINTAINER' });
-        await recordAudit(tx, { teamId, actorUserId: userId, action: 'project.created', targetType: 'project', targetId: project.id });
+        await projectsRepository.upsertMember(tx, {
+          teamId,
+          projectId: project.id,
+          userId,
+          role: 'MAINTAINER',
+        });
+        await recordAudit(tx, {
+          teamId,
+          actorUserId: userId,
+          action: 'project.created',
+          targetType: 'project',
+          targetId: project.id,
+        });
         return project;
       });
     } catch (error) {
-      if (isUniqueViolation(error, 'slug')) throw new AppError('CONFLICT', `A project with the URL "${slug}" already exists`);
+      if (isUniqueViolation(error, 'slug'))
+        throw new AppError('CONFLICT', `A project with the URL "${slug}" already exists`);
       throw error;
     }
   }
@@ -64,11 +76,19 @@ export class ProjectsService {
     try {
       return await this.deps.db.$transaction(async (tx) => {
         const updated = await projectsRepository.update(tx, projectId, input);
-        await recordAudit(tx, { teamId: project.teamId, actorUserId: userId, action: 'project.updated', targetType: 'project', targetId: projectId, metadata: input });
+        await recordAudit(tx, {
+          teamId: project.teamId,
+          actorUserId: userId,
+          action: 'project.updated',
+          targetType: 'project',
+          targetId: projectId,
+          metadata: input,
+        });
         return updated;
       });
     } catch (error) {
-      if (isUniqueViolation(error, 'slug')) throw new AppError('CONFLICT', `A project with the URL "${input.slug}" already exists`);
+      if (isUniqueViolation(error, 'slug'))
+        throw new AppError('CONFLICT', `A project with the URL "${input.slug}" already exists`);
       throw error;
     }
   }
@@ -77,7 +97,13 @@ export class ProjectsService {
     const { project } = await requireProjectAccess(this.deps.db, userId, projectId, 'manage');
     await this.deps.db.$transaction(async (tx) => {
       await projectsRepository.softDelete(tx, projectId, clock(this.deps));
-      await recordAudit(tx, { teamId: project.teamId, actorUserId: userId, action: 'project.deleted', targetType: 'project', targetId: projectId });
+      await recordAudit(tx, {
+        teamId: project.teamId,
+        actorUserId: userId,
+        action: 'project.deleted',
+        targetType: 'project',
+        targetId: projectId,
+      });
     });
   }
 
@@ -94,8 +120,20 @@ export class ProjectsService {
     const teamMember = await membersRepository.find(this.deps.db, project.teamId, input.userId);
     if (!teamMember) throw new AppError('BAD_REQUEST', 'This user is not a member of the team');
     return this.deps.db.$transaction(async (tx) => {
-      const member = await projectsRepository.upsertMember(tx, { teamId: project.teamId, projectId, userId: input.userId, role: input.role });
-      await recordAudit(tx, { teamId: project.teamId, actorUserId: userId, action: 'project.member_set', targetType: 'project', targetId: projectId, metadata: { userId: input.userId, role: input.role } });
+      const member = await projectsRepository.upsertMember(tx, {
+        teamId: project.teamId,
+        projectId,
+        userId: input.userId,
+        role: input.role,
+      });
+      await recordAudit(tx, {
+        teamId: project.teamId,
+        actorUserId: userId,
+        action: 'project.member_set',
+        targetType: 'project',
+        targetId: projectId,
+        metadata: { userId: input.userId, role: input.role },
+      });
       return member;
     });
   }
@@ -105,7 +143,14 @@ export class ProjectsService {
     await this.deps.db.$transaction(async (tx) => {
       const { count } = await projectsRepository.removeMember(tx, projectId, memberUserId);
       if (count === 0) throw new AppError('NOT_FOUND', 'Member not found');
-      await recordAudit(tx, { teamId: project.teamId, actorUserId: userId, action: 'project.member_removed', targetType: 'project', targetId: projectId, metadata: { userId: memberUserId } });
+      await recordAudit(tx, {
+        teamId: project.teamId,
+        actorUserId: userId,
+        action: 'project.member_removed',
+        targetType: 'project',
+        targetId: projectId,
+        metadata: { userId: memberUserId },
+      });
     });
   }
 
@@ -127,22 +172,40 @@ export class ProjectsService {
           provider: detectProvider(input.remoteUrl),
           defaultBranch: input.defaultBranch,
         });
-        await recordAudit(tx, { teamId: project.teamId, actorUserId: userId, action: 'repository.added', targetType: 'repository', targetId: repository.id, metadata: { remoteUrl: input.remoteUrl } });
+        await recordAudit(tx, {
+          teamId: project.teamId,
+          actorUserId: userId,
+          action: 'repository.added',
+          targetType: 'repository',
+          targetId: repository.id,
+          metadata: { remoteUrl: input.remoteUrl },
+        });
         return repository;
       });
     } catch (error) {
-      if (isUniqueViolation(error)) throw new AppError('CONFLICT', 'This repository is already linked to the project');
+      if (isUniqueViolation(error))
+        throw new AppError('CONFLICT', 'This repository is already linked to the project');
       throw error;
     }
   }
 
   async removeRepository(userId: string, projectId: string, repositoryId: string) {
     const { project } = await requireProjectAccess(this.deps.db, userId, projectId, 'manage');
-    const repository = await projectsRepository.findRepository(this.deps.db, projectId, repositoryId);
+    const repository = await projectsRepository.findRepository(
+      this.deps.db,
+      projectId,
+      repositoryId,
+    );
     if (!repository) throw new AppError('NOT_FOUND', 'Repository not found');
     await this.deps.db.$transaction(async (tx) => {
       await projectsRepository.softDeleteRepository(tx, repositoryId, clock(this.deps));
-      await recordAudit(tx, { teamId: project.teamId, actorUserId: userId, action: 'repository.removed', targetType: 'repository', targetId: repositoryId });
+      await recordAudit(tx, {
+        teamId: project.teamId,
+        actorUserId: userId,
+        action: 'repository.removed',
+        targetType: 'repository',
+        targetId: repositoryId,
+      });
     });
   }
 }

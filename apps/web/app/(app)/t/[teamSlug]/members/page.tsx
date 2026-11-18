@@ -45,14 +45,24 @@ export default async function MembersPage({ params }: PageProps<'/t/[teamSlug]/m
           {members.map((member) => {
             const isSelf = member.id === user.id;
             const check = (newRole: TeamRole | null) =>
-              checkMemberChange({ actorRole: team.role, actorIsTarget: isSelf, targetRole: member.role, newRole, ownerCount }) === null;
+              checkMemberChange({
+                actorRole: team.role,
+                actorIsTarget: isSelf,
+                targetRole: member.role,
+                newRole,
+                ownerCount,
+              }) === null;
             return (
-              <li key={member.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <li
+                key={member.id}
+                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+              >
                 <div className="flex min-w-0 items-center gap-3">
                   <Avatar name={member.name} />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
-                      {member.name} {isSelf ? <span className="text-muted-foreground">(you)</span> : null}
+                      {member.name}{' '}
+                      {isSelf ? <span className="text-muted-foreground">(you)</span> : null}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">{member.email}</p>
                   </div>
@@ -78,9 +88,13 @@ export default async function MembersPage({ params }: PageProps<'/t/[teamSlug]/m
           <CardContent>
             <ul className="divide-y">
               {invitations.map((invitation) => (
-                <li key={invitation.id} className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
+                <li
+                  key={invitation.id}
+                  className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm"
+                >
                   <span className="flex items-center gap-2">
-                    {invitation.email} <Badge variant="secondary">{roleLabel(invitation.role)}</Badge>
+                    {invitation.email}{' '}
+                    <Badge variant="secondary">{roleLabel(invitation.role)}</Badge>
                   </span>
                   <span className="flex items-center gap-3 text-xs text-muted-foreground">
                     invited by {invitation.invitedBy.name} {timeAgo(invitation.createdAt)}

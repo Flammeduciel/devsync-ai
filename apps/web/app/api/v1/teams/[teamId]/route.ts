@@ -15,7 +15,13 @@ export const GET = handler(async (_request: Request, ctx: Ctx) => {
 export const PATCH = handler(async (request: Request, ctx: Ctx) => {
   const user = await requireApiUser();
   const { teamId } = await ctx.params;
-  return json(await services().teams.update(user.id, pathId(teamId, 'Team'), updateTeamSchema.parse(await readJson(request))));
+  return json(
+    await services().teams.update(
+      user.id,
+      pathId(teamId, 'Team'),
+      updateTeamSchema.parse(await readJson(request)),
+    ),
+  );
 });
 
 export const DELETE = handler(async (_request: Request, ctx: Ctx) => {

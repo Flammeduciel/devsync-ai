@@ -19,7 +19,10 @@ export default async function SignUpPage({ searchParams }: PageProps<'/sign-up'>
       footer={
         <>
           Already have an account?{' '}
-          <Link href={{ pathname: '/sign-in', query: { next } }} className="text-foreground underline underline-offset-4">
+          <Link
+            href={{ pathname: '/sign-in', query: { next } }}
+            className="text-foreground underline underline-offset-4"
+          >
             Sign in
           </Link>
         </>

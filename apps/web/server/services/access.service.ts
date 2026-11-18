@@ -19,7 +19,12 @@ export async function requireTeamMember(db: Db, userId: string, teamId: string) 
   return { team, membership, role: membership.role };
 }
 
-export async function requireTeamPermission(db: Db, userId: string, teamId: string, permission: TeamPermission) {
+export async function requireTeamPermission(
+  db: Db,
+  userId: string,
+  teamId: string,
+  permission: TeamPermission,
+) {
   const access = await requireTeamMember(db, userId, teamId);
   if (!hasTeamPermission(access.role, permission)) {
     throw new AppError('FORBIDDEN', 'You do not have permission to perform this action');

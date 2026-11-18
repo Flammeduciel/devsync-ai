@@ -16,5 +16,7 @@ export function projectAccess(teamRole: TeamRole, projectRole: ProjectRole | nul
 
 const ORDER: Record<ProjectAccess, number> = { none: 0, read: 1, write: 2, manage: 3 };
 
-export const hasProjectAccess = (actual: ProjectAccess, required: Exclude<ProjectAccess, 'none'>): boolean =>
-  ORDER[actual] >= ORDER[required];
+export const hasProjectAccess = (
+  actual: ProjectAccess,
+  required: Exclude<ProjectAccess, 'none'>,
+): boolean => ORDER[actual] >= ORDER[required];

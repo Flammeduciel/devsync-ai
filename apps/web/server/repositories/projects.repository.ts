@@ -3,7 +3,9 @@ import type { Db, GitProvider, ProjectRole } from '@devsync/database';
 export const projectsRepository = {
   /** Active project of an active team. */
   findActiveById(db: Db, projectId: string) {
-    return db.project.findFirst({ where: { id: projectId, deletedAt: null, team: { deletedAt: null } } });
+    return db.project.findFirst({
+      where: { id: projectId, deletedAt: null, team: { deletedAt: null } },
+    });
   },
 
   findProjectMember(db: Db, projectId: string, userId: string) {
@@ -18,14 +20,22 @@ export const projectsRepository = {
         deletedAt: null,
         ...(options.memberUserId ? { members: { some: { userId: options.memberUserId } } } : {}),
       },
-      include: { _count: { select: { members: true, repositories: { where: { deletedAt: null } } } } },
+      include: {
+        _count: { select: { members: true, repositories: { where: { deletedAt: null } } } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   },
 
   create(
     db: Db,
-    data: { teamId: string; name: string; slug: string; description?: string | undefined; createdById: string },
+    data: {
+      teamId: string;
+      name: string;
+      slug: string;
+      description?: string | undefined;
+      createdById: string;
+    },
   ) {
     return db.project.create({
       data: {
@@ -38,7 +48,11 @@ export const projectsRepository = {
     });
   },
 
-  update(db: Db, projectId: string, data: { name?: string; slug?: string; description?: string | undefined }) {
+  update(
+    db: Db,
+    projectId: string,
+    data: { name?: string; slug?: string; description?: string | undefined },
+  ) {
     return db.project.update({ where: { id: projectId }, data });
   },
 
@@ -57,7 +71,10 @@ export const projectsRepository = {
     });
   },
 
-  upsertMember(db: Db, data: { teamId: string; projectId: string; userId: string; role: ProjectRole }) {
+  upsertMember(
+    db: Db,
+    data: { teamId: string; projectId: string; userId: string; role: ProjectRole },
+  ) {
     return db.projectMember.upsert({
       where: { projectId_userId: { projectId: data.projectId, userId: data.userId } },
       create: data,
@@ -70,7 +87,10 @@ export const projectsRepository = {
   },
 
   listRepositories(db: Db, projectId: string) {
-    return db.repository.findMany({ where: { projectId, deletedAt: null }, orderBy: { createdAt: 'asc' } });
+    return db.repository.findMany({
+      where: { projectId, deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+    });
   },
 
   findRepository(db: Db, projectId: string, repositoryId: string) {

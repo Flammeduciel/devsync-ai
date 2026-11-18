@@ -14,7 +14,10 @@ import { inviteMemberAction } from '../teams/actions';
 type Values = z.input<typeof inviteMemberSchema>;
 
 export function InviteForm({ teamId, roles }: { teamId: string; roles: TeamRole[] }) {
-  const form = useForm<Values>({ resolver: zodResolver(inviteMemberSchema), defaultValues: { email: '', role: 'DEVELOPER' } });
+  const form = useForm<Values>({
+    resolver: zodResolver(inviteMemberSchema),
+    defaultValues: { email: '', role: 'DEVELOPER' },
+  });
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -37,7 +40,11 @@ export function InviteForm({ teamId, roles }: { teamId: string; roles: TeamRole[
           aria-invalid={!!errors.email}
           {...form.register('email')}
         />
-        {errors.email ? <p role="alert" className="mt-1 text-sm text-destructive">{errors.email.message}</p> : null}
+        {errors.email ? (
+          <p role="alert" className="mt-1 text-sm text-destructive">
+            {errors.email.message}
+          </p>
+        ) : null}
       </div>
       <NativeSelect aria-label="Role" {...form.register('role')}>
         {roles.map((role) => (
@@ -46,7 +53,9 @@ export function InviteForm({ teamId, roles }: { teamId: string; roles: TeamRole[
           </option>
         ))}
       </NativeSelect>
-      <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Sending…' : 'Invite'}</Button>
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Sending…' : 'Invite'}
+      </Button>
     </form>
   );
 }

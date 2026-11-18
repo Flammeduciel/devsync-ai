@@ -36,7 +36,11 @@ export function AddRepositoryForm({ projectId }: { projectId: string }) {
           aria-invalid={!!error}
           onChange={(event) => setRemoteUrl(event.target.value)}
         />
-        {error ? <p role="alert" className="mt-1 text-sm text-destructive">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="mt-1 text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
       </div>
       <Button type="submit" variant="outline" disabled={pending || !remoteUrl.trim()}>
         Link repository

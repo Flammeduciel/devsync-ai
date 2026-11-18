@@ -9,8 +9,13 @@ export default async function ResetPasswordPage({ searchParams }: PageProps<'/re
   const { token, error } = await searchParams;
   if (typeof token !== 'string' || error) {
     return (
-      <AuthCard title="Link expired" description="This password reset link is invalid or has expired.">
-        <Link href="/forgot-password" className="text-sm underline underline-offset-4">Request a new link</Link>
+      <AuthCard
+        title="Link expired"
+        description="This password reset link is invalid or has expired."
+      >
+        <Link href="/forgot-password" className="text-sm underline underline-offset-4">
+          Request a new link
+        </Link>
       </AuthCard>
     );
   }

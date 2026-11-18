@@ -12,7 +12,10 @@ import { createTeamAction } from './actions';
 
 export function CreateTeamForm() {
   const router = useRouter();
-  const form = useForm<CreateTeamInput>({ resolver: zodResolver(createTeamSchema), defaultValues: { name: '' } });
+  const form = useForm<CreateTeamInput>({
+    resolver: zodResolver(createTeamSchema),
+    defaultValues: { name: '' },
+  });
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -27,9 +30,17 @@ export function CreateTeamForm() {
   return (
     <form onSubmit={onSubmit} className="grid gap-4" noValidate>
       <FormField id="team-name" label="Team name" error={errors.name?.message}>
-        <Input id="team-name" placeholder="Payments squad" autoFocus aria-invalid={!!errors.name} {...form.register('name')} />
+        <Input
+          id="team-name"
+          placeholder="Payments squad"
+          autoFocus
+          aria-invalid={!!errors.name}
+          {...form.register('name')}
+        />
       </FormField>
-      <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating…' : 'Create team'}</Button>
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Creating…' : 'Create team'}
+      </Button>
     </form>
   );
 }

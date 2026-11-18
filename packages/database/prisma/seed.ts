@@ -14,12 +14,17 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const db = createDatabaseClient(process.env.DATABASE_URL!);
-const emails = (process.env.SEED_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+const emails = (process.env.SEED_EMAILS ?? '')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 async function main() {
   const users = await db.user.findMany({ where: { email: { in: emails } } });
   if (users.length === 0) {
-    console.log('No user found. Sign up in the app, then run: SEED_EMAILS=you@example.com pnpm db:seed');
+    console.log(
+      'No user found. Sign up in the app, then run: SEED_EMAILS=you@example.com pnpm db:seed',
+    );
     return;
   }
   const [owner, ...others] = users;
@@ -40,7 +45,10 @@ async function main() {
       create: { teamId: team.id, userId: user.id, role: 'DEVELOPER' },
     });
   }
-  for (const [slug, name] of [['payments-api', 'Payments API'], ['checkout-web', 'Checkout web']] as const) {
+  for (const [slug, name] of [
+    ['payments-api', 'Payments API'],
+    ['checkout-web', 'Checkout web'],
+  ] as const) {
     const project = await db.project.upsert({
       where: { teamId_slug: { teamId: team.id, slug } },
       update: {},
@@ -54,9 +62,20 @@ async function main() {
       });
     }
     await db.repository.upsert({
-      where: { projectId_remoteUrl: { projectId: project.id, remoteUrl: `github.com/devsync-demo/${slug}` } },
+      where: {
+        projectId_remoteUrl: {
+          projectId: project.id,
+          remoteUrl: `github.com/devsync-demo/${slug}`,
+        },
+      },
       update: {},
-      create: { teamId: team.id, projectId: project.id, name: slug, provider: 'GITHUB', remoteUrl: `github.com/devsync-demo/${slug}` },
+      create: {
+        teamId: team.id,
+        projectId: project.id,
+        name: slug,
+        provider: 'GITHUB',
+        remoteUrl: `github.com/devsync-demo/${slug}`,
+      },
     });
   }
   console.log(`Seeded team "demo" with ${users.length} member(s): /t/demo`);

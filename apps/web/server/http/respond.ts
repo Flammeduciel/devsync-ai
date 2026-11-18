@@ -49,5 +49,6 @@ export function handler<Args extends [Request, ...unknown[]] | []>(
   };
 }
 
-export const json = (data: unknown, status = 200): NextResponse => NextResponse.json(data, { status });
+export const json = (data: unknown, status = 200): NextResponse =>
+  NextResponse.json(data, { status });
 export const noContent = (): Response => new Response(null, { status: 204 });

@@ -1,13 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { createRepositorySchema, detectProvider, normalizeRemoteUrl, resetPasswordSchema, signUpSchema } from '../src';
+import {
+  createRepositorySchema,
+  detectProvider,
+  normalizeRemoteUrl,
+  resetPasswordSchema,
+  signUpSchema,
+} from '../src';
 
 describe('auth inputs', () => {
   it('enforces password strength', () => {
-    expect(signUpSchema.safeParse({ name: 'A', email: 'a@b.co', password: 'short1' }).success).toBe(false);
-    expect(signUpSchema.safeParse({ name: 'A', email: 'a@b.co', password: 'longenough1' }).success).toBe(true);
+    expect(signUpSchema.safeParse({ name: 'A', email: 'a@b.co', password: 'short1' }).success).toBe(
+      false,
+    );
+    expect(
+      signUpSchema.safeParse({ name: 'A', email: 'a@b.co', password: 'longenough1' }).success,
+    ).toBe(true);
   });
   it('checks confirmation', () => {
-    expect(resetPasswordSchema.safeParse({ password: 'longenough1', confirm: 'other' }).success).toBe(false);
+    expect(
+      resetPasswordSchema.safeParse({ password: 'longenough1', confirm: 'other' }).success,
+    ).toBe(false);
   });
 });
 
@@ -25,7 +37,9 @@ describe('normalizeRemoteUrl', () => {
     expect(normalizeRemoteUrl('not a url')).toBeNull();
     expect(normalizeRemoteUrl('localhost')).toBeNull();
     expect(normalizeRemoteUrl('file:///tmp/repo')).toBeNull();
-    expect(createRepositorySchema.safeParse({ remoteUrl: 'https://github.com/only' }).success).toBe(false);
+    expect(createRepositorySchema.safeParse({ remoteUrl: 'https://github.com/only' }).success).toBe(
+      false,
+    );
   });
   it('detects providers', () => {
     expect(detectProvider('bitbucket.org/a/b')).toBe('BITBUCKET');

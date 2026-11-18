@@ -1,7 +1,17 @@
 import type { LucideIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
-export function StatCard({ label, value, hint, icon: Icon }: { label: string; value: number; hint?: string; icon: LucideIcon }) {
+export function StatCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+  icon: LucideIcon;
+}) {
   return (
     <Card className="gap-2 px-5 py-4">
       <div className="flex items-center justify-between text-sm text-muted-foreground">

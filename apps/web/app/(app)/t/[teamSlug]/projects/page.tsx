@@ -20,12 +20,18 @@ export default async function ProjectsPage({ params }: PageProps<'/t/[teamSlug]/
     <>
       <PageHeader
         title="Projects"
-        description={hasTeamPermission(team.role, 'project:read_all') ? 'All projects of the team.' : 'Projects you have access to.'}
+        description={
+          hasTeamPermission(team.role, 'project:read_all')
+            ? 'All projects of the team.'
+            : 'Projects you have access to.'
+        }
       />
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <section aria-label="Project list" className="grid content-start gap-3">
           {projects.length === 0 ? (
-            <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No project yet.</p>
+            <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+              No project yet.
+            </p>
           ) : (
             projects.map((project) => (
               <Link
@@ -35,9 +41,15 @@ export default async function ProjectsPage({ params }: PageProps<'/t/[teamSlug]/
               >
                 <div className="flex items-center justify-between gap-4">
                   <h2 className="font-medium">{project.name}</h2>
-                  <span className="text-xs text-muted-foreground">created {timeAgo(project.createdAt)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    created {timeAgo(project.createdAt)}
+                  </span>
                 </div>
-                {project.description ? <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{project.description}</p> : null}
+                {project.description ? (
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    {project.description}
+                  </p>
+                ) : null}
                 <p className="mt-2 text-xs text-muted-foreground">
                   {project._count.members} member(s) · {project._count.repositories} repo(s)
                 </p>

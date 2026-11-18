@@ -10,9 +10,20 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { updateTeamAction } from '../teams/actions';
 
-export function TeamSettingsForm({ teamId, name, slug }: { teamId: string; name: string; slug: string }) {
+export function TeamSettingsForm({
+  teamId,
+  name,
+  slug,
+}: {
+  teamId: string;
+  name: string;
+  slug: string;
+}) {
   const router = useRouter();
-  const form = useForm<UpdateTeamInput>({ resolver: zodResolver(updateTeamSchema), defaultValues: { name, slug } });
+  const form = useForm<UpdateTeamInput>({
+    resolver: zodResolver(updateTeamSchema),
+    defaultValues: { name, slug },
+  });
   const { errors, isSubmitting, isDirty } = form.formState;
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -31,7 +42,12 @@ export function TeamSettingsForm({ teamId, name, slug }: { teamId: string; name:
       <FormField id="team-name" label="Name" error={errors.name?.message}>
         <Input id="team-name" aria-invalid={!!errors.name} {...form.register('name')} />
       </FormField>
-      <FormField id="team-slug" label="URL" error={errors.slug?.message} hint="Lowercase letters, digits and dashes.">
+      <FormField
+        id="team-slug"
+        label="URL"
+        error={errors.slug?.message}
+        hint="Lowercase letters, digits and dashes."
+      >
         <Input id="team-slug" aria-invalid={!!errors.slug} {...form.register('slug')} />
       </FormField>
       <Button type="submit" className="justify-self-start" disabled={isSubmitting || !isDirty}>

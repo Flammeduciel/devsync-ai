@@ -1,6 +1,11 @@
 import { isUniqueViolation } from '@devsync/database';
 import { AppError } from '@devsync/shared';
-import { createTeamSchema, updateTeamSchema, type CreateTeamInput, type UpdateTeamInput } from '@devsync/validation';
+import {
+  createTeamSchema,
+  updateTeamSchema,
+  type CreateTeamInput,
+  type UpdateTeamInput,
+} from '@devsync/validation';
 import { slugify } from '../domain/slug';
 import { recordAudit } from '../repositories/audit.repository';
 import { teamsRepository } from '../repositories/teams.repository';
@@ -34,11 +39,18 @@ export class TeamsService {
     try {
       return await this.deps.db.$transaction(async (tx) => {
         const team = await teamsRepository.create(tx, { name: input.name, slug, ownerId: userId });
-        await recordAudit(tx, { teamId: team.id, actorUserId: userId, action: 'team.created', targetType: 'team', targetId: team.id });
+        await recordAudit(tx, {
+          teamId: team.id,
+          actorUserId: userId,
+          action: 'team.created',
+          targetType: 'team',
+          targetId: team.id,
+        });
         return { ...team, role: 'OWNER' as const };
       });
     } catch (error) {
-      if (isUniqueViolation(error, 'slug')) throw new AppError('CONFLICT', `The URL "${slug}" is already taken`);
+      if (isUniqueViolation(error, 'slug'))
+        throw new AppError('CONFLICT', `The URL "${slug}" is already taken`);
       throw error;
     }
   }
@@ -49,11 +61,19 @@ export class TeamsService {
     try {
       return await this.deps.db.$transaction(async (tx) => {
         const team = await teamsRepository.update(tx, teamId, input);
-        await recordAudit(tx, { teamId, actorUserId: userId, action: 'team.updated', targetType: 'team', targetId: teamId, metadata: input });
+        await recordAudit(tx, {
+          teamId,
+          actorUserId: userId,
+          action: 'team.updated',
+          targetType: 'team',
+          targetId: teamId,
+          metadata: input,
+        });
         return team;
       });
     } catch (error) {
-      if (isUniqueViolation(error, 'slug')) throw new AppError('CONFLICT', `The URL "${input.slug}" is already taken`);
+      if (isUniqueViolation(error, 'slug'))
+        throw new AppError('CONFLICT', `The URL "${input.slug}" is already taken`);
       throw error;
     }
   }
@@ -62,7 +82,13 @@ export class TeamsService {
     await requireTeamPermission(this.deps.db, userId, teamId, 'team:delete');
     await this.deps.db.$transaction(async (tx) => {
       await teamsRepository.softDelete(tx, teamId, clock(this.deps));
-      await recordAudit(tx, { teamId, actorUserId: userId, action: 'team.deleted', targetType: 'team', targetId: teamId });
+      await recordAudit(tx, {
+        teamId,
+        actorUserId: userId,
+        action: 'team.deleted',
+        targetType: 'team',
+        targetId: teamId,
+      });
     });
   }
 }

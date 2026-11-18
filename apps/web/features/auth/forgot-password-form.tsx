@@ -11,7 +11,10 @@ import { authClient } from '@/lib/auth-client';
 
 export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
-  const form = useForm<ForgotPasswordInput>({ resolver: zodResolver(forgotPasswordSchema), defaultValues: { email: '' } });
+  const form = useForm<ForgotPasswordInput>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
+  });
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async ({ email }) => {
@@ -21,14 +24,26 @@ export function ForgotPasswordForm() {
   });
 
   if (sent) {
-    return <p className="text-sm">If an account exists for this email, a reset link is on its way. It expires in one hour.</p>;
+    return (
+      <p className="text-sm">
+        If an account exists for this email, a reset link is on its way. It expires in one hour.
+      </p>
+    );
   }
   return (
     <form onSubmit={onSubmit} className="grid gap-4" noValidate>
       <FormField id="email" label="Email" error={errors.email?.message}>
-        <Input id="email" type="email" autoComplete="email" aria-invalid={!!errors.email} {...form.register('email')} />
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          aria-invalid={!!errors.email}
+          {...form.register('email')}
+        />
       </FormField>
-      <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Sending…' : 'Send reset link'}</Button>
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Sending…' : 'Send reset link'}
+      </Button>
     </form>
   );
 }

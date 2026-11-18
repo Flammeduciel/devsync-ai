@@ -1,6 +1,11 @@
 import { AppError } from '@devsync/shared';
 import { inviteMemberSchema, type InviteMemberInput } from '@devsync/validation';
-import { generateInvitationToken, hashToken, INVITATION_TTL_MS, invitationState } from '../domain/invitations';
+import {
+  generateInvitationToken,
+  hashToken,
+  INVITATION_TTL_MS,
+  invitationState,
+} from '../domain/invitations';
 import { canGrantRole } from '../domain/permissions';
 import { recordAudit } from '../repositories/audit.repository';
 import { invitationsRepository } from '../repositories/invitations.repository';
@@ -24,7 +29,12 @@ export class InvitationsService {
   async invite(userId: string, teamId: string, rawInput: InviteMemberInput) {
     const input = inviteMemberSchema.parse(rawInput);
     const now = clock(this.deps);
-    const { team, role: actorRole } = await requireTeamPermission(this.deps.db, userId, teamId, 'member:invite');
+    const { team, role: actorRole } = await requireTeamPermission(
+      this.deps.db,
+      userId,
+      teamId,
+      'member:invite',
+    );
     if (!canGrantRole(actorRole, input.role)) {
       throw new AppError('FORBIDDEN', `You cannot invite someone as ${input.role.toLowerCase()}`);
     }
@@ -32,7 +42,8 @@ export class InvitationsService {
     const existingMember = await this.deps.db.teamMember.findFirst({
       where: { teamId, user: { email: { equals: input.email, mode: 'insensitive' } } },
     });
-    if (existingMember) throw new AppError('CONFLICT', 'This person is already a member of the team');
+    if (existingMember)
+      throw new AppError('CONFLICT', 'This person is already a member of the team');
 
     const { token, tokenHash } = generateInvitationToken();
     const inviter = await usersRepository.findActiveById(this.deps.db, userId);
@@ -81,14 +92,21 @@ export class InvitationsService {
     }
     await this.deps.db.$transaction(async (tx) => {
       await invitationsRepository.revoke(tx, invitationId, clock(this.deps));
-      await recordAudit(tx, { teamId, actorUserId: userId, action: 'invitation.revoked', targetType: 'invitation', targetId: invitationId });
+      await recordAudit(tx, {
+        teamId,
+        actorUserId: userId,
+        action: 'invitation.revoked',
+        targetType: 'invitation',
+        targetId: invitationId,
+      });
     });
   }
 
   /** Public preview for the acceptance page. Reveals nothing for an unknown token. */
   async preview(token: string) {
     const invitation = await invitationsRepository.findByTokenHash(this.deps.db, hashToken(token));
-    if (!invitation || invitation.team.deletedAt) throw new AppError('NOT_FOUND', 'Invitation not found');
+    if (!invitation || invitation.team.deletedAt)
+      throw new AppError('NOT_FOUND', 'Invitation not found');
     return {
       teamName: invitation.team.name,
       email: invitation.email,
@@ -102,7 +120,8 @@ export class InvitationsService {
     const now = clock(this.deps);
     return this.deps.db.$transaction(async (tx) => {
       const invitation = await invitationsRepository.findByTokenHash(tx, hashToken(token));
-      if (!invitation || invitation.team.deletedAt) throw new AppError('NOT_FOUND', 'Invitation not found');
+      if (!invitation || invitation.team.deletedAt)
+        throw new AppError('NOT_FOUND', 'Invitation not found');
       const state = invitationState(invitation, now);
       if (state !== 'pending') throw new AppError('CONFLICT', `This invitation is ${state}`);
 
@@ -113,7 +132,11 @@ export class InvitationsService {
 
       const existing = await membersRepository.find(tx, invitation.teamId, userId);
       if (!existing) {
-        await membersRepository.create(tx, { teamId: invitation.teamId, userId, role: invitation.role });
+        await membersRepository.create(tx, {
+          teamId: invitation.teamId,
+          userId,
+          role: invitation.role,
+        });
       }
       await invitationsRepository.markAccepted(tx, invitation.id, now);
       await recordAudit(tx, {

@@ -39,16 +39,44 @@ export function SignUpForm({ next, email }: { next: string; email?: string | und
   return (
     <form onSubmit={onSubmit} className="grid gap-4" noValidate>
       <FormField id="name" label="Name" error={errors.name?.message}>
-        <Input id="name" autoComplete="name" aria-invalid={!!errors.name} {...form.register('name')} />
+        <Input
+          id="name"
+          autoComplete="name"
+          aria-invalid={!!errors.name}
+          {...form.register('name')}
+        />
       </FormField>
       <FormField id="email" label="Email" error={errors.email?.message}>
-        <Input id="email" type="email" autoComplete="email" aria-invalid={!!errors.email} {...form.register('email')} />
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          aria-invalid={!!errors.email}
+          {...form.register('email')}
+        />
       </FormField>
-      <FormField id="password" label="Password" error={errors.password?.message} hint="At least 10 characters, with a letter and a digit.">
-        <Input id="password" type="password" autoComplete="new-password" aria-invalid={!!errors.password} {...form.register('password')} />
+      <FormField
+        id="password"
+        label="Password"
+        error={errors.password?.message}
+        hint="At least 10 characters, with a letter and a digit."
+      >
+        <Input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          aria-invalid={!!errors.password}
+          {...form.register('password')}
+        />
       </FormField>
-      {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
-      <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating account…' : 'Create account'}</Button>
+      {error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Creating account…' : 'Create account'}
+      </Button>
     </form>
   );
 }

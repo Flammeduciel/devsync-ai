@@ -20,7 +20,9 @@ function createContainer() {
   };
 }
 
-const globalForContainer = globalThis as unknown as { __devsyncServices?: ReturnType<typeof createContainer> };
+const globalForContainer = globalThis as unknown as {
+  __devsyncServices?: ReturnType<typeof createContainer>;
+};
 
 /** Service singletons wired with production infrastructure. */
 export function services(): ReturnType<typeof createContainer> {

@@ -16,7 +16,12 @@ describe.skipIf(!testDatabaseUrl)('projects and multi-tenant isolation', () => {
   let b: { owner: string; teamId: string; projectId: string };
 
   beforeAll(async () => {
-    const [ao, ad, av, bo] = await Promise.all([h.user('Ann'), h.user('Dev'), h.user('Vic'), h.user('Ben')]);
+    const [ao, ad, av, bo] = await Promise.all([
+      h.user('Ann'),
+      h.user('Dev'),
+      h.user('Vic'),
+      h.user('Ben'),
+    ]);
     const ta = await teams.create(ao!.id, { name: 'Team A', slug: `a-${h.run}` });
     const tb = await teams.create(bo!.id, { name: 'Team B', slug: `b-${h.run}` });
     await h.db.teamMember.createMany({
@@ -56,7 +61,9 @@ describe.skipIf(!testDatabaseUrl)('projects and multi-tenant isolation', () => {
   });
 
   it('refuses to add a user of another team to a project', async () => {
-    await expect(projects.addMember(a.owner, a.projectId, { userId: b.owner, role: 'CONTRIBUTOR' })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    await expect(
+      projects.addMember(a.owner, a.projectId, { userId: b.owner, role: 'CONTRIBUTOR' }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
   });
 
   it('scopes project visibility and rights by membership', async () => {
@@ -67,21 +74,41 @@ describe.skipIf(!testDatabaseUrl)('projects and multi-tenant isolation', () => {
     await projects.addMember(a.owner, a.projectId, { userId: a.viewer, role: 'MAINTAINER' });
     expect(await projects.list(a.dev, a.teamId)).toHaveLength(1);
     await expect(projects.get(a.viewer, a.projectId)).resolves.toMatchObject({ access: 'read' });
-    await expect(projects.update(a.dev, a.projectId, { name: 'Renamed' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(projects.create(a.viewer, a.teamId, { name: 'Nope' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(projects.update(a.dev, a.projectId, { name: 'Renamed' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    await expect(projects.create(a.viewer, a.teamId, { name: 'Nope' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
   });
 
   it('lets a developer manage a project they created', async () => {
     const own = await projects.create(a.dev, a.teamId, { name: 'Dev Tools' });
-    await expect(projects.update(a.dev, own.id, { description: 'Internal CLI' })).resolves.toMatchObject({ description: 'Internal CLI' });
+    await expect(
+      projects.update(a.dev, own.id, { description: 'Internal CLI' }),
+    ).resolves.toMatchObject({ description: 'Internal CLI' });
   });
 
   it('normalizes, dedupes and soft-deletes repositories', async () => {
-    const repo = await projects.addRepository(a.owner, a.projectId, { remoteUrl: 'git@github.com:acme/checkout.git' });
-    expect(repo).toMatchObject({ remoteUrl: 'github.com/acme/checkout', provider: 'GITHUB', name: 'checkout' });
-    await expect(projects.addRepository(a.owner, a.projectId, { remoteUrl: 'https://github.com/acme/checkout' })).rejects.toMatchObject({ code: 'CONFLICT' });
+    const repo = await projects.addRepository(a.owner, a.projectId, {
+      remoteUrl: 'git@github.com:acme/checkout.git',
+    });
+    expect(repo).toMatchObject({
+      remoteUrl: 'github.com/acme/checkout',
+      provider: 'GITHUB',
+      name: 'checkout',
+    });
+    await expect(
+      projects.addRepository(a.owner, a.projectId, {
+        remoteUrl: 'https://github.com/acme/checkout',
+      }),
+    ).rejects.toMatchObject({ code: 'CONFLICT' });
     await projects.removeRepository(a.owner, a.projectId, repo.id);
     expect(await projects.listRepositories(a.owner, a.projectId)).toHaveLength(0);
-    await expect(projects.addRepository(a.owner, a.projectId, { remoteUrl: 'https://github.com/acme/checkout' })).resolves.toBeTruthy();
+    await expect(
+      projects.addRepository(a.owner, a.projectId, {
+        remoteUrl: 'https://github.com/acme/checkout',
+      }),
+    ).resolves.toBeTruthy();
   });
 });

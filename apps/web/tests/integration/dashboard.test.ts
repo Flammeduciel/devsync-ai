@@ -21,16 +21,27 @@ describe.skipIf(!testDatabaseUrl)('dashboard', () => {
     await projects.addRepository(owner.id, p1.id, { remoteUrl: 'github.com/acme/one' });
 
     const forOwner = await dashboard.overview(owner.id, team.id);
-    expect(forOwner.counts).toMatchObject({ members: 2, projects: 2, repositories: 1, agentsOnline: 0 });
+    expect(forOwner.counts).toMatchObject({
+      members: 2,
+      projects: 2,
+      repositories: 1,
+      agentsOnline: 0,
+    });
     expect(forOwner.activity.map((a) => a.action)).toContain('project.created');
-    await expect(teams.getBySlug(owner.id, `dash-${h.run}`)).resolves.toMatchObject({ id: team.id });
+    await expect(teams.getBySlug(owner.id, `dash-${h.run}`)).resolves.toMatchObject({
+      id: team.id,
+    });
 
     const forDev = await dashboard.overview(dev.id, team.id);
     expect(forDev.counts).toMatchObject({ projects: 0, repositories: 0 });
     expect(forDev.activity).toEqual([]);
 
     const outsider = await h.user('Otto');
-    await expect(dashboard.overview(outsider.id, team.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
-    await expect(teams.getBySlug(outsider.id, `dash-${h.run}`)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(dashboard.overview(outsider.id, team.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    await expect(teams.getBySlug(outsider.id, `dash-${h.run}`)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
   });
 });

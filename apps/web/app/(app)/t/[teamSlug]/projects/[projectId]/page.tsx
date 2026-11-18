@@ -13,7 +13,9 @@ import { loadTeamPage, orNotFound } from '@/server/http/page';
 
 export const metadata: Metadata = { title: 'Project' };
 
-export default async function ProjectPage({ params }: PageProps<'/t/[teamSlug]/projects/[projectId]'>) {
+export default async function ProjectPage({
+  params,
+}: PageProps<'/t/[teamSlug]/projects/[projectId]'>) {
   const { teamSlug, projectId } = await params;
   if (!isUuid(projectId)) notFound();
   const { user, team } = await loadTeamPage(teamSlug);
@@ -33,7 +35,11 @@ export default async function ProjectPage({ params }: PageProps<'/t/[teamSlug]/p
       <PageHeader
         title={project.name}
         description={project.description ?? undefined}
-        actions={<Badge variant="outline">{project.access === 'manage' ? 'You manage this project' : `Access: ${project.access}`}</Badge>}
+        actions={
+          <Badge variant="outline">
+            {project.access === 'manage' ? 'You manage this project' : `Access: ${project.access}`}
+          </Badge>
+        }
       />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -54,7 +60,9 @@ export default async function ProjectPage({ params }: PageProps<'/t/[teamSlug]/p
                         {repo.remoteUrl} · {repo.defaultBranch}
                       </p>
                     </div>
-                    {canManage ? <RemoveButton kind="repository" projectId={projectId} id={repo.id} /> : null}
+                    {canManage ? (
+                      <RemoveButton kind="repository" projectId={projectId} id={repo.id} />
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -76,14 +84,18 @@ export default async function ProjectPage({ params }: PageProps<'/t/[teamSlug]/p
                     <span className="truncate">{member.name}</span>
                     <Badge variant="secondary">{roleLabel(member.role)}</Badge>
                   </span>
-                  {canManage ? <RemoveButton kind="member" projectId={projectId} id={member.id} /> : null}
+                  {canManage ? (
+                    <RemoveButton kind="member" projectId={projectId} id={member.id} />
+                  ) : null}
                 </li>
               ))}
             </ul>
             {canManage ? (
               <AddProjectMemberForm
                 projectId={projectId}
-                candidates={teamMembers.filter((m) => !memberIds.has(m.id)).map(({ id, name }) => ({ id, name }))}
+                candidates={teamMembers
+                  .filter((m) => !memberIds.has(m.id))
+                  .map(({ id, name }) => ({ id, name }))}
               />
             ) : null}
           </CardContent>

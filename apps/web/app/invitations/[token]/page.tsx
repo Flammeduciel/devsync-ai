@@ -18,12 +18,18 @@ export default async function InvitationPage({ params }: PageProps<'/invitations
 
   let body;
   if (invitation.state !== 'pending') {
-    body = <p className="text-sm">This invitation is {invitation.state}. Ask a team admin for a new one.</p>;
+    body = (
+      <p className="text-sm">
+        This invitation is {invitation.state}. Ask a team admin for a new one.
+      </p>
+    );
   } else if (!user) {
     body = (
       <div className="flex flex-wrap gap-3">
         <Button asChild>
-          <Link href={{ pathname: '/sign-up', query: { next: here, email: invitation.email } }}>Create an account</Link>
+          <Link href={{ pathname: '/sign-up', query: { next: here, email: invitation.email } }}>
+            Create an account
+          </Link>
         </Button>
         <Button asChild variant="outline">
           <Link href={{ pathname: '/sign-in', query: { next: here } }}>Sign in</Link>
@@ -33,7 +39,8 @@ export default async function InvitationPage({ params }: PageProps<'/invitations
   } else if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
     body = (
       <p className="text-sm">
-        This invitation was sent to <strong>{invitation.email}</strong>, but you are signed in as {user.email}.
+        This invitation was sent to <strong>{invitation.email}</strong>, but you are signed in as{' '}
+        {user.email}.
       </p>
     );
   } else {

@@ -5,7 +5,13 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { revokeInvitationAction } from '../teams/actions';
 
-export function RevokeInvitationButton({ teamId, invitationId }: { teamId: string; invitationId: string }) {
+export function RevokeInvitationButton({
+  teamId,
+  invitationId,
+}: {
+  teamId: string;
+  invitationId: string;
+}) {
   const [pending, startTransition] = useTransition();
   return (
     <Button

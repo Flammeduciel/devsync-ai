@@ -16,7 +16,9 @@ import { requireUser } from '@/server/auth/session';
 import { services } from '@/server/container';
 import { runAction } from '@/server/http/action';
 
-export async function createTeamAction(input: CreateTeamInput): Promise<ActionResult<{ slug: string }>> {
+export async function createTeamAction(
+  input: CreateTeamInput,
+): Promise<ActionResult<{ slug: string }>> {
   return runAction(async () => {
     const user = await requireUser();
     const team = await services().teams.create(user.id, createTeamSchema.parse(input));
@@ -24,7 +26,10 @@ export async function createTeamAction(input: CreateTeamInput): Promise<ActionRe
   });
 }
 
-export async function updateTeamAction(teamId: string, input: UpdateTeamInput): Promise<ActionResult<{ slug: string }>> {
+export async function updateTeamAction(
+  teamId: string,
+  input: UpdateTeamInput,
+): Promise<ActionResult<{ slug: string }>> {
   return runAction(async () => {
     const user = await requireUser();
     const team = await services().teams.update(user.id, teamId, updateTeamSchema.parse(input));
@@ -41,7 +46,10 @@ export async function deleteTeamAction(teamId: string): Promise<ActionResult> {
   });
 }
 
-export async function inviteMemberAction(teamId: string, input: InviteMemberInput): Promise<ActionResult> {
+export async function inviteMemberAction(
+  teamId: string,
+  input: InviteMemberInput,
+): Promise<ActionResult> {
   return runAction(async () => {
     const user = await requireUser();
     await services().invitations.invite(user.id, teamId, inviteMemberSchema.parse(input));
@@ -50,7 +58,10 @@ export async function inviteMemberAction(teamId: string, input: InviteMemberInpu
   });
 }
 
-export async function revokeInvitationAction(teamId: string, invitationId: string): Promise<ActionResult> {
+export async function revokeInvitationAction(
+  teamId: string,
+  invitationId: string,
+): Promise<ActionResult> {
   return runAction(async () => {
     const user = await requireUser();
     await services().invitations.revoke(user.id, teamId, invitationId);
@@ -59,10 +70,19 @@ export async function revokeInvitationAction(teamId: string, invitationId: strin
   });
 }
 
-export async function updateMemberRoleAction(teamId: string, userId: string, role: TeamRole): Promise<ActionResult> {
+export async function updateMemberRoleAction(
+  teamId: string,
+  userId: string,
+  role: TeamRole,
+): Promise<ActionResult> {
   return runAction(async () => {
     const user = await requireUser();
-    await services().members.updateRole(user.id, teamId, userId, updateMemberRoleSchema.parse({ role }));
+    await services().members.updateRole(
+      user.id,
+      teamId,
+      userId,
+      updateMemberRoleSchema.parse({ role }),
+    );
     revalidatePath('/t/[teamSlug]/members', 'page');
     return undefined;
   });
@@ -77,7 +97,9 @@ export async function removeMemberAction(teamId: string, userId: string): Promis
   });
 }
 
-export async function acceptInvitationAction(token: string): Promise<ActionResult<{ teamSlug: string }>> {
+export async function acceptInvitationAction(
+  token: string,
+): Promise<ActionResult<{ teamSlug: string }>> {
   return runAction(async () => {
     const user = await requireUser();
     const { teamSlug } = await services().invitations.accept(user.id, token);

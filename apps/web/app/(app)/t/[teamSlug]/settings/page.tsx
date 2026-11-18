@@ -16,7 +16,10 @@ export default async function SettingsPage({ params }: PageProps<'/t/[teamSlug]/
 
   return (
     <>
-      <PageHeader title="Settings" description={`Your role in this team: ${roleLabel(team.role)}.`} />
+      <PageHeader
+        title="Settings"
+        description={`Your role in this team: ${roleLabel(team.role)}.`}
+      />
       <Card>
         <CardHeader>
           <CardTitle>General</CardTitle>
@@ -25,7 +28,9 @@ export default async function SettingsPage({ params }: PageProps<'/t/[teamSlug]/
           {canUpdate ? (
             <TeamSettingsForm teamId={team.id} name={team.name} slug={team.slug} />
           ) : (
-            <p className="text-sm text-muted-foreground">Only owners and admins can change team settings.</p>
+            <p className="text-sm text-muted-foreground">
+              Only owners and admins can change team settings.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -33,7 +38,9 @@ export default async function SettingsPage({ params }: PageProps<'/t/[teamSlug]/
         <Card className="border-destructive/40">
           <CardHeader>
             <CardTitle>Delete team</CardTitle>
-            <CardDescription>Projects, members and agents of this team become inaccessible.</CardDescription>
+            <CardDescription>
+              Projects, members and agents of this team become inaccessible.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <DeleteTeamButton teamId={team.id} teamName={team.name} />

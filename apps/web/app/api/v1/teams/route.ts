@@ -11,5 +11,8 @@ export const GET = handler(async () => {
 
 export const POST = handler(async (request: Request) => {
   const user = await requireApiUser();
-  return json(await services().teams.create(user.id, createTeamSchema.parse(await readJson(request))), 201);
+  return json(
+    await services().teams.create(user.id, createTeamSchema.parse(await readJson(request))),
+    201,
+  );
 });
