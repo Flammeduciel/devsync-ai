@@ -19,6 +19,7 @@ export class PlatformAdminService {
     private readonly deps: ServiceDeps,
     private readonly control: PlatformControl = async () => {},
     private readonly adminEmails: () => Set<string> = () => parseAdminEmails(process.env.PLATFORM_ADMIN_EMAILS),
+    private readonly embeddingWorkerCount: () => Promise<number> = async () => 0,
   ) {}
 
   async isAdmin(userId: string): Promise<boolean> {
@@ -50,6 +51,11 @@ export class PlatformAdminService {
       this.settings(),
     ]);
     return { users, suspendedUsers, newUsers, teams, suspendedTeams, projects, agentsOnline, machines, openRequests, knowledge, gitAlerts, signupMode: settings.signupMode };
+  }
+
+  /** Embedding workers attached to the queue (0 = knowledge search runs in text-only mode). */
+  async embeddingWorkers(): Promise<number> {
+    return this.embeddingWorkerCount();
   }
 
   async listTeams(adminId: string, query = '') {

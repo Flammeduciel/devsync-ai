@@ -74,3 +74,11 @@ export const workerQueryEmbedder: QueryEmbedder = {
     }
   },
 };
+
+export async function embeddingWorkerCount(): Promise<number> {
+  try {
+    return await embeddingsQueue().getWorkersCount();
+  } catch {
+    return 0;
+  }
+}

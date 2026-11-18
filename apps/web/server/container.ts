@@ -6,7 +6,8 @@ import { mailer } from './infrastructure/mailer';
 import { connectedMachines } from './infrastructure/presence';
 import { redisDeviceFlowStore } from './infrastructure/device-flow-store';
 import { publishControl } from './infrastructure/event-publisher';
-import { bullJobs, workerQueryEmbedder } from './infrastructure/jobs';
+import { bullJobs, embeddingWorkerCount, workerQueryEmbedder } from './infrastructure/jobs';
+import { parseAdminEmails } from './domain/platform';
 import { s3ObjectStorage } from './infrastructure/object-storage';
 import { AgentsService } from './services/agents.service';
 import { AutonomyService } from './services/autonomy.service';
@@ -51,7 +52,7 @@ function createContainer() {
     knowledge: new KnowledgeService(deps, deliverables),
     tasks: new TasksService(deps),
     git: new GitService(deps),
-    platform: new PlatformAdminService(deps, publishControl),
+    platform: new PlatformAdminService(deps, publishControl, () => parseAdminEmails(process.env.PLATFORM_ADMIN_EMAILS), embeddingWorkerCount),
     notifications: new NotificationsService(deps),
     autonomy: new AutonomyService(deps),
     devices: new DevicesService(
