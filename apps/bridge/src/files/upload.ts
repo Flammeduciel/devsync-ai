@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
-import { basename, extname, sep } from 'node:path';
+import { basename, extname, resolve, sep } from 'node:path';
 
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
@@ -28,7 +28,8 @@ const CONTENT_TYPES: Record<string, string> = {
  * (after resolving symlinks) can leave the machine, never ~/.ssh or anything else.
  */
 export async function readDeliverableFile(filePath: string, projectDirectory: string) {
-  const [file, root] = await Promise.all([realpath(filePath), realpath(projectDirectory)]);
+  // Relative paths are relative to the session's project, not to the daemon's working directory.
+  const [file, root] = await Promise.all([realpath(resolve(projectDirectory, filePath)), realpath(projectDirectory)]);
   if (file !== root && !file.startsWith(root.endsWith(sep) ? root : root + sep)) {
     throw new Error('Only files inside the project directory can be delivered');
   }
