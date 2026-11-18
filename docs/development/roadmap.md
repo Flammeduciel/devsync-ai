@@ -49,13 +49,18 @@ A phase is done only when `pnpm typecheck && pnpm test` pass and its criteria be
 - [x] Verified in a real Claude Code session: the agent discovered a teammate's claim and expertise and proposed to coordinate
 - **Planned with their modules:** `team_ask_agent`, `team_broadcast`, `team_suggest_collaboration`, `team_create_request`, `team_update_request`, `team_get_dependencies`, `team_submit_deliverable`, `team_publish_deliverable`, `team_request_clarification` (Phase 4), `team_search_knowledge`, `team_publish_knowledge` (Phase 5).
 
-## Phase 4 — Collaboration
+## Phase 4 — Collaboration ✅
 
-- Requests (5 types, 8 statuses, state machine), history, comments, attachments (size/MIME limits)
-- Tasks, dependencies; deliverables with versions on S3; notifications (dedupe, preferences, sound)
-- Autonomy levels 1–3 with limits (rate, priority, allowed agents, chain depth, fingerprint), approval flow, audit
-- Collaboration Center UI; `devsync request accept|reject|comment` in the terminal
-- **Accept:** the frontend → backend "payment API contract" scenario runs end to end across two machines.
+- [x] Requests: 5 types, 8 statuses, state machine (creator / assignee / manager), immutable history, comments, attachments (pre-signed upload, MIME + 25 MB limits, no SVG/HTML)
+- [x] Tasks created on acceptance; dependencies between tasks resolved when the blocking task is done (dependent assignee notified)
+- [x] Deliverables on object storage: inline text, uploaded files (size verified before publish), Git refs, PR links; immutable versions; publish → request DELIVERED
+- [x] Autonomy levels 1–3: approval flow, rate per agent/hour, max priority, allowed agents, chain depth, loop (A→B→A) refusal, duplicate detection (24 h fingerprint); agent requests audited
+- [x] Notifications: persistent, deduplicated, per-event preferences (in-app / desktop / sound), realtime badge, Bridge desktop notification + sound
+- [x] MCP: `team_create_request`, `team_suggest_collaboration`, `team_ask_agent`, `team_get_request`, `team_update_request`, `team_request_clarification`, `team_submit_deliverable`, `team_publish_deliverable`, `team_read_deliverable`, `team_get_dependencies`, `team_broadcast`
+- [x] CLI: `devsync inbox` (with deliverables received), `devsync request show|accept|reject|start|complete|cancel|approve|comment|clarify|answer`
+- [x] UI: Collaboration Center, request page (conversation, deliverables, history, actions), notifications, autonomy and notification settings
+- [x] Session continuity: agents stay IDLE 60 s between conversations; "Resume your work" section at session start
+- [x] **Acceptance verified with two real Claude Code sessions on two Bridges:** Bob's agent found Alice as payments expert and sent a DEPENDENCY request; Alice's Bridge showed a desktop notification with sound; Alice's agent accepted, wrote the OpenAPI file, uploaded it to MinIO and published it; Bob's Bridge played the "deliverable ready" sound; in a new conversation Bob's agent read the contract and summarized what the checkout form needs.
 
 ## Phase 5 — Knowledge engine
 
