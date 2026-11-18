@@ -30,3 +30,14 @@ describe('DevSyncClient', () => {
     );
   });
 });
+
+describe('typed endpoints', () => {
+  it('omits the bearer token for public device-flow calls and handles 204', async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    const anon = new DevSyncClient({ baseUrl: 'http://x', fetch: fetchMock });
+    await anon.endSession('s1');
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('http://x/api/v1/sessions/s1/end');
+    expect((init.headers as Record<string, string>).authorization).toBeUndefined();
+  });
+});
