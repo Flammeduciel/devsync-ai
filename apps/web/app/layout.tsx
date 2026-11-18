@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Providers } from '@/components/providers';
+import { Toaster } from '@/components/ui/sonner';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-dvh font-sans">
         <Providers>{children}</Providers>
+        <Toaster />
       </body>
     </html>
   );
