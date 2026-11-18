@@ -76,6 +76,48 @@ export class TeamDirectoryService {
       inbox,
       claims: project ? await this.claims.listActive(project.id) : [],
       recentActivity: activity,
+      yourWork: await this.yourWork(device, resolved?.projectId ?? null),
+    };
+  }
+
+  /**
+   * Continuity across conversations: what this machine's agent was doing before, from facts the server
+   * already has (declared task, files edited, claims, requests) — never conversation content.
+   */
+  async yourWork(device: DeviceActor, projectId: string | null) {
+    const db = this.deps.db;
+    const agents = await db.agent.findMany({ where: { machineId: device.machineId }, select: { id: true } });
+    const agentIds = agents.map((a) => a.id);
+    if (agentIds.length === 0) return null;
+    const projectFilter = projectId ? { projectId } : {};
+    const [lastTask, previousSession, claims, assigned, waitingOnOthers] = await Promise.all([
+      db.agentActivity.findFirst({ where: { agentId: { in: agentIds }, kind: 'task_declared', ...projectFilter }, orderBy: { occurredAt: 'desc' }, select: { summary: true, occurredAt: true } }),
+      db.agentSession.findFirst({ where: { agentId: { in: agentIds }, endedAt: { not: null }, ...projectFilter }, orderBy: { endedAt: 'desc' }, select: { id: true, branch: true, endedAt: true } }),
+      db.resourceClaim.findMany({ where: { agentId: { in: agentIds }, releasedAt: null, expiresAt: { gt: new Date() } }, select: { id: true, resourceType: true, resourceKey: true, expiresAt: true } }),
+      db.collaborationRequest.findMany({
+        where: { teamId: device.teamId, assigneeUserId: device.userId, deletedAt: null, status: { in: ['ACCEPTED', 'IN_PROGRESS', 'WAITING_FOR_CLARIFICATION', 'COMPLETED'] } },
+        select: { id: true, title: true, status: true },
+        orderBy: { updatedAt: 'desc' },
+        take: 10,
+      }),
+      db.collaborationRequest.findMany({
+        where: { teamId: device.teamId, createdByUserId: device.userId, deletedAt: null, status: { in: ['PENDING', 'ACCEPTED', 'IN_PROGRESS', 'WAITING_FOR_CLARIFICATION'] } },
+        select: { id: true, title: true, status: true, assigneeUser: { select: { name: true } } },
+        orderBy: { updatedAt: 'desc' },
+        take: 10,
+      }),
+    ]);
+    const edited = previousSession
+      ? await db.agentActivity.findMany({ where: { sessionId: previousSession.id, kind: 'tool_used' }, orderBy: { occurredAt: 'desc' }, select: { summary: true }, take: 50 })
+      : [];
+    return {
+      lastDeclaredTask: lastTask ? { task: lastTask.summary, at: lastTask.occurredAt } : null,
+      previousSession: previousSession
+        ? { endedAt: previousSession.endedAt, branch: previousSession.branch, edited: [...new Set(edited.map((e) => e.summary))].slice(0, 15) }
+        : null,
+      claimsHeld: claims,
+      assignedInProgress: assigned,
+      waitingOnOthers: waitingOnOthers.map((r) => ({ id: r.id, title: r.title, status: r.status, assignee: r.assigneeUser?.name ?? null })),
     };
   }
 
