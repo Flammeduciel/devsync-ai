@@ -21,6 +21,7 @@ pnpm db:migrate
 pnpm --filter @devsync/database db:test:prepare
 pnpm typecheck && pnpm test
 pnpm dev            # web on :3000, realtime on :4000
+pnpm dev:worker     # background jobs (stale session sweep)
 curl localhost:3000/api/v1/health
 ```
 
@@ -70,3 +71,9 @@ Note: Prisma refuses `migrate reset` when run by an AI agent; a human must run i
 - Small, atomic commits (Conventional Commits: `feat(scope):`, `fix:`, `docs:`, `test:`, `chore:`).
 - No business rule in React components or Route Handlers — put it in `apps/web/server/{domain,services}`.
 - Every repository query is scoped by `teamId`.
+
+## Troubleshooting
+
+- **The dev server reloads in a loop**: a `.next` folder produced by `pnpm build` was reused by `next dev`.
+  Stop the server, `rm -rf apps/web/.next`, start again.
+- **`devsync` says the daemon is not running**: `pnpm bridge start`, logs in `~/.devsync/bridge.log`.
