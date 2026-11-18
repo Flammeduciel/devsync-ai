@@ -8,8 +8,10 @@ import type {
   DeliverableContent,
   DeliveredItem,
   DependencyGraph,
+  GitSnapshotResult,
   InboxItem,
   KnowledgeItem,
+  OverlapResult,
   KnowledgeListItem,
   KnowledgeSearchResult,
   ProjectLocator,
@@ -306,6 +308,20 @@ export class DevSyncClient {
       '/knowledge/promote',
       body,
     );
+  }
+
+  // ── Git intelligence ──
+  reportGitSnapshot(body: Record<string, unknown>) {
+    return this.request<GitSnapshotResult>('POST', '/git/snapshots', body);
+  }
+  reportMergeCheck(body: { repositoryId: string; otherAgentId: string; otherBranch: string; conflictingFiles: string[] }) {
+    return this.request<{ escalated: number }>('POST', '/git/merge-checks', body);
+  }
+  checkOverlap(body: { remote?: string; projectId?: string; files: string[] }) {
+    return this.request<OverlapResult>('POST', '/git/overlap', body);
+  }
+  gitConflicts(query: { status?: 'open' | 'all' } = {}) {
+    return this.request<{ items: unknown[] }>('GET', withQuery('/git/conflicts', query));
   }
 }
 /** Builds `path?key=value&key=v2`, skipping undefined values. */

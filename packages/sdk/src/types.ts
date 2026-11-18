@@ -97,6 +97,7 @@ export interface TeamContext {
   inbox: InboxItem[];
   claims: ClaimInfo[];
   recentActivity: ActivityEntry[];
+  gitAlerts?: GitAlert[];
   recentKnowledge?: {
     id: string;
     title: string;
@@ -246,4 +247,25 @@ export interface KnowledgeItem {
   versionBy: string;
   publishedAt: string;
   versions: { version: number; at: string; by: string }[];
+}
+
+export interface GitAlert {
+  id: string;
+  kind: 'FILE_OVERLAP' | 'LINE_OVERLAP' | 'POTENTIAL_CONFLICT' | 'CONFIRMED_CONFLICT';
+  filePath: string;
+  otherOwner: string;
+  otherBranch: string;
+  sharedLines: string;
+}
+
+export interface GitSnapshotResult {
+  tracked: boolean;
+  repositoryId?: string;
+  conflicts: (GitAlert & { status: string; otherAgentId: string })[];
+  mergeChecks: { otherAgentId: string; otherBranch: string; files: string[] }[];
+}
+
+export interface OverlapResult {
+  tracked: boolean;
+  files: { file: string; touchedBy: { owner: string; agentId: string; branch: string; lines: string; capturedAt: string }[]; claimedBy: { owner: string; reason: string | null; expiresAt: string }[] }[];
 }
