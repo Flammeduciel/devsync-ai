@@ -151,7 +151,7 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
     const { agentId } = await agents.registerSession(device, { externalSessionId: 'stale' });
     now = new Date(now.getTime() + 5 * 60_000);
     h.publisher.published.length = 0;
-    expect(await agents.sweepStaleSessions()).toBeGreaterThan(0);
+    expect(await agents.sweepStaleSessions(200, { teamId })).toBeGreaterThan(0);
     const offline = h.publisher.published.find(
       (e) =>
         e.type === 'agent.disconnected' && (e.payload as { agentId: string }).agentId === agentId,

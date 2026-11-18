@@ -94,9 +94,9 @@ export const agentsRepository = {
     });
   },
 
-  staleSessions(db: Db, before: Date, limit: number) {
+  staleSessions(db: Db, before: Date, limit: number, teamId?: string) {
     return db.agentSession.findMany({
-      where: { endedAt: null, lastHeartbeatAt: { lt: before } },
+      where: { endedAt: null, lastHeartbeatAt: { lt: before }, ...(teamId ? { teamId } : {}) },
       include: { agent: true },
       take: limit,
     });

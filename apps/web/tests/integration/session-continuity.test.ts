@@ -19,10 +19,11 @@ describe.skipIf(!testDatabaseUrl)('continuity across Claude Code conversations',
   const directory = new TeamDirectoryService(deps, agents, new InboxService(deps), claims);
   let device: DeviceActor;
   let projectId: string;
+  let teamId: string;
 
   beforeAll(async () => {
     const dev = await h.user('Cora');
-    const teamId = (await new TeamsService(deps).create(dev.id, { name: 'Continuity', slug: `cont-${h.run}` })).id;
+    teamId = (await new TeamsService(deps).create(dev.id, { name: 'Continuity', slug: `cont-${h.run}` })).id;
     projectId = (await new ProjectsService(deps).create(dev.id, teamId, { name: 'Shop' })).id;
     const { deviceCode, userCode } = await devices.authorize({ machineName: 'cora-mbp', bridgeVersion: '0.1.0' });
     await devices.approve(dev.id, { userCode, teamId });
@@ -56,7 +57,7 @@ describe.skipIf(!testDatabaseUrl)('continuity across Claude Code conversations',
     await agents.endSession(device, second.sessionId);
     now = new Date(now.getTime() + 2 * 60_000);
     h.publisher.published.length = 0;
-    expect(await agents.sweepIdleAgents()).toBeGreaterThanOrEqual(1);
+    expect(await agents.sweepIdleAgents({ teamId })).toBeGreaterThanOrEqual(1);
     expect((await h.db.agent.findUniqueOrThrow({ where: { id: first.agentId } })).status).toBe('OFFLINE');
     expect(h.publisher.types()).toContain('agent.disconnected');
   });

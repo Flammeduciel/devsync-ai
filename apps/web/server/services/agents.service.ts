@@ -208,7 +208,7 @@ export class AgentsService {
   }
 
   /** Background job: sessions that stopped sending heartbeats are closed (status from facts, not hope). */
-  async sweepStaleSessions(batchSize = 200): Promise<number> {
+  async sweepStaleSessions(batchSize = 200, scope: { teamId?: string } = {}): Promise<number> {
     const now = clock(this.deps);
     const stale = await agentsRepository.staleSessions(
       this.deps.db,
@@ -224,10 +224,10 @@ export class AgentsService {
   }
 
   /** Background job: agents idle without any session past the grace period go OFFLINE. */
-  async sweepIdleAgents(): Promise<number> {
+  async sweepIdleAgents(scope: { teamId?: string } = {}): Promise<number> {
     const now = clock(this.deps);
     const idle = await this.deps.db.agent.findMany({
-      where: { status: { not: 'OFFLINE' }, lastActivityAt: { lt: new Date(now.getTime() - RECONNECT_GRACE_MS) }, sessions: { none: { endedAt: null } } },
+      where: { ...(scope.teamId ? { teamId: scope.teamId } : {}), status: { not: 'OFFLINE' }, lastActivityAt: { lt: new Date(now.getTime() - RECONNECT_GRACE_MS) }, sessions: { none: { endedAt: null } } },
       select: { id: true, teamId: true, userId: true, machineId: true },
       take: 200,
     });
