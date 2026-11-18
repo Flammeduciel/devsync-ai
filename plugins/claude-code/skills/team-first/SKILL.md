@@ -21,6 +21,13 @@ piece of work:
    it and coordinate. Release it with `team_release_resource` when done.
 5. **Declare** — publish a one-line factual task with `team_set_status` when you start, and clear it
    when you finish.
+6. **Ask instead of guessing** — when you need something a teammate owns (an API contract, a decision,
+   a review), create a request with `team_create_request` (or `team_suggest_collaboration` if the
+   developer should decide first), with clear expected deliverables. Tell the developer you did it.
+7. **Deliver what you are asked** — at session start and in `team_get_inbox`, check requests assigned to
+   you. With the developer's agreement: accept, ask questions with `team_request_clarification`,
+   produce the result, store it with `team_submit_deliverable` and deliver it with
+   `team_publish_deliverable`. Read deliverables you received with `team_read_deliverable`.
 
 Never publish secrets, credentials, file contents or your private reasoning through DevSync: only short,
 factual summaries. If DevSync is unreachable, continue the task normally and mention it once.
