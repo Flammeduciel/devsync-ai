@@ -2,6 +2,9 @@ import { createHash } from 'node:crypto';
 import type { GitSnapshotInput } from '@devsync/validation';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AgentsService } from '../../server/services/agents.service';
+import { ClaimsService } from '../../server/services/claims.service';
+import { InboxService } from '../../server/services/inbox.service';
+import { TeamDirectoryService } from '../../server/services/team-directory.service';
 import { MemoryDeviceFlowStore } from '../../server/services/device-flow-store';
 import { DevicesService, type DeviceActor } from '../../server/services/devices.service';
 import { GitService } from '../../server/services/git.service';
@@ -50,16 +53,16 @@ describe.skipIf(!testDatabaseUrl)('git intelligence', () => {
   let aliceUser: string;
   let bobUser: string;
 
-  async function pair(userId: string) {
+  async function pair(userId: string, machine = 'laptop') {
     const { deviceCode, userCode } = await devices.authorize({
-      machineName: `m-${userId.slice(-5)}`,
+      machineName: `${machine}-${userId.slice(-5)}`,
       bridgeVersion: '0.1.0',
     });
     await devices.approve(userId, { userCode, teamId });
     const r = await devices.exchange(deviceCode);
     const device = (await devices.authenticate((r as { deviceToken: string }).deviceToken))!;
     await agents.registerSession(device, {
-      externalSessionId: `s-${userId}`,
+      externalSessionId: `s-${machine}-${userId}`,
       repositoryRemote: 'github.com/acme/checkout',
     });
     return device;
@@ -207,5 +210,21 @@ describe.skipIf(!testDatabaseUrl)('git intelligence', () => {
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     const state = await git.teamState(aliceUser, teamId);
     expect(state[0]!.worktrees.map((w) => w.branch).sort()).toEqual(['feat/a', 'feat/b']);
+  });
+
+  it('treats one developer on several machines as one person', async () => {
+    const desktop = await pair(aliceUser, 'desktop');
+    const laptopSnap = snapshot('feat/self', { 'src/self.ts': [[1, 5]] }, { worktreePath: '/work/self-laptop' });
+    const desktopSnap = snapshot('feat/self', { 'src/self.ts': [[3, 4]] }, { worktreePath: '/work/self-desktop' });
+    await git.reportSnapshot(alice, laptopSnap);
+    const result = await git.reportSnapshot(desktop, desktopSnap);
+    expect(result.conflicts.filter((c) => c.filePath === 'src/self.ts')).toEqual([]);
+    const overlap = await git.checkOverlap(desktop, { remote: laptopSnap.remote, files: ['src/self.ts'] });
+    expect(overlap.files[0]!.touchedBy).toEqual([]);
+
+    const directory = new TeamDirectoryService(deps, agents, new InboxService(deps), new ClaimsService(deps));
+    const ctx = await directory.context(desktop, {});
+    expect(ctx.teammates.some((t) => t.owner === 'Gail')).toBe(false);
+    expect(ctx.yourOtherMachines.map((m) => m.machine)).toContain(`laptop-${aliceUser.slice(-5)}`);
   });
 });
