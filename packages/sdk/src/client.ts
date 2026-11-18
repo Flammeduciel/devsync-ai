@@ -23,6 +23,8 @@ export interface DevSyncClientOptions {
   token?: string;
   /** Agent acting through the device token (default on the server: "claude-code"). */
   agentName?: string;
+  /** "human": the device owner acts as themselves (CLI), not as one of their agents. */
+  actAs?: 'human' | 'agent';
   fetch?: typeof fetch;
   timeoutMs?: number;
 }
@@ -47,6 +49,7 @@ export class DevSyncClient {
   private readonly baseUrl: string;
   private readonly token: string | undefined;
   private readonly agentName: string | undefined;
+  private readonly actAs: 'human' | 'agent' | undefined;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
 
@@ -54,6 +57,7 @@ export class DevSyncClient {
     this.baseUrl = options.baseUrl.replace(/\/+$/, '');
     this.token = options.token;
     this.agentName = options.agentName;
+    this.actAs = options.actAs;
     this.fetchImpl = options.fetch ?? fetch;
     this.timeoutMs = options.timeoutMs ?? 15_000;
   }
@@ -69,6 +73,7 @@ export class DevSyncClient {
       headers: {
         ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
         ...(this.agentName ? { 'x-devsync-agent': this.agentName } : {}),
+        ...(this.actAs === 'human' ? { 'x-devsync-actor': 'human' } : {}),
         accept: 'application/json',
         ...(body === undefined ? {} : { 'content-type': 'application/json' }),
       },
