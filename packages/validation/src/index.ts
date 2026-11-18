@@ -3,4 +3,5 @@ export * from './auth';
 export * from './enums';
 export * from './primitives';
 export * from './projects';
+export * from './team';
 export * from './teams';
