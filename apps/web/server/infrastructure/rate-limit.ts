@@ -13,10 +13,12 @@ export async function rateLimit(key: string, max: number, windowSeconds: number)
   if (count > max) throw new AppError('RATE_LIMITED', 'Too many requests, slow down');
 }
 
+/**
+ * Client IP behind reverse proxies. Each trusted proxy (Traefik on Dokploy = 1) appends the address it saw,
+ * so the real client is the entry TRUSTED_PROXY_HOPS from the end; earlier entries can be forged.
+ */
 export function clientIp(request: Request): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  );
+  const hops = Math.max(1, Number(process.env.TRUSTED_PROXY_HOPS ?? 1));
+  const chain = (request.headers.get('x-forwarded-for') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  return chain[chain.length - hops] ?? request.headers.get('x-real-ip') ?? 'unknown';
 }
