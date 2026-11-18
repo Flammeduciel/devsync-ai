@@ -126,11 +126,58 @@ function formatInbox(items: InboxItem[]) {
   }
 }
 
-async function inbox() {
+/** The developer acting as themselves through the machine's token (not as one of their agents). */
+async function humanClient() {
   const config = await loadConfig(paths);
   const token = await loadToken(paths);
   if (!token) throw new Error('This machine is not paired. Run `devsync login` first.');
-  formatInbox((await new DevSyncClient({ baseUrl: config.serverUrl, token }).inbox()).items);
+  return new DevSyncClient({ baseUrl: config.serverUrl, token, actAs: 'human' });
+}
+
+async function inbox() {
+  const { items, delivered } = await (await humanClient()).inbox();
+  formatInbox(items);
+  if (delivered.length) {
+    out('\nDelivered to you:');
+    for (const d of delivered) {
+      out(`  ✔ ${d.title} — ${d.project.name}, by ${d.assigneeUser?.name ?? '?'} · ${d.id}`);
+      for (const x of d.deliverables) out(`      ${x.format.toLowerCase()} "${x.title}" v${x.currentVersion} · ${x.id}`);
+    }
+  }
+}
+
+const REQUEST_ACTIONS = ['accept', 'reject', 'start', 'complete', 'cancel', 'approve', 'answer', 'clarify'];
+
+async function request(args: string[]) {
+  const [sub, id, ...rest] = args;
+  if (!sub || !id) return out('Usage: devsync request show|comment|accept|reject|start|complete|cancel|approve|answer|clarify <requestId> [message]');
+  const api = await humanClient();
+  const message = rest.join(' ').trim();
+  if (sub === 'show') {
+    const r = await api.getRequest(id);
+    out(`${r.title}  [${r.status}${r.awaitingApproval ? ', awaiting approval' : ''}]`);
+    out(`${r.type.toLowerCase()} · ${r.priority} · ${r.project.name} · from ${r.initiatorAgent ? `${r.createdBy.name}'s agent` : r.createdBy.name} → ${r.assigneeUser?.name ?? '?'}${r.assigneeAgent ? ` (agent ${r.assigneeAgent.name})` : ''}`);
+    out(`\n${r.description}`);
+    if (r.instructions) out(`\nInstructions:\n${r.instructions}`);
+    if (r.comments.length) {
+      out('\nComments:');
+      for (const c of r.comments) out(`  ${c.author}: ${c.body}`);
+    }
+    if (r.deliverables.length) {
+      out('\nDeliverables:');
+      for (const d of r.deliverables) out(`  ${d.status.toLowerCase()} ${d.format.toLowerCase()} "${d.title}" v${d.currentVersion} · ${d.id}`);
+    }
+    out(`\nYou can: ${r.availableActions.join(', ') || 'nothing (closed or not yours)'}`);
+    return;
+  }
+  if (sub === 'comment') {
+    if (!message) throw new Error('A message is required');
+    await api.comment(id, { body: message });
+    return out('✔ Comment added.');
+  }
+  if (!REQUEST_ACTIONS.includes(sub)) throw new Error(`Unknown action "${sub}"`);
+  const r = await api.requestAction(id, { action: sub, ...(message ? { comment: message } : {}) });
+  out(`✔ ${r.title} → ${r.status}`);
 }
 
 async function start() {
@@ -187,6 +234,9 @@ Usage:
   devsync login [--server URL] [--name NAME]   Pair this machine with a team
   devsync status                               Show pairing, daemon and sessions
   devsync inbox                                Requests waiting for you or your agents
+  devsync request show <id>                    Details, comments, deliverables, possible actions
+  devsync request accept|reject|start|complete|cancel|approve <id> [message]
+  devsync request comment|clarify|answer <id> <message>
   devsync start | stop                         Run the background daemon
   devsync daemon                               Run the daemon in the foreground
   devsync notify-test                          Show a test desktop notification
@@ -207,6 +257,8 @@ async function main() {
       return status();
     case 'inbox':
       return inbox();
+    case 'request':
+      return request(args);
     case 'start':
       return start();
     case 'stop':
