@@ -109,8 +109,10 @@ export async function runDaemon(
         playSound: boolean;
         desktop?: boolean;
       };
-      if (n.userId === me.user.id && n.desktop !== false)
+      if (n.userId === me.user.id && n.desktop !== false) {
         await notify({ title: n.title, ...(n.body ? { body: n.body } : {}), sound: n.playSound });
+        logger.info({ title: n.title, sound: n.playSound }, 'desktop notification shown');
+      }
     }
   };
 
