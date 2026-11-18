@@ -63,3 +63,6 @@ export const conflictKindSchema = z.enum([
   'CONFIRMED_CONFLICT',
 ]);
 export type ConflictKind = z.infer<typeof conflictKindSchema>;
+
+export const projectRoleSchema = z.enum(['MAINTAINER', 'CONTRIBUTOR', 'VIEWER']);
+export type ProjectRole = z.infer<typeof projectRoleSchema>;
