@@ -3,7 +3,13 @@ import { serverEnv } from './env';
 import { db } from './infrastructure/database';
 import { redisEventPublisher } from './infrastructure/event-publisher';
 import { mailer } from './infrastructure/mailer';
+import { redisDeviceFlowStore } from './infrastructure/device-flow-store';
+import { publishControl } from './infrastructure/event-publisher';
+import { AgentsService } from './services/agents.service';
 import { DashboardService } from './services/dashboard.service';
+import { DevicesService } from './services/devices.service';
+import { InboxService } from './services/inbox.service';
+import { RealtimeTokenService } from './services/realtime-token.service';
 import { InvitationsService } from './services/invitations.service';
 import { MembersService } from './services/members.service';
 import { ProjectsService } from './services/projects.service';
@@ -17,7 +23,15 @@ function createContainer() {
     publisher: redisEventPublisher,
     appUrl: serverEnv().APP_URL,
   };
+  const agents = new AgentsService(deps);
   return {
+    agents,
+    devices: new DevicesService(deps, redisDeviceFlowStore, async ({ machineId, teamId }) => {
+      await agents.disconnectMachine(machineId);
+      await publishControl({ type: 'machine.revoked', machineId, teamId });
+    }),
+    inbox: new InboxService(deps),
+    realtimeTokens: new RealtimeTokenService(deps, serverEnv().REALTIME_JWT_SECRET),
     teams: new TeamsService(deps),
     members: new MembersService(deps),
     invitations: new InvitationsService(deps),
