@@ -22,6 +22,10 @@ beforeAll(async () => {
         !known.has(params.externalSessionId)
       )
         response = { id, error: { message: `Unknown session ${params.externalSessionId}` } };
+      if (method === 'git.afterEdit') {
+        const overlap = { id: 'c1', kind: 'LINE_OVERLAP', filePath: 'src/payment.ts', otherOwner: 'Alice', otherBranch: 'feat/a', sharedLines: '55-60' };
+        response = { id, result: { warnings: params.file === 'src/payment.ts' ? [overlap] : [] } };
+      }
       if (method === 'api.call')
         response = {
           id,
@@ -52,30 +56,16 @@ describe('plugin hooks', () => {
     expect(calls.map((c) => c.method)).toEqual(['session.start', 'api.call']);
   });
 
-  it('publishes only repository-relative paths of edited files', async () => {
+  it('publishes only repository-relative paths of edited files and warns about overlaps once per edit', async () => {
     calls.length = 0;
-    await handleHook('PostToolUse', {
-      ...base,
-      tool_name: 'Edit',
-      tool_input: { file_path: '/work/repo/src/payment.ts' },
-    });
-    await handleHook('PostToolUse', {
-      ...base,
-      tool_name: 'Write',
-      tool_input: { file_path: '/etc/hosts' },
-    });
+    const warned = JSON.parse((await handleHook('PostToolUse', { ...base, tool_name: 'Edit', tool_input: { file_path: '/work/repo/src/payment.ts' } }))!);
+    await handleHook('PostToolUse', { ...base, tool_name: 'Write', tool_input: { file_path: '/etc/hosts' } });
     await handleHook('PostToolUse', { ...base, tool_name: 'Bash', tool_input: {} });
-    expect(calls).toEqual([
-      {
-        method: 'activity.publish',
-        params: {
-          externalSessionId: 's1',
-          kind: 'tool_used',
-          summary: 'Edited src/payment.ts',
-          tool: 'Edit',
-        },
-      },
-    ]);
+    expect(await handleHook('PostToolUse', { ...base, tool_name: 'Edit', tool_input: { file_path: '/work/repo/src/cart.ts' } })).toBeNull();
+    expect(calls.filter((c) => c.method === 'activity.publish').map((c) => c.params.summary)).toEqual(['Edited src/payment.ts', 'Edited src/cart.ts']);
+    expect(calls.filter((c) => c.method === 'git.afterEdit').map((c) => c.params.file)).toEqual(['src/payment.ts', 'src/cart.ts']);
+    expect(warned.hookSpecificOutput.hookEventName).toBe('PostToolUse');
+    expect(warned.hookSpecificOutput.additionalContext).toContain('Alice (branch feat/a) is changing the same lines — base lines 55-60');
   });
 
   it('maps lifecycle events to declared states and re-registers unknown sessions', async () => {

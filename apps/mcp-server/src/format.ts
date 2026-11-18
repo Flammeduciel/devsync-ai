@@ -4,6 +4,7 @@ import type {
   DeliveredItem,
   DependencyGraph,
   Expert,
+  GitAlert,
   InboxItem,
   RequestDetail,
   TeamContext,
@@ -128,6 +129,7 @@ export function formatContext(ctx: TeamContext): string {
           .join('\n')
       : 'Nobody else is connected.',
   );
+  if (ctx.gitAlerts?.length) lines.push('', '## Git overlaps with teammates (check before editing these files)', formatGitAlerts(ctx.gitAlerts));
   lines.push('', '## Requests for you', formatInbox(ctx.inbox));
   lines.push('', '## Claimed resources', formatClaims(ctx.claims));
   lines.push('', '## Recent activity', formatActivity(ctx.recentActivity));
@@ -194,5 +196,27 @@ export function formatDependencies(g: DependencyGraph): string {
     ...(g.blockedBy.length ? g.blockedBy.map(line) : ['- nothing']),
     'Blocking:',
     ...(g.blocking.length ? g.blocking.map(line) : ['- nothing']),
+  ].join('\n');
+}
+
+const ALERT_LABEL: Record<GitAlert['kind'], string> = {
+  FILE_OVERLAP: 'is also changing this file',
+  LINE_OVERLAP: 'is changing the same lines',
+  POTENTIAL_CONFLICT: 'has changes that will conflict when merging (git merge-tree)',
+  CONFIRMED_CONFLICT: 'is in a merge conflict on this file',
+};
+
+export function formatGitAlerts(alerts: GitAlert[]): string {
+  return alerts
+    .map((a) => `- \`${a.filePath}\`: ${a.otherOwner} (branch ${a.otherBranch}) ${ALERT_LABEL[a.kind]}${a.sharedLines ? ` — base lines ${a.sharedLines}` : ''}`)
+    .join('\n');
+}
+
+/** Injected after an edit. Facts only; the decision stays with the agent and the developer. */
+export function formatOverlapWarning(file: string, alerts: GitAlert[]): string {
+  return [
+    `DevSync — overlap on \`${file}\`:`,
+    formatGitAlerts(alerts),
+    'Tell the developer before going further. Options: coordinate with them (team_create_request / team_ask_agent), work in another part of the file, or wait for their branch to merge. Do not revert or overwrite their work.',
   ].join('\n');
 }

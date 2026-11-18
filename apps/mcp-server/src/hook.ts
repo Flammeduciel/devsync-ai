@@ -1,7 +1,7 @@
 import { relative, isAbsolute } from 'node:path';
-import type { TeamContext } from '@devsync/sdk';
+import type { GitAlert, TeamContext } from '@devsync/sdk';
 import { callBridge, type BridgeError } from '@devsync/sdk/bridge-ipc';
-import { formatContext } from './format';
+import { formatContext, formatOverlapWarning } from './format';
 import { PLUGIN_VERSION } from './version';
 
 /**
@@ -110,6 +110,21 @@ export async function handleHook(event: string, input: HookInput): Promise<strin
           tool: input.tool_name,
         }),
       );
+      // Real-time overlap warning: another agent is changing the same file (or the same lines).
+      try {
+        const { warnings } = await callBridge<{ warnings: GitAlert[] }>(
+          'git.afterEdit',
+          { workingDirectory: input.cwd, externalSessionId: sessionId, file: rel },
+          { timeoutMs: 8000 },
+        );
+        if (warnings.length) {
+          return JSON.stringify({
+            hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: formatOverlapWarning(rel, warnings) },
+          });
+        }
+      } catch {
+        /* no warning rather than a slow or failing hook */
+      }
       return null;
     }
     case 'Notification':

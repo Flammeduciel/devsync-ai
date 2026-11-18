@@ -18,6 +18,7 @@ import {
   formatInbox,
 } from '../format';
 import { registerCollaborationTools } from './collaboration';
+import { registerGitTools } from './git';
 import { registerKnowledgeTools } from './knowledge';
 
 const text = (value: string) => ({ content: [{ type: 'text' as const, text: value }] });
@@ -283,4 +284,5 @@ export function registerTools(server: McpServer, bridge: BridgeClient) {
 
   registerCollaborationTools(server, bridge);
   registerKnowledgeTools(server, bridge);
+  registerGitTools(server, bridge);
 }

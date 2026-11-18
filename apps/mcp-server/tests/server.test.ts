@@ -59,6 +59,7 @@ describe('DevSync MCP server', () => {
     expect(tools.map((t) => t.name).sort()).toEqual([
       'team_ask_agent',
       'team_broadcast',
+      'team_check_overlap',
       'team_claim_resource',
       'team_create_request',
       'team_find_expert',
