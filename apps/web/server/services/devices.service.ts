@@ -122,6 +122,21 @@ export class DevicesService {
     return { machineId: machine.id, userId: machine.userId, teamId: machine.teamId };
   }
 
+  /** `devsync status`: who this device token belongs to. */
+  async whoami(device: DeviceActor) {
+    const machine = await this.deps.db.agentMachine.findUniqueOrThrow({
+      where: { id: device.machineId },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        user: { select: { id: true, name: true, email: true } },
+        team: { select: { id: true, name: true, slug: true } },
+      },
+    });
+    return { machine: { id: machine.id, name: machine.name, pairedAt: machine.createdAt }, user: machine.user, team: machine.team };
+  }
+
   /** Developers see their machines; owners/admins see every machine of the team. */
   async list(userId: string, teamId: string) {
     const { role } = await requireTeamMember(this.deps.db, userId, teamId);
