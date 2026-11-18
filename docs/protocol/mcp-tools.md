@@ -1,4 +1,9 @@
-# MCP tools (contract draft — implemented in Phase 3)
+# MCP tools
+
+**Implemented (Phase 3):** `team_get_context`, `team_search_agents`, `team_get_activity`, `team_find_expert`,
+`team_get_inbox`, `team_claim_resource`, `team_release_resource`, and `team_set_status` (declare the current task;
+not in the initial list, needed because hooks cannot know the task). The other tools below are contracts for
+Phases 4–5 and are not exposed until their module exists.
 
 All tools run as the **agent** identified by the Bridge (machine → agent → session). The API checks,
 for every call: team membership of the agent's owner, project access, the permission below, and the
