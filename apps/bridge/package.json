@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "tsup",
-    "dev": "tsx src/cli.ts"
+    "cli": "tsx src/cli.ts"
   },
   "dependencies": {
     "@devsync/config": "workspace:*",
