@@ -101,6 +101,7 @@ export function createRealtimeServer(options: RealtimeServerOptions): RealtimeSe
 
   io.on('connection', async (socket) => {
     const { identity } = socket.data as SocketData;
+    await socket.join(roomFor.user(identity.userId));
     for (const teamId of identity.teamIds) {
       await socket.join([roomFor.team(teamId), roomFor.member(teamId, identity.userId)]);
     }
@@ -158,6 +159,12 @@ export function createRealtimeServer(options: RealtimeServerOptions): RealtimeSe
     if (message.type === 'machine.revoked') {
       io.in(roomFor.machine(message.machineId)).disconnectSockets(true);
       logger.info({ machineId: message.machineId }, 'revoked machine disconnected');
+    } else if (message.type === 'user.suspended') {
+      io.in(roomFor.user(message.userId)).disconnectSockets(true);
+      logger.info({ userId: message.userId }, 'suspended user disconnected');
+    } else if (message.type === 'team.suspended') {
+      io.in(roomFor.team(message.teamId)).disconnectSockets(true);
+      logger.info({ teamId: message.teamId }, 'suspended team disconnected');
     }
   }
 

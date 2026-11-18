@@ -29,8 +29,8 @@ export const machinesRepository = {
       where: {
         deviceTokenHash,
         revokedAt: null,
-        team: { deletedAt: null },
-        user: { deletedAt: null },
+        team: { deletedAt: null, suspendedAt: null },
+        user: { deletedAt: null, suspendedAt: null },
       },
     });
   },

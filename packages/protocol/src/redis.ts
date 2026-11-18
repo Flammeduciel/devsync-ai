@@ -6,4 +6,7 @@ export const redisChannels = {
   control: 'devsync:control',
 } as const;
 
-export type ControlMessage = { type: 'machine.revoked'; machineId: string; teamId: string };
+export type ControlMessage =
+  | { type: 'machine.revoked'; machineId: string; teamId: string }
+  | { type: 'user.suspended'; userId: string }
+  | { type: 'team.suspended'; teamId: string };

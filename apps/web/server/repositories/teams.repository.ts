@@ -2,11 +2,11 @@ import type { Db, TeamRole } from '@devsync/database';
 
 export const teamsRepository = {
   findActiveById(db: Db, teamId: string) {
-    return db.team.findFirst({ where: { id: teamId, deletedAt: null } });
+    return db.team.findFirst({ where: { id: teamId, deletedAt: null, suspendedAt: null } });
   },
 
   findActiveBySlug(db: Db, slug: string) {
-    return db.team.findFirst({ where: { slug, deletedAt: null } });
+    return db.team.findFirst({ where: { slug, deletedAt: null, suspendedAt: null } });
   },
 
   create(db: Db, data: { name: string; slug: string; ownerId: string }) {
@@ -34,7 +34,7 @@ export const teamsRepository = {
 
   listForUser(db: Db, userId: string) {
     return db.teamMember.findMany({
-      where: { userId, team: { deletedAt: null } },
+      where: { userId, team: { deletedAt: null, suspendedAt: null } },
       include: { team: true },
       orderBy: { joinedAt: 'asc' },
     });

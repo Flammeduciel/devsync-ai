@@ -18,8 +18,8 @@ export function createAuthenticator(db: DatabaseClient, jwtSecret: string): Auth
         where: {
           deviceTokenHash: sha256Hex(token),
           revokedAt: null,
-          team: { deletedAt: null },
-          user: { deletedAt: null },
+          team: { deletedAt: null, suspendedAt: null },
+          user: { deletedAt: null, suspendedAt: null },
         },
         select: { id: true, userId: true, teamId: true },
       });
