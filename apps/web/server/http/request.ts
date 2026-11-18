@@ -25,3 +25,14 @@ export function pathId(value: string, resource = 'Resource'): string {
   if (!isUuid(value)) throw new AppError('NOT_FOUND', `${resource} not found`);
   return value;
 }
+
+/** Query string as a plain object; repeated keys become arrays (validated by the service schemas). */
+export function readQuery(request: Request): Record<string, string | string[]> {
+  const params = new URL(request.url).searchParams;
+  const result: Record<string, string | string[]> = {};
+  for (const key of new Set(params.keys())) {
+    const values = params.getAll(key);
+    result[key] = values.length > 1 ? values : values[0]!;
+  }
+  return result;
+}
