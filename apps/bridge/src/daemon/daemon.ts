@@ -93,8 +93,9 @@ export async function runDaemon(
         title: string;
         body?: string;
         playSound: boolean;
+        desktop?: boolean;
       };
-      if (n.userId === me.user.id)
+      if (n.userId === me.user.id && n.desktop !== false)
         await notify({ title: n.title, ...(n.body ? { body: n.body } : {}), sound: n.playSound });
     }
   };
