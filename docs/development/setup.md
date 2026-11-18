@@ -24,6 +24,10 @@ pnpm dev            # web on :3000, realtime on :4000
 curl localhost:3000/api/v1/health
 ```
 
+Optional demo data (development only): sign up in the app, then
+`SEED_EMAILS=you@example.com,teammate@example.com pnpm db:seed` → team at `/t/demo`.
+Emails (invitations, password reset) are visible in Mailpit at http://localhost:8025.
+
 | Service             | URL                                                                      |
 | ------------------- | ------------------------------------------------------------------------ |
 | Web                 | http://localhost:3000                                                    |
