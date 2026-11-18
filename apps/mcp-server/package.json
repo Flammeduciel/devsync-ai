@@ -6,17 +6,22 @@
   "description": "DevSync MCP server exposing team_* tools to Claude Code",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build": "tsup",
+    "start": "node ../../plugins/claude-code/dist/mcp.js"
   },
   "dependencies": {
     "@devsync/config": "workspace:*",
     "@devsync/protocol": "workspace:*",
     "@devsync/sdk": "workspace:*",
     "@devsync/validation": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "zod": "4.6.7"
   },
   "devDependencies": {
     "typescript": "6.0.3",
-    "vitest": "5.1.1"
+    "vitest": "5.1.1",
+    "tsup": "9.0.0",
+    "tsx": "4.23.15"
   }
 }
