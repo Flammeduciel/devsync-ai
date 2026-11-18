@@ -135,7 +135,7 @@ export class GitService {
         changedHunks: input.changedHunks,
         unmergedFiles: input.unmergedFiles,
       };
-      const others = await this.latestOtherStates(tx, repository.id, actor.agentId, now);
+      const others = await this.latestOtherStates(tx, repository.id, device.userId, now);
       const seen = new Set<string>();
       const mergeChecks: { otherAgentId: string; otherBranch: string; files: string[] }[] = [];
 
@@ -255,14 +255,10 @@ export class GitService {
     const input = checkOverlapSchema.parse(rawInput);
     const repository = input.remote ? await this.resolveRepository(device, input.remote) : null;
     if (!repository) return { tracked: false, files: [] };
-    const machineAgents = await this.deps.db.agent.findMany({
-      where: { machineId: device.machineId },
-      select: { id: true },
-    });
     const others = await this.latestOtherStates(
       this.deps.db,
       repository.id,
-      machineAgents.map((a) => a.id),
+      device.userId,
       clock(this.deps),
     );
     const claims = await this.deps.db.resourceClaim.findMany({
@@ -272,7 +268,7 @@ export class GitService {
         resourceKey: { in: input.files },
         releasedAt: null,
         expiresAt: { gt: clock(this.deps) },
-        agent: { machineId: { not: device.machineId } },
+        agent: { userId: { not: device.userId } },
       },
       include: { agent: { select: { name: true, user: { select: { name: true } } } } },
     });
@@ -450,19 +446,15 @@ export class GitService {
     });
   }
 
-  /** Latest snapshot per (machine, worktree) of other agents on the repository, within the TTL. */
-  private async latestOtherStates(
-    db: Db,
-    repositoryId: string,
-    excludeAgentIds: string | string[],
-    now: Date,
-  ) {
-    const exclude = Array.isArray(excludeAgentIds) ? excludeAgentIds : [excludeAgentIds];
+  /** Latest snapshot per (machine, worktree) of other developers' agents on the repository, within the TTL. */
+  private async latestOtherStates(db: Db, repositoryId: string, excludeUserId: string, now: Date) {
+    // Other people only: a developer on several machines is still one person, never in conflict with themself.
     const rows = await db.gitActivity.findMany({
       where: {
         repositoryId,
         capturedAt: { gt: new Date(now.getTime() - SNAPSHOT_TTL_MS) },
-        agentId: { not: null, notIn: exclude },
+        agentId: { not: null },
+        agent: { userId: { not: excludeUserId } },
       },
       orderBy: { capturedAt: 'desc' },
       take: 500,
