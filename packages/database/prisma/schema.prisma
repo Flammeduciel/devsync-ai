@@ -1,0 +1,1134 @@
+// DevSync AI — PostgreSQL schema (source of truth for business data).
+//
+// Conventions
+// - Identifiers: UUIDv7 (time-ordered) stored as native `uuid`.
+// - Multi-tenancy: every tenant-owned row carries `teamId`. Project-scoped rows
+//   reference the project through the composite key (projectId, teamId), so the
+//   database itself refuses a row whose project belongs to another team.
+// - Soft delete (`deletedAt`) on user-facing aggregates that must stay auditable.
+// - Timestamps are `timestamptz(3)`.
+// - Enums mirror packages/validation/src/enums.ts.
+// See docs/database/schema.md for the rationale behind each decision.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  DEVELOPER
+  VIEWER
+}
+
+enum ProjectRole {
+  MAINTAINER
+  CONTRIBUTOR
+  VIEWER
+}
+
+enum ActorType {
+  HUMAN
+  AGENT
+  SYSTEM
+}
+
+enum AgentStatus {
+  ONLINE
+  OFFLINE
+  IDLE
+  WORKING
+  WAITING
+  ERROR
+}
+
+enum AutonomyLevel {
+  SUGGEST // level 1 — agent proposes, human approves before sending
+  CONTROLLED // level 2 — default, agent creates requests within limits
+  COORDINATED // level 3 — agents coordinate dependencies and tasks
+}
+
+enum GitProvider {
+  GITHUB
+  GITLAB
+  BITBUCKET
+  OTHER
+}
+
+enum RequestType {
+  KNOWLEDGE
+  WORK
+  DEPENDENCY
+  REVIEW
+  COLLABORATION
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  WAITING_FOR_CLARIFICATION
+  COMPLETED
+  DELIVERED
+  REJECTED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  CANCELLED
+}
+
+enum DeliverableFormat {
+  MARKDOWN
+  JSON
+  OPENAPI
+  PDF
+  IMAGE
+  ARCHIVE
+  GIT_REF
+  PULL_REQUEST
+}
+
+enum DeliverableStatus {
+  DRAFT
+  SUBMITTED
+  PUBLISHED
+  SUPERSEDED
+}
+
+enum KnowledgeKind {
+  DECISION
+  BRAINSTORM
+  DOCUMENTATION
+  API_CONTRACT
+  SOLUTION
+  ANALYSIS
+  INSTRUCTION
+  DELIVERABLE
+}
+
+enum KnowledgeValidity {
+  DRAFT
+  VALID
+  OUTDATED
+  DEPRECATED
+}
+
+enum DependencyStatus {
+  OPEN
+  RESOLVED
+  CANCELLED
+}
+
+enum ConflictKind {
+  FILE_OVERLAP
+  LINE_OVERLAP
+  POTENTIAL_CONFLICT
+  CONFIRMED_CONFLICT
+}
+
+enum ConflictStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
+enum ResourceType {
+  FILE
+  DIRECTORY
+  API_CONTRACT
+  TOPIC
+}
+
+enum NotificationKind {
+  AGENT_CONNECTED
+  AGENT_DISCONNECTED
+  REQUEST_CREATED
+  REQUEST_ACCEPTED
+  REQUEST_REJECTED
+  REQUEST_IN_PROGRESS
+  REQUEST_CLARIFICATION
+  DELIVERABLE_READY
+  GIT_CONFLICT
+  KNOWLEDGE_PUBLISHED
+  DEPENDENCY_RESOLVED
+  INVITATION
+}
+
+// ─────────────────────── Identity & authentication ───────────────────────
+// User / Session / Account / Verification follow the Better Auth model shape
+// (see ADR-0003). Passwords live in Account.password (hashed), never on User.
+
+model User {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  sessions                Session[]
+  accounts                Account[]
+  memberships             TeamMember[]
+  projectMemberships      ProjectMember[]
+  sentInvitations         TeamInvitation[]          @relation("InvitationInviter")
+  machines                AgentMachine[]
+  agents                  Agent[]
+  createdProjects         Project[]                 @relation("ProjectCreator")
+  createdRequests         CollaborationRequest[]    @relation("RequestCreator")
+  assignedRequests        CollaborationRequest[]    @relation("RequestAssigneeUser")
+  approvedRequests        CollaborationRequest[]    @relation("RequestApprover")
+  requestHistory          RequestHistory[]
+  comments                RequestComment[]
+  assignedTasks           AgentTask[]
+  deliverables            Deliverable[]
+  deliverableVersions     DeliverableVersion[]
+  attachments             Attachment[]
+  knowledge               Knowledge[]
+  knowledgeVersions       KnowledgeVersion[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
+  auditLogs               AuditLog[]
+  apiKeys                 ApiKey[]
+  webhookEndpoints        WebhookEndpoint[]
+  resolvedConflicts       GitConflict[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @db.Timestamptz(3)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(uuid(7)) @db.Uuid
+  userId                String    @db.Uuid
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Email verification and password-reset tokens.
+model Verification {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+// ─────────────────────────── Teams (tenants) ───────────────────────────
+
+model Team {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  members                 TeamMember[]
+  invitations             TeamInvitation[]
+  projects                Project[]
+  projectMembers          ProjectMember[]
+  repositories            Repository[]
+  machines                AgentMachine[]
+  agents                  Agent[]
+  agentSessions           AgentSession[]
+  agentActivities         AgentActivity[]
+  autonomyPolicies        AutonomyPolicy[]
+  requests                CollaborationRequest[]
+  requestHistory          RequestHistory[]
+  comments                RequestComment[]
+  tasks                   AgentTask[]
+  dependencies            Dependency[]
+  deliverables            Deliverable[]
+  deliverableVersions     DeliverableVersion[]
+  attachments             Attachment[]
+  knowledge               Knowledge[]
+  knowledgeVersions       KnowledgeVersion[]
+  knowledgeTags           KnowledgeTag[]
+  resourceClaims          ResourceClaim[]
+  gitActivities           GitActivity[]
+  gitConflicts            GitConflict[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
+  events                  Event[]
+  auditLogs               AuditLog[]
+  apiKeys                 ApiKey[]
+  webhookEndpoints        WebhookEndpoint[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String   @id @default(uuid(7)) @db.Uuid
+  teamId   String   @db.Uuid
+  userId   String   @db.Uuid
+  role     TeamRole @default(DEVELOPER)
+  joinedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+/// The raw invitation token is emailed once; only its SHA-256 hash is stored.
+model TeamInvitation {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  teamId      String    @db.Uuid
+  email       String
+  role        TeamRole  @default(DEVELOPER)
+  tokenHash   String    @unique
+  invitedById String    @db.Uuid
+  expiresAt   DateTime  @db.Timestamptz(3)
+  acceptedAt  DateTime? @db.Timestamptz(3)
+  revokedAt   DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy User @relation("InvitationInviter", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([teamId, email])
+  @@index([email])
+  @@map("team_invitations")
+}
+
+// ─────────────────────────────── Projects ───────────────────────────────
+
+model Project {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  teamId      String    @db.Uuid
+  name        String
+  slug        String
+  description String?
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  members          ProjectMember[]
+  repositories     Repository[]
+  agentSessions    AgentSession[]
+  agentActivities  AgentActivity[]
+  autonomyPolicies AutonomyPolicy[]
+  requests         CollaborationRequest[]
+  tasks            AgentTask[]
+  dependencies     Dependency[]
+  deliverables     Deliverable[]
+  knowledge        Knowledge[]
+  resourceClaims   ResourceClaim[]
+
+  @@unique([teamId, slug])
+  /// Target of composite foreign keys enforcing tenant consistency.
+  @@unique([id, teamId])
+  @@index([teamId, deletedAt])
+  @@map("projects")
+}
+
+/// Explicit project access. Team OWNER/ADMIN implicitly access every project.
+model ProjectMember {
+  id        String      @id @default(uuid(7)) @db.Uuid
+  teamId    String      @db.Uuid
+  projectId String      @db.Uuid
+  userId    String      @db.Uuid
+  role      ProjectRole @default(CONTRIBUTOR)
+  createdAt DateTime    @default(now()) @db.Timestamptz(3)
+
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+model Repository {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  teamId        String      @db.Uuid
+  projectId     String      @db.Uuid
+  name          String
+  provider      GitProvider @default(OTHER)
+  /// Normalized remote URL (no credentials, no trailing .git) used to match local clones.
+  remoteUrl     String
+  defaultBranch String      @default("main")
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime    @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime?   @db.Timestamptz(3)
+
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
+
+  gitActivities GitActivity[]
+  gitConflicts  GitConflict[]
+
+  @@unique([projectId, remoteUrl])
+  @@unique([id, teamId])
+  @@index([teamId, remoteUrl])
+  @@map("repositories")
+}
+
+// ──────────────────────────── Agent registry ────────────────────────────
+
+/// A developer machine running the DevSync Bridge. Holds the device token (hashed); revoking it disconnects the Bridge.
+model AgentMachine {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  teamId          String    @db.Uuid
+  userId          String    @db.Uuid
+  name            String
+  hostname        String?
+  os              String?
+  bridgeVersion   String?
+  deviceTokenHash String    @unique
+  lastSeenAt      DateTime? @db.Timestamptz(3)
+  revokedAt       DateTime? @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+
+  team          Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agents        Agent[]
+  gitActivities GitActivity[]
+
+  @@unique([id, teamId])
+  @@index([teamId, userId])
+  @@map("agent_machines")
+}
+
+/// A stable agent identity (e.g. "Claude Code on Alice's laptop, payments repo").
+/// Status and current task come from technical events and explicit declarations only.
+model Agent {
+  id             String      @id @default(uuid(7)) @db.Uuid
+  teamId         String      @db.Uuid
+  userId         String      @db.Uuid
+  machineId      String      @db.Uuid
+  name           String
+  /// Agent runtime, e.g. "claude-code".
+  kind           String      @default("claude-code")
+  /// Declared areas of expertise used by team_find_expert (e.g. "backend", "payments").
+  specialties    String[]    @default([])
+  status         AgentStatus @default(OFFLINE)
+  /// Last task explicitly declared by the agent (team_update_status / hooks), never inferred.
+  currentTask    String?
+  pluginVersion  String?
+  lastActivityAt DateTime?   @db.Timestamptz(3)
+  createdAt      DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @db.Timestamptz(3)
+
+  team    Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  machine AgentMachine @relation(fields: [machineId, teamId], references: [id, teamId], onDelete: Cascade)
+
+  sessions            AgentSession[]
+  activities          AgentActivity[]
+  initiatedRequests   CollaborationRequest[] @relation("RequestInitiatorAgent")
+  assignedRequests    CollaborationRequest[] @relation("RequestAssigneeAgent")
+  requestHistory      RequestHistory[]
+  comments            RequestComment[]
+  tasks               AgentTask[]
+  deliverables        Deliverable[]
+  deliverableVersions DeliverableVersion[]
+  attachments         Attachment[]
+  knowledge           Knowledge[]
+  knowledgeVersions   KnowledgeVersion[]
+  resourceClaims      ResourceClaim[]
+  gitActivities       GitActivity[]
+  conflictsAsA        GitConflict[]          @relation("ConflictAgentA")
+  conflictsAsB        GitConflict[]          @relation("ConflictAgentB")
+  auditLogs           AuditLog[]
+
+  @@unique([machineId, name])
+  @@unique([id, teamId])
+  @@index([teamId, status])
+  @@index([userId])
+  @@map("agents")
+}
+
+/// One Claude Code session (identified by Claude's own session id) run by an agent.
+model AgentSession {
+  id                String      @id @default(uuid(7)) @db.Uuid
+  teamId            String      @db.Uuid
+  agentId           String      @db.Uuid
+  projectId         String?     @db.Uuid
+  externalSessionId String
+  workingDirectory  String?
+  branch            String?
+  status            AgentStatus @default(ONLINE)
+  startedAt         DateTime    @default(now()) @db.Timestamptz(3)
+  lastHeartbeatAt   DateTime    @default(now()) @db.Timestamptz(3)
+  endedAt           DateTime?   @db.Timestamptz(3)
+
+  team    Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  agent   Agent    @relation(fields: [agentId, teamId], references: [id, teamId], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  activities     AgentActivity[]
+  resourceClaims ResourceClaim[]
+  gitActivities  GitActivity[]
+
+  @@unique([agentId, externalSessionId])
+  @@unique([id, teamId])
+  @@index([teamId, endedAt])
+  @@index([projectId])
+  @@map("agent_sessions")
+}
+
+/// Append-only activity feed built from hooks and explicit agent publications.
+model AgentActivity {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  teamId     String   @db.Uuid
+  agentId    String   @db.Uuid
+  sessionId  String?  @db.Uuid
+  projectId  String?  @db.Uuid
+  /// session_started | session_ended | tool_used | task_declared | summary_published
+  kind       String
+  summary    String
+  tool       String?
+  metadata   Json     @default("{}")
+  occurredAt DateTime @default(now()) @db.Timestamptz(3)
+
+  team    Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  agent   Agent         @relation(fields: [agentId, teamId], references: [id, teamId], onDelete: Cascade)
+  session AgentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  project Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([teamId, occurredAt(sort: Desc)])
+  @@index([agentId, occurredAt(sort: Desc)])
+  @@index([projectId, occurredAt(sort: Desc)])
+  @@map("agent_activities")
+}
+
+/// Autonomy rules. projectId = null is the team default; a project row overrides it.
+model AutonomyPolicy {
+  id                     String        @id @default(uuid(7)) @db.Uuid
+  teamId                 String        @db.Uuid
+  projectId              String?       @db.Uuid
+  level                  AutonomyLevel @default(CONTROLLED)
+  maxRequestsPerHour     Int           @default(20)
+  maxPriority            Priority      @default(HIGH)
+  /// Max depth of agent-created request chains (loop prevention).
+  maxChainDepth          Int           @default(3)
+  /// Empty = every agent of the team may be solicited.
+  allowedAgentIds        String[]      @default([]) @db.Uuid
+  /// Actions that always require human approval, e.g. "request.urgent", "task.assign".
+  requireApprovalActions String[]      @default([])
+  createdAt              DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime      @updatedAt @db.Timestamptz(3)
+
+  team    Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
+
+  /// Project overrides are unique here; the single team default (projectId NULL) is enforced by a partial index in SQL.
+  @@unique([teamId, projectId])
+  @@map("autonomy_policies")
+}
+
+// ───────────────────────────── Collaboration ─────────────────────────────
+
+/// The request and its lifecycle. The work itself is AgentTask; the result is Deliverable.
+model CollaborationRequest {
+  id                   String        @id @default(uuid(7)) @db.Uuid
+  teamId               String        @db.Uuid
+  projectId            String        @db.Uuid
+  type                 RequestType
+  status               RequestStatus @default(PENDING)
+  priority             Priority      @default(NORMAL)
+  origin               ActorType
+  createdByUserId      String        @db.Uuid
+  initiatorAgentId     String?       @db.Uuid
+  assigneeUserId       String?       @db.Uuid
+  assigneeAgentId      String?       @db.Uuid
+  title                String
+  description          String
+  instructions         String?
+  /// [{ title, format, description }]
+  expectedDeliverables Json          @default("[]")
+  dueAt                DateTime?     @db.Timestamptz(3)
+  /// Level 1 autonomy: an agent-originated request waits for this approval before reaching the assignee.
+  requiresApproval     Boolean       @default(false)
+  approvedByUserId     String?       @db.Uuid
+  approvedAt           DateTime?     @db.Timestamptz(3)
+  /// Request that spawned this one (agent chains), used with `depth` for loop prevention.
+  parentRequestId      String?       @db.Uuid
+  depth                Int           @default(0)
+  /// Hash of (project, type, assignee, normalized title) to detect repetitive requests.
+  fingerprint          String
+  closedAt             DateTime?     @db.Timestamptz(3)
+  createdAt            DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime      @updatedAt @db.Timestamptz(3)
+  deletedAt            DateTime?     @db.Timestamptz(3)
+
+  team           Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project        Project                @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
+  createdBy      User                   @relation("RequestCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  initiatorAgent Agent?                 @relation("RequestInitiatorAgent", fields: [initiatorAgentId], references: [id], onDelete: SetNull)
+  assigneeUser   User?                  @relation("RequestAssigneeUser", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  assigneeAgent  Agent?                 @relation("RequestAssigneeAgent", fields: [assigneeAgentId], references: [id], onDelete: SetNull)
+  approvedBy     User?                  @relation("RequestApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  parentRequest  CollaborationRequest?  @relation("RequestChain", fields: [parentRequestId], references: [id], onDelete: SetNull)
+  childRequests  CollaborationRequest[] @relation("RequestChain")
+
+  history      RequestHistory[]
+  comments     RequestComment[]
+  tasks        AgentTask[]
+  deliverables Deliverable[]
+  attachments  Attachment[]
+
+  @@unique([id, teamId])
+  @@index([teamId, projectId, status])
+  @@index([assigneeUserId, status])
+  @@index([assigneeAgentId, status])
+  @@index([createdByUserId, createdAt(sort: Desc)])
+  @@index([teamId, fingerprint, createdAt(sort: Desc)])
+  @@map("collaboration_requests")
+}
+
+/// Immutable history of every state change and significant action on a request.
+model RequestHistory {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  teamId       String         @db.Uuid
+  requestId    String         @db.Uuid
+  actorType    ActorType
+  actorUserId  String?        @db.Uuid
+  actorAgentId String?        @db.Uuid
+  /// created | approved | accepted | rejected | status_changed | assigned | commented | deliverable_published ...
+  action       String
+  fromStatus   RequestStatus?
+  toStatus     RequestStatus?
+  data         Json           @default("{}")
+  createdAt    DateTime       @default(now()) @db.Timestamptz(3)
+
+  team       Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  request    CollaborationRequest @relation(fields: [requestId, teamId], references: [id, teamId], onDelete: Cascade)
+  actorUser  User?                @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorAgent Agent?               @relation(fields: [actorAgentId], references: [id], onDelete: SetNull)
+
+  @@index([requestId, createdAt])
+  @@map("request_history")
+}
+
+model RequestComment {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  teamId        String    @db.Uuid
+  requestId     String    @db.Uuid
+  authorType    ActorType
+  authorUserId  String?   @db.Uuid
+  authorAgentId String?   @db.Uuid
+  body          String
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  team        Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  request     CollaborationRequest @relation(fields: [requestId, teamId], references: [id, teamId], onDelete: Cascade)
+  authorUser  User?                @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorAgent Agent?               @relation(fields: [authorAgentId], references: [id], onDelete: SetNull)
+  attachments Attachment[]
+
+  @@unique([id, teamId])
+  @@index([requestId, createdAt])
+  @@map("request_comments")
+}
+
+/// The unit of work. May exist without a request (self-declared task) for dependency tracking.
+model AgentTask {
+  id              String     @id @default(uuid(7)) @db.Uuid
+  teamId          String     @db.Uuid
+  projectId       String     @db.Uuid
+  requestId       String?    @db.Uuid
+  assigneeAgentId String?    @db.Uuid
+  assigneeUserId  String?    @db.Uuid
+  title           String
+  description     String?
+  status          TaskStatus @default(TODO)
+  startedAt       DateTime?  @db.Timestamptz(3)
+  completedAt     DateTime?  @db.Timestamptz(3)
+  createdAt       DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime   @updatedAt @db.Timestamptz(3)
+
+  team          Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project       Project               @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
+  request       CollaborationRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  assigneeAgent Agent?                @relation(fields: [assigneeAgentId], references: [id], onDelete: SetNull)
+  assigneeUser  User?                 @relation(fields: [assigneeUserId], references: [id], onDelete: SetNull)
+
+  blockedBy    Dependency[]  @relation("DependentTask")
+  blocking     Dependency[]  @relation("BlockingTask")
+  deliverables Deliverable[]
+
+  @@unique([id, teamId])
+  @@index([teamId, projectId, status])
+  @@index([assigneeAgentId, status])
+  @@index([requestId])
+  @@map("agent_tasks")
+}
+
+/// "dependentTask cannot finish until blockingTask is done".
+model Dependency {
+  id              String           @id @default(uuid(7)) @db.Uuid
+  teamId          String           @db.Uuid
+  projectId       String           @db.Uuid
+  dependentTaskId String           @db.Uuid
+  blockingTaskId  String           @db.Uuid
+  status          DependencyStatus @default(OPEN)
+  description     String?
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  resolvedAt      DateTime?        @db.Timestamptz(3)
+
+  team          Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project       Project   @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
+  dependentTask AgentTask @relation("DependentTask", fields: [dependentTaskId, teamId], references: [id, teamId], onDelete: Cascade)
+  blockingTask  AgentTask @relation("BlockingTask", fields: [blockingTaskId, teamId], references: [id, teamId], onDelete: Cascade)
+
+  @@unique([dependentTaskId, blockingTaskId])
+  @@index([blockingTaskId, status])
+  @@index([teamId, projectId, status])
+  @@map("dependencies")
+}
+
+model Deliverable {
+  id               String            @id @default(uuid(7)) @db.Uuid
+  teamId           String            @db.Uuid
+  projectId        String            @db.Uuid
+  requestId        String?           @db.Uuid
+  taskId           String?           @db.Uuid
+  title            String
+  description      String?
+  format           DeliverableFormat
+  status           DeliverableStatus @default(DRAFT)
+  currentVersion   Int               @default(0)
+  createdByUserId  String            @db.Uuid
+  createdByAgentId String?           @db.Uuid
+  publishedAt      DateTime?         @db.Timestamptz(3)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
+  deletedAt        DateTime?         @db.Timestamptz(3)
+
+  team           Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project        Project               @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
+  request        CollaborationRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  task           AgentTask?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  createdBy      User                  @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdByAgent Agent?                @relation(fields: [createdByAgentId], references: [id], onDelete: SetNull)
+
+  versions DeliverableVersion[]
+
+  @@unique([id, teamId])
+  @@index([teamId, projectId, createdAt(sort: Desc)])
+  @@index([requestId])
+  @@map("deliverables")
+}
+
+/// Immutable version. File content lives in object storage (storageKey); Git refs / PR links in gitRef / url.
+model DeliverableVersion {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  teamId           String   @db.Uuid
+  deliverableId    String   @db.Uuid
+  version          Int
+  storageKey       String?  @unique
+  contentType      String?
+  sizeBytes        BigInt?
+  checksumSha256   String?
+  /// { repositoryId, commit, branch, path } for GIT_REF
+  gitRef           Json?
+  /// Pull request or external link for PULL_REQUEST
+  url              String?
+  notes            String?
+  createdByUserId  String   @db.Uuid
+  createdByAgentId String?  @db.Uuid
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+
+  team           Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  deliverable    Deliverable @relation(fields: [deliverableId, teamId], references: [id, teamId], onDelete: Cascade)
+  createdBy      User        @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdByAgent Agent?      @relation(fields: [createdByAgentId], references: [id], onDelete: SetNull)
+
+  @@unique([deliverableId, version])
+  @@map("deliverable_versions")
+}
+
+/// Files attached to a request or a comment. Size and MIME type are validated before upload URLs are issued.
+model Attachment {
+  id                String    @id @default(uuid(7)) @db.Uuid
+  teamId            String    @db.Uuid
+  requestId         String?   @db.Uuid
+  commentId         String?   @db.Uuid
+  uploadedByUserId  String?   @db.Uuid
+  uploadedByAgentId String?   @db.Uuid
+  fileName          String
+  contentType       String
+  sizeBytes         BigInt
+  storageKey        String    @unique
+  checksumSha256    String?
+  createdAt         DateTime  @default(now()) @db.Timestamptz(3)
+  deletedAt         DateTime? @db.Timestamptz(3)
+
+  team            Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  request         CollaborationRequest? @relation(fields: [requestId, teamId], references: [id, teamId], onDelete: Cascade)
+  comment         RequestComment?       @relation(fields: [commentId, teamId], references: [id, teamId], onDelete: Cascade)
+  uploadedByUser  User?                 @relation(fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  uploadedByAgent Agent?                @relation(fields: [uploadedByAgentId], references: [id], onDelete: SetNull)
+
+  @@index([requestId])
+  @@index([commentId])
+  @@map("attachments")
+}
+
+// ─────────────────────────── Knowledge engine ───────────────────────────
+
+/// Explicitly published, structured knowledge. Never raw conversations or internal reasoning.
+/// Full-text (tsvector) and pgvector embedding columns are added by SQL migrations (Phase 5).
+model Knowledge {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  teamId         String            @db.Uuid
+  projectId      String            @db.Uuid
+  kind           KnowledgeKind
+  title          String
+  validity       KnowledgeValidity @default(VALID)
+  currentVersion Int               @default(1)
+  authorUserId   String            @db.Uuid
+  sourceAgentId  String?           @db.Uuid
+  publishedAt    DateTime          @default(now()) @db.Timestamptz(3)
+  createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @db.Timestamptz(3)
+  deletedAt      DateTime?         @db.Timestamptz(3)
+
+  team        Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project     Project @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
+  author      User    @relation(fields: [authorUserId], references: [id], onDelete: Restrict)
+  sourceAgent Agent?  @relation(fields: [sourceAgentId], references: [id], onDelete: SetNull)
+
+  versions KnowledgeVersion[]
+  tags     KnowledgeTag[]
+
+  @@unique([id, teamId])
+  @@index([teamId, projectId, validity])
+  @@index([teamId, kind])
+  @@map("knowledge")
+}
+
+model KnowledgeVersion {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  teamId           String   @db.Uuid
+  knowledgeId      String   @db.Uuid
+  version          Int
+  title            String
+  /// Markdown body.
+  content          String
+  summary          String?
+  /// [{ type: "file" | "commit" | "url" | "deliverable", ref, repositoryId? }]
+  references       Json     @default("[]")
+  createdByUserId  String   @db.Uuid
+  createdByAgentId String?  @db.Uuid
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+
+  team           Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  knowledge      Knowledge @relation(fields: [knowledgeId, teamId], references: [id, teamId], onDelete: Cascade)
+  createdBy      User      @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdByAgent Agent?    @relation(fields: [createdByAgentId], references: [id], onDelete: SetNull)
+
+  @@unique([knowledgeId, version])
+  @@map("knowledge_versions")
+}
+
+/// Tag assignment. Tags are free-form, normalized lowercase strings scoped by team (no separate Tag table needed).
+model KnowledgeTag {
+  teamId      String @db.Uuid
+  knowledgeId String @db.Uuid
+  tag         String
+
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  knowledge Knowledge @relation(fields: [knowledgeId, teamId], references: [id, teamId], onDelete: Cascade)
+
+  @@id([knowledgeId, tag])
+  @@index([teamId, tag])
+  @@map("knowledge_tags")
+}
+
+/// Advisory lock taken by an agent on a resource (team_claim_resource / team_release_resource).
+model ResourceClaim {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  teamId       String       @db.Uuid
+  projectId    String       @db.Uuid
+  agentId      String       @db.Uuid
+  sessionId    String?      @db.Uuid
+  resourceType ResourceType
+  /// e.g. "src/payment/payment.service.ts" or "api:/payments"
+  resourceKey  String
+  reason       String?
+  expiresAt    DateTime     @db.Timestamptz(3)
+  releasedAt   DateTime?    @db.Timestamptz(3)
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+
+  team    Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project Project       @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
+  agent   Agent         @relation(fields: [agentId, teamId], references: [id, teamId], onDelete: Cascade)
+  session AgentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  // Partial unique index "one active claim per resource" is added in SQL migration.
+  @@index([projectId, resourceType, resourceKey])
+  @@index([agentId, releasedAt])
+  @@map("resource_claims")
+}
+
+// ──────────────────────────── Git intelligence ────────────────────────────
+
+/// Snapshot of a local working tree reported by a Bridge. The latest snapshot per
+/// (repository, machine, worktreePath) is the agent's current Git state.
+model GitActivity {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  teamId            String   @db.Uuid
+  repositoryId      String   @db.Uuid
+  machineId         String   @db.Uuid
+  agentId           String?  @db.Uuid
+  sessionId         String?  @db.Uuid
+  worktreePath      String
+  isLinkedWorktree  Boolean  @default(false)
+  branch            String
+  head              String
+  lastCommitSha     String?
+  lastCommitMessage String?
+  modifiedFiles     String[] @default([])
+  stagedFiles       String[] @default([])
+  untrackedFiles    String[] @default([])
+  /// { [path]: [[startLine, endLine], ...] } changed hunks relative to merge-base, for line-overlap detection.
+  changedHunks      Json     @default("{}")
+  aheadBy           Int      @default(0)
+  behindBy          Int      @default(0)
+  capturedAt        DateTime @default(now()) @db.Timestamptz(3)
+
+  team       Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  repository Repository    @relation(fields: [repositoryId, teamId], references: [id, teamId], onDelete: Cascade)
+  machine    AgentMachine  @relation(fields: [machineId, teamId], references: [id, teamId], onDelete: Cascade)
+  agent      Agent?        @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  session    AgentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([repositoryId, machineId, worktreePath, capturedAt(sort: Desc)])
+  @@index([teamId, capturedAt(sort: Desc)])
+  @@map("git_activities")
+}
+
+/// Pairwise overlap between two agents' working trees on the same repository.
+model GitConflict {
+  id               String         @id @default(uuid(7)) @db.Uuid
+  teamId           String         @db.Uuid
+  repositoryId     String         @db.Uuid
+  kind             ConflictKind
+  status           ConflictStatus @default(OPEN)
+  filePath         String
+  agentAId         String         @db.Uuid
+  agentBId         String         @db.Uuid
+  branchA          String
+  branchB          String
+  /// Overlapping line ranges, merge-tree output, etc.
+  details          Json           @default("{}")
+  /// sha256(repositoryId, filePath, sorted agent ids) — one open conflict per tuple.
+  fingerprint      String
+  firstDetectedAt  DateTime       @default(now()) @db.Timestamptz(3)
+  lastDetectedAt   DateTime       @default(now()) @db.Timestamptz(3)
+  resolvedAt       DateTime?      @db.Timestamptz(3)
+  resolvedByUserId String?        @db.Uuid
+
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  repository Repository @relation(fields: [repositoryId, teamId], references: [id, teamId], onDelete: Cascade)
+  agentA     Agent      @relation("ConflictAgentA", fields: [agentAId, teamId], references: [id, teamId], onDelete: Cascade)
+  agentB     Agent      @relation("ConflictAgentB", fields: [agentBId, teamId], references: [id, teamId], onDelete: Cascade)
+  resolvedBy User?      @relation(fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([teamId, fingerprint])
+  @@index([repositoryId, status])
+  @@map("git_conflicts")
+}
+
+// ───────────────────────────── Notifications ─────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid(7)) @db.Uuid
+  teamId    String           @db.Uuid
+  userId    String           @db.Uuid
+  kind      NotificationKind
+  title     String
+  body      String?
+  link      String?
+  data      Json             @default("{}")
+  /// Deduplication: the same (user, dedupeKey) is only notified once.
+  dedupeKey String
+  readAt    DateTime?        @db.Timestamptz(3)
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id        String           @id @default(uuid(7)) @db.Uuid
+  teamId    String           @db.Uuid
+  userId    String           @db.Uuid
+  kind      NotificationKind
+  inApp     Boolean          @default(true)
+  desktop   Boolean          @default(true)
+  sound     Boolean          @default(false)
+  soundName String?
+  email     Boolean          @default(false)
+  updatedAt DateTime         @updatedAt @db.Timestamptz(3)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId, kind])
+  @@map("notification_preferences")
+}
+
+// ─────────────────────── Realtime event log (outbox) ───────────────────────
+
+/// Every realtime event is persisted here before fan-out. `sequence` lets clients
+/// replay what they missed after a reconnection; `id` (producer-generated) gives idempotency.
+model Event {
+  sequence  BigInt   @id @default(autoincrement())
+  id        String   @unique @db.Uuid
+  teamId    String   @db.Uuid
+  projectId String?  @db.Uuid
+  type      String
+  actor     Json
+  payload   Json
+  /// Restrict delivery to these users (null = everyone in the team/project room).
+  audience  String[] @default([]) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, sequence])
+  @@index([createdAt])
+  @@map("events")
+}
+
+// ─────────────────────────── Security & integrations ───────────────────────────
+
+model AuditLog {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  teamId       String    @db.Uuid
+  actorType    ActorType
+  actorUserId  String?   @db.Uuid
+  actorAgentId String?   @db.Uuid
+  action       String
+  targetType   String
+  targetId     String?
+  ipAddress    String?
+  userAgent    String?
+  metadata     Json      @default("{}")
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+
+  team       Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  actorUser  User?  @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorAgent Agent? @relation(fields: [actorAgentId], references: [id], onDelete: SetNull)
+
+  @@index([teamId, createdAt(sort: Desc)])
+  @@index([teamId, targetType, targetId])
+  @@map("audit_logs")
+}
+
+/// Team-scoped API key. Shown once at creation; stored as SHA-256 hash with a visible prefix.
+model ApiKey {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  teamId     String    @db.Uuid
+  userId     String    @db.Uuid
+  name       String
+  prefix     String
+  keyHash    String    @unique
+  scopes     String[]  @default([])
+  lastUsedAt DateTime? @db.Timestamptz(3)
+  expiresAt  DateTime? @db.Timestamptz(3)
+  revokedAt  DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@map("api_keys")
+}
+
+/// Outgoing webhooks. The signing secret is encrypted at rest (AES-256-GCM with a server key).
+model WebhookEndpoint {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  teamId           String    @db.Uuid
+  createdById      String    @db.Uuid
+  url              String
+  description      String?
+  secretCiphertext String
+  eventTypes       String[]  @default([])
+  enabled          Boolean   @default(true)
+  failureCount     Int       @default(0)
+  lastDeliveryAt   DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([teamId, enabled])
+  @@map("webhook_endpoints")
+}

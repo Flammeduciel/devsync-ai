@@ -1,0 +1,19 @@
+{
+  "name": "@devsync/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@devsync/config": "workspace:*",
+    "typescript": "6.0.3",
+    "vitest": "5.1.1"
+  }
+}

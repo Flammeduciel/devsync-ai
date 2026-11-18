@@ -1,0 +1,29 @@
+{
+  "name": "devsync-ai",
+  "private": true,
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "db:generate": "pnpm --filter @devsync/database db:generate",
+    "db:migrate": "pnpm --filter @devsync/database db:migrate",
+    "db:seed": "pnpm --filter @devsync/database db:seed"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "prettier": "^3.6.2",
+    "turbo": "2.11.12",
+    "typescript": "6.0.3",
+    "vitest": "5.1.1"
+  }
+}

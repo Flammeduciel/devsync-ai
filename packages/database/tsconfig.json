@@ -1,0 +1,4 @@
+{
+  "extends": "@devsync/config/tsconfig/node.json",
+  "include": ["src", "tests", "scripts", "prisma", "prisma.config.ts", "vitest.config.ts"]
+}
