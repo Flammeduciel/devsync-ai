@@ -1,0 +1,15 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "devsync-ai",
+  "description": "DevSync AI plugins for Claude Code",
+  "owner": { "name": "DevSync AI" },
+  "plugins": [
+    {
+      "name": "devsync",
+      "description": "Connects Claude Code to your DevSync AI team: shared context, teammates' agents, inbox, expert finding and resource claims.",
+      "version": "0.1.0",
+      "source": "./plugins/claude-code",
+      "category": "productivity"
+    }
+  ]
+}
