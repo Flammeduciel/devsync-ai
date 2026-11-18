@@ -13,15 +13,18 @@ A phase is done only when `pnpm typecheck && pnpm test` pass and its criteria be
 - [x] Realtime gateway skeleton: handshake validation, refuses unauthenticated sockets
 - [x] Architecture, boundaries, ADRs, database, protocol, MCP, REST docs; CI workflow
 
-## Phase 1 — Application foundation
+## Phase 1 — Application foundation ✅
 
-- Sign-up / sign-in / sign-out / password reset (email via Mailpit) with Better Auth
-- Teams CRUD, members, roles (Owner/Admin/Developer/Viewer), invitations (send, accept, revoke, expire)
-- Projects CRUD, project members, repositories
-- Permission matrix in `server/domain` with exhaustive unit tests; multi-tenant integration tests
-  (user of team A gets 404 on every team B resource)
-- App shell (sidebar, team switcher) and initial dashboard with real counts from PostgreSQL
-- **Accept:** two users in two teams cannot see each other's data through UI or API; invitation round-trip works.
+- [x] Sign-up / sign-in / sign-out / password reset (Better Auth, emails through Mailpit), old sessions revoked on reset
+- [x] Rate limits on auth endpoints (Redis), CSRF: Better Auth origin check + Origin check on our mutations
+- [x] Teams CRUD (soft delete), members, roles (Owner/Admin/Developer/Viewer), last-owner protection (serializable tx)
+- [x] Invitations: hashed tokens, 7-day expiry, re-invite replaces, revoke, accept only by the invited email
+- [x] Projects CRUD, project members (maintainer/contributor/viewer), repositories with remote URL normalization
+- [x] Permission matrix and project access in `server/domain` (unit tests); audit log on every mutation
+- [x] Multi-tenant integration tests: every team B resource answers NOT_FOUND to team A users
+- [x] REST endpoints + Server Actions over the same services; app shell, team switcher, dashboard with real counts
+- [x] Verified end to end in a browser (sign-up → team → project → repo → invite → accept as second user), desktop and mobile
+- **Not in Phase 1:** email verification (Better Auth supports it; enable with the production mailer), OAuth providers.
 
 ## Phase 2 — Agent registry & realtime
 
