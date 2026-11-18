@@ -67,6 +67,13 @@ export class SessionManager {
     await this.sendHeartbeat(externalSessionId);
   }
 
+  /** Sessions started in this directory (the MCP server knows its cwd, not Claude's session id). */
+  keysForDirectory(workingDirectory: string): string[] {
+    return [...this.sessions.entries()]
+      .filter(([, s]) => s.info.workingDirectory === workingDirectory && !s.ending)
+      .map(([key]) => key);
+  }
+
   async activity(
     externalSessionId: string,
     body: { kind: string; summary: string; tool?: string },
