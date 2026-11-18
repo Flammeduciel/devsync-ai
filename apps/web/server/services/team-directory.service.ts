@@ -77,6 +77,17 @@ export class TeamDirectoryService {
       claims: project ? await this.claims.listActive(project.id) : [],
       recentActivity: activity,
       yourWork: await this.yourWork(device, resolved?.projectId ?? null),
+      // Titles only: agents search or read the full items with team_search_knowledge / team_get_knowledge.
+      recentKnowledge: resolved
+        ? (
+            await this.deps.db.knowledge.findMany({
+              where: { projectId: resolved.projectId, deletedAt: null, validity: { in: ['VALID', 'DRAFT'] }, OR: [{ visibility: 'PROJECT' }, { authorUserId: device.userId }] },
+              select: { id: true, title: true, kind: true, visibility: true, currentVersion: true, publishedAt: true },
+              orderBy: { publishedAt: 'desc' },
+              take: 8,
+            })
+          ).map((k) => ({ id: k.id, title: k.title, kind: k.kind, private: k.visibility === 'PRIVATE', version: k.currentVersion, publishedAt: k.publishedAt }))
+        : [],
     };
   }
 
