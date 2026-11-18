@@ -173,6 +173,7 @@ enum NotificationKind {
   KNOWLEDGE_PUBLISHED
   DEPENDENCY_RESOLVED
   INVITATION
+  BROADCAST
 }
 
 // ─────────────────────── Identity & authentication ───────────────────────
