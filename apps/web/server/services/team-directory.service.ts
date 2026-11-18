@@ -77,6 +77,7 @@ export class TeamDirectoryService {
       claims: project ? await this.claims.listActive(project.id) : [],
       recentActivity: activity,
       yourWork: await this.yourWork(device, resolved?.projectId ?? null),
+      gitAlerts: await this.gitAlerts(device),
       // Titles only: agents search or read the full items with team_search_knowledge / team_get_knowledge.
       recentKnowledge: resolved
         ? (
@@ -108,6 +109,23 @@ export class TeamDirectoryService {
           }))
         : [],
     };
+  }
+
+  /** Open overlap alerts involving this machine's agents. */
+  private async gitAlerts(device: DeviceActor) {
+    const agents = await this.deps.db.agent.findMany({ where: { machineId: device.machineId }, select: { id: true } });
+    const ids = agents.map((a) => a.id);
+    if (ids.length === 0) return [];
+    const rows = await this.deps.db.gitConflict.findMany({
+      where: { teamId: device.teamId, status: { in: ['OPEN', 'ACKNOWLEDGED'] }, OR: [{ agentAId: { in: ids } }, { agentBId: { in: ids } }] },
+      include: { agentA: { select: { id: true, user: { select: { name: true } } } }, agentB: { select: { id: true, user: { select: { name: true } } } } },
+      orderBy: { lastDetectedAt: 'desc' },
+      take: 10,
+    });
+    return rows.map((c) => {
+      const other = ids.includes(c.agentAId) ? { owner: c.agentB.user.name, branch: c.branchB } : { owner: c.agentA.user.name, branch: c.branchA };
+      return { id: c.id, kind: c.kind, filePath: c.filePath, otherOwner: other.owner, otherBranch: other.branch, sharedLines: (c.details as { sharedLines?: string }).sharedLines ?? '' };
+    });
   }
 
   /**
