@@ -62,7 +62,7 @@ export class TeamDirectoryService {
       team,
       project: project ? { ...project, access: resolved!.access } : null,
       teammates: agents
-        .filter((a) => a.status !== 'OFFLINE' && a.machine.id !== device.machineId)
+        .filter((a) => a.status !== 'OFFLINE' && a.user.id !== device.userId)
         .map((a) => ({
           agentId: a.id,
           owner: a.user.name,
@@ -71,6 +71,15 @@ export class TeamDirectoryService {
           currentTask: a.currentTask,
           specialties: a.specialties,
           projects: [...new Set(a.sessions.map((s) => s.project?.name).filter(Boolean))],
+          branches: [...new Set(a.sessions.map((s) => s.branch).filter(Boolean))],
+        })),
+      // Same developer, other machines: their own work, not a teammate to coordinate with.
+      yourOtherMachines: agents
+        .filter((a) => a.status !== 'OFFLINE' && a.user.id === device.userId && a.machine.id !== device.machineId)
+        .map((a) => ({
+          machine: a.machine.name,
+          status: a.status,
+          currentTask: a.currentTask,
           branches: [...new Set(a.sessions.map((s) => s.branch).filter(Boolean))],
         })),
       inbox,
@@ -111,10 +120,10 @@ export class TeamDirectoryService {
     };
   }
 
-  /** Open overlap alerts involving this machine's agents. */
+  /** Open overlap alerts involving this developer's agents (all their machines). */
   private async gitAlerts(device: DeviceActor) {
     const agents = await this.deps.db.agent.findMany({
-      where: { machineId: device.machineId },
+      where: { teamId: device.teamId, userId: device.userId },
       select: { id: true },
     });
     const ids = agents.map((a) => a.id);
@@ -148,13 +157,14 @@ export class TeamDirectoryService {
   }
 
   /**
-   * Continuity across conversations: what this machine's agent was doing before, from facts the server
-   * already has (declared task, files edited, claims, requests) — never conversation content.
+   * Continuity across conversations and machines: what this developer's agents were doing before (on any
+   * of their machines), from facts the server already has (declared task, files edited, claims,
+   * requests) — never conversation content.
    */
   async yourWork(device: DeviceActor, projectId: string | null) {
     const db = this.deps.db;
     const agents = await db.agent.findMany({
-      where: { machineId: device.machineId },
+      where: { teamId: device.teamId, userId: device.userId },
       select: { id: true },
     });
     const agentIds = agents.map((a) => a.id);

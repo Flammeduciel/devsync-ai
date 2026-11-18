@@ -80,7 +80,7 @@ export function formatContext(ctx: TeamContext): string {
       work.assignedInProgress.length ||
       work.waitingOnOthers.length)
   ) {
-    lines.push('', '## Resume your work (from your previous sessions on this machine)');
+    lines.push('', '## Resume your work (from your previous sessions, on any of your machines)');
     if (work.lastDeclaredTask)
       lines.push(
         `- Last declared task (${ago(work.lastDeclaredTask.at)}): ${work.lastDeclaredTask.task}`,
@@ -129,6 +129,15 @@ export function formatContext(ctx: TeamContext): string {
           .join('\n')
       : 'Nobody else is connected.',
   );
+  if (ctx.yourOtherMachines?.length)
+    lines.push(
+      '',
+      '## Your other machines (same developer — your own work, not a teammate)',
+      ...ctx.yourOtherMachines.map(
+        (m) =>
+          `- ${m.machine} (${m.status.toLowerCase()})${m.currentTask ? `: ${m.currentTask}` : ''}${m.branches.length ? ` · branch ${m.branches.join(', ')}` : ''}`,
+      ),
+    );
   if (ctx.gitAlerts?.length)
     lines.push(
       '',

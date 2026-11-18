@@ -94,6 +94,8 @@ export interface TeamContext {
     projects: string[];
     branches: string[];
   }[];
+  /** The same developer's agents on their other machines (not teammates). */
+  yourOtherMachines?: { machine: string; status: string; currentTask: string | null; branches: string[] }[];
   inbox: InboxItem[];
   claims: ClaimInfo[];
   recentActivity: ActivityEntry[];
