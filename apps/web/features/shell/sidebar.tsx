@@ -4,7 +4,15 @@ import { NavLink } from './nav-link';
 import { TeamSwitcher } from './team-switcher';
 import { UserMenu } from './user-menu';
 
-export function MainNav({ teamSlug, className, unread }: { teamSlug: string; className?: string; unread?: ReactNode }) {
+export function MainNav({
+  teamSlug,
+  className,
+  unread,
+}: {
+  teamSlug: string;
+  className?: string;
+  unread?: ReactNode;
+}) {
   const base = `/t/${teamSlug}`;
   return (
     <nav aria-label="Main" className={className}>

@@ -9,7 +9,15 @@ import {
   type CreateDeliverableInput,
   type DeliverableVersionInput,
 } from '@devsync/validation';
-import { INLINE_FORMATS, isAllowedContentType, MAX_FILE_BYTES, MAX_INLINE_BYTES, ATTACHMENT_CONTENT_TYPES, safeFileName, storageKeys } from '../domain/files';
+import {
+  INLINE_FORMATS,
+  isAllowedContentType,
+  MAX_FILE_BYTES,
+  MAX_INLINE_BYTES,
+  ATTACHMENT_CONTENT_TYPES,
+  safeFileName,
+  storageKeys,
+} from '../domain/files';
 import { hasProjectAccess, projectAccess, type ProjectAccess } from '../domain/project-access';
 import { membersRepository } from '../repositories/members.repository';
 import { projectsRepository } from '../repositories/projects.repository';
@@ -23,8 +31,16 @@ import type { ObjectStorage } from './object-storage';
 import { clock, type ServiceDeps } from './ports';
 import { transitionTask } from './tasks.service';
 
-const DEFAULT_INLINE_TYPE = { MARKDOWN: 'text/markdown', JSON: 'application/json', OPENAPI: 'application/yaml' } as const;
-const DEFAULT_INLINE_NAME = { MARKDOWN: 'deliverable.md', JSON: 'deliverable.json', OPENAPI: 'openapi.yaml' } as const;
+const DEFAULT_INLINE_TYPE = {
+  MARKDOWN: 'text/markdown',
+  JSON: 'application/json',
+  OPENAPI: 'application/yaml',
+} as const;
+const DEFAULT_INLINE_NAME = {
+  MARKDOWN: 'deliverable.md',
+  JSON: 'deliverable.json',
+  OPENAPI: 'openapi.yaml',
+} as const;
 const sha256 = (data: Uint8Array) => createHash('sha256').update(data).digest('hex');
 
 /**
@@ -37,20 +53,28 @@ export class DeliverablesService {
     private readonly storage: ObjectStorage,
   ) {}
 
-  async create(actor: Actor, rawInput: CreateDeliverableInput, device?: { teamId: string; machineId: string; userId: string }) {
+  async create(
+    actor: Actor,
+    rawInput: CreateDeliverableInput,
+    device?: { teamId: string; machineId: string; userId: string },
+  ) {
     const input = createDeliverableSchema.parse(rawInput);
     let projectId = input.projectId;
     let teamId: string;
     if (input.requestId) {
       const request = await requestsRepository.findActive(this.deps.db, input.requestId);
-      if (!request || (await this.accessOf(actor.userId, request.projectId)) === 'none') throw new AppError('NOT_FOUND', 'Request not found');
-      if (request.assigneeUserId !== actor.userId) throw new AppError('FORBIDDEN', 'Only the assignee delivers this request');
-      if (['DELIVERED', 'REJECTED', 'CANCELLED'].includes(request.status)) throw new AppError('CONFLICT', `The request is ${request.status.toLowerCase()}`);
+      if (!request || (await this.accessOf(actor.userId, request.projectId)) === 'none')
+        throw new AppError('NOT_FOUND', 'Request not found');
+      if (request.assigneeUserId !== actor.userId)
+        throw new AppError('FORBIDDEN', 'Only the assignee delivers this request');
+      if (['DELIVERED', 'REJECTED', 'CANCELLED'].includes(request.status))
+        throw new AppError('CONFLICT', `The request is ${request.status.toLowerCase()}`);
       projectId = request.projectId;
       teamId = request.teamId;
     } else if (device) {
       const resolved = await resolveDeviceProject(this.deps, device, input);
-      if (!resolved) throw new AppError('NOT_FOUND', 'No project matches this repository; pass projectId');
+      if (!resolved)
+        throw new AppError('NOT_FOUND', 'No project matches this repository; pass projectId');
       projectId = resolved.projectId;
       teamId = device.teamId;
     } else {
@@ -59,7 +83,8 @@ export class DeliverablesService {
       if (!project) throw new AppError('NOT_FOUND', 'Project not found');
       teamId = project.teamId;
     }
-    if (!hasProjectAccess(await this.accessOf(actor.userId, projectId!), 'write')) throw new AppError('NOT_FOUND', 'Project not found');
+    if (!hasProjectAccess(await this.accessOf(actor.userId, projectId!), 'write'))
+      throw new AppError('NOT_FOUND', 'Project not found');
     return this.deps.db.deliverable.create({
       data: {
         teamId,
@@ -82,44 +107,106 @@ export class DeliverablesService {
   async addVersion(actor: Actor, deliverableId: string, rawInput: DeliverableVersionInput) {
     const input = deliverableVersionSchema.parse(rawInput);
     const deliverable = await this.requireOwn(actor, deliverableId);
-    if (deliverable.status === 'PUBLISHED') throw new AppError('CONFLICT', 'Published deliverables are immutable; create a new deliverable');
+    if (deliverable.status === 'PUBLISHED')
+      throw new AppError(
+        'CONFLICT',
+        'Published deliverables are immutable; create a new deliverable',
+      );
     const version = deliverable.currentVersion + 1;
-    const base = { teamId: deliverable.teamId, deliverableId, version, notes: input.notes ?? null, createdByUserId: actor.userId, createdByAgentId: actorAgentId(actor) };
+    const base = {
+      teamId: deliverable.teamId,
+      deliverableId,
+      version,
+      notes: input.notes ?? null,
+      createdByUserId: actor.userId,
+      createdByAgentId: actorAgentId(actor),
+    };
     let data: Prisma.DeliverableVersionUncheckedCreateInput;
     let uploadUrl: string | null = null;
 
     switch (input.kind) {
       case 'inline': {
-        if (!INLINE_FORMATS.includes(deliverable.format)) throw new AppError('BAD_REQUEST', `${deliverable.format} deliverables must be uploaded as files`);
+        if (!INLINE_FORMATS.includes(deliverable.format))
+          throw new AppError(
+            'BAD_REQUEST',
+            `${deliverable.format} deliverables must be uploaded as files`,
+          );
         const format = deliverable.format as keyof typeof DEFAULT_INLINE_TYPE;
         const contentType = input.contentType ?? DEFAULT_INLINE_TYPE[format];
-        if (!isAllowedContentType(deliverable.format, contentType)) throw new AppError('UNSUPPORTED_MEDIA_TYPE', `${contentType} is not allowed for ${deliverable.format}`);
+        if (!isAllowedContentType(deliverable.format, contentType))
+          throw new AppError(
+            'UNSUPPORTED_MEDIA_TYPE',
+            `${contentType} is not allowed for ${deliverable.format}`,
+          );
         const body = new TextEncoder().encode(input.content);
-        if (body.byteLength > MAX_INLINE_BYTES) throw new AppError('PAYLOAD_TOO_LARGE', 'Inline content is limited to 1 MB; upload a file instead');
-        const key = storageKeys.deliverable(deliverable.teamId, deliverableId, version, input.fileName ?? DEFAULT_INLINE_NAME[format]);
+        if (body.byteLength > MAX_INLINE_BYTES)
+          throw new AppError(
+            'PAYLOAD_TOO_LARGE',
+            'Inline content is limited to 1 MB; upload a file instead',
+          );
+        const key = storageKeys.deliverable(
+          deliverable.teamId,
+          deliverableId,
+          version,
+          input.fileName ?? DEFAULT_INLINE_NAME[format],
+        );
         await this.storage.put(key, body, contentType);
-        data = { ...base, storageKey: key, contentType, sizeBytes: body.byteLength, checksumSha256: sha256(body) };
+        data = {
+          ...base,
+          storageKey: key,
+          contentType,
+          sizeBytes: body.byteLength,
+          checksumSha256: sha256(body),
+        };
         break;
       }
       case 'upload': {
-        if (!isAllowedContentType(deliverable.format, input.contentType)) throw new AppError('UNSUPPORTED_MEDIA_TYPE', `${input.contentType} is not allowed for ${deliverable.format}`);
-        if (input.sizeBytes > MAX_FILE_BYTES) throw new AppError('PAYLOAD_TOO_LARGE', 'Files are limited to 25 MB');
-        const key = storageKeys.deliverable(deliverable.teamId, deliverableId, version, input.fileName);
+        if (!isAllowedContentType(deliverable.format, input.contentType))
+          throw new AppError(
+            'UNSUPPORTED_MEDIA_TYPE',
+            `${input.contentType} is not allowed for ${deliverable.format}`,
+          );
+        if (input.sizeBytes > MAX_FILE_BYTES)
+          throw new AppError('PAYLOAD_TOO_LARGE', 'Files are limited to 25 MB');
+        const key = storageKeys.deliverable(
+          deliverable.teamId,
+          deliverableId,
+          version,
+          input.fileName,
+        );
         uploadUrl = await this.storage.presignPut(key, input.contentType, input.sizeBytes);
-        data = { ...base, storageKey: key, contentType: input.contentType, sizeBytes: input.sizeBytes, checksumSha256: input.checksumSha256 ?? null };
+        data = {
+          ...base,
+          storageKey: key,
+          contentType: input.contentType,
+          sizeBytes: input.sizeBytes,
+          checksumSha256: input.checksumSha256 ?? null,
+        };
         break;
       }
       case 'git_ref': {
-        if (deliverable.format !== 'GIT_REF') throw new AppError('BAD_REQUEST', 'Git references need a GIT_REF deliverable');
+        if (deliverable.format !== 'GIT_REF')
+          throw new AppError('BAD_REQUEST', 'Git references need a GIT_REF deliverable');
         if (input.repositoryId) {
-          const repo = await this.deps.db.repository.findFirst({ where: { id: input.repositoryId, projectId: deliverable.projectId, deletedAt: null } });
+          const repo = await this.deps.db.repository.findFirst({
+            where: { id: input.repositoryId, projectId: deliverable.projectId, deletedAt: null },
+          });
           if (!repo) throw new AppError('NOT_FOUND', 'Repository not found in this project');
         }
-        data = { ...base, gitRef: { commit: input.commit, branch: input.branch ?? null, path: input.path ?? null, repositoryId: input.repositoryId ?? null } };
+        data = {
+          ...base,
+          gitRef: {
+            commit: input.commit,
+            branch: input.branch ?? null,
+            path: input.path ?? null,
+            repositoryId: input.repositoryId ?? null,
+          },
+        };
         break;
       }
       case 'url': {
-        if (deliverable.format !== 'PULL_REQUEST') throw new AppError('BAD_REQUEST', 'Links need a PULL_REQUEST deliverable');
+        if (deliverable.format !== 'PULL_REQUEST')
+          throw new AppError('BAD_REQUEST', 'Links need a PULL_REQUEST deliverable');
         data = { ...base, url: input.url };
         break;
       }
@@ -127,7 +214,10 @@ export class DeliverablesService {
 
     const created = await this.deps.db.$transaction(async (tx) => {
       const v = await tx.deliverableVersion.create({ data });
-      await tx.deliverable.update({ where: { id: deliverableId }, data: { currentVersion: version, status: 'SUBMITTED' } });
+      await tx.deliverable.update({
+        where: { id: deliverableId },
+        data: { currentVersion: version, status: 'SUBMITTED' },
+      });
       return v;
     });
     return { deliverableId, version: created.version, versionId: created.id, uploadUrl };
@@ -136,19 +226,29 @@ export class DeliverablesService {
   /** Publishes the latest version: request → DELIVERED, task → DONE, requester notified with sound. */
   async publish(actor: Actor, deliverableId: string) {
     const deliverable = await this.requireOwn(actor, deliverableId);
-    if (deliverable.status === 'PUBLISHED') return { deliverableId, status: 'PUBLISHED' as const, requestStatus: null };
-    const latest = await this.deps.db.deliverableVersion.findUnique({ where: { deliverableId_version: { deliverableId, version: deliverable.currentVersion } } });
+    if (deliverable.status === 'PUBLISHED')
+      return { deliverableId, status: 'PUBLISHED' as const, requestStatus: null };
+    const latest = await this.deps.db.deliverableVersion.findUnique({
+      where: { deliverableId_version: { deliverableId, version: deliverable.currentVersion } },
+    });
     if (!latest) throw new AppError('CONFLICT', 'Add a version before publishing');
     if (latest.storageKey) {
       const head = await this.storage.head(latest.storageKey);
-      if (!head) throw new AppError('CONFLICT', 'The file of the latest version was not uploaded yet');
-      if (latest.sizeBytes !== null && BigInt(head.sizeBytes) !== latest.sizeBytes) throw new AppError('CONFLICT', 'Uploaded file size does not match the declared size');
+      if (!head)
+        throw new AppError('CONFLICT', 'The file of the latest version was not uploaded yet');
+      if (latest.sizeBytes !== null && BigInt(head.sizeBytes) !== latest.sizeBytes)
+        throw new AppError('CONFLICT', 'Uploaded file size does not match the declared size');
     }
     const now = clock(this.deps);
-    const request = deliverable.requestId ? await requestsRepository.findActive(this.deps.db, deliverable.requestId) : null;
+    const request = deliverable.requestId
+      ? await requestsRepository.findActive(this.deps.db, deliverable.requestId)
+      : null;
 
     await withEvents(this.deps, async (tx, emit) => {
-      await tx.deliverable.update({ where: { id: deliverableId }, data: { status: 'PUBLISHED', publishedAt: now } });
+      await tx.deliverable.update({
+        where: { id: deliverableId },
+        data: { status: 'PUBLISHED', publishedAt: now },
+      });
       if (!request) return;
       if (!['DELIVERED', 'REJECTED', 'CANCELLED'].includes(request.status)) {
         await requestsRepository.update(tx, request.id, { status: 'DELIVERED', closedAt: now });
@@ -171,8 +271,19 @@ export class DeliverablesService {
         teamId: request.teamId,
         projectId: request.projectId,
         actor: actorRef(actor),
-        audience: [...new Set([request.createdByUserId, request.assigneeUserId].filter((u): u is string => !!u))],
-        payload: { requestId: request.id, deliverableId, versionId: latest.id, version: latest.version, title: deliverable.title, format: deliverable.format },
+        audience: [
+          ...new Set(
+            [request.createdByUserId, request.assigneeUserId].filter((u): u is string => !!u),
+          ),
+        ],
+        payload: {
+          requestId: request.id,
+          deliverableId,
+          versionId: latest.id,
+          version: latest.version,
+          title: deliverable.title,
+          format: deliverable.format,
+        },
       });
       await notify(tx, emit, {
         teamId: request.teamId,
@@ -185,21 +296,43 @@ export class DeliverablesService {
         data: { requestId: request.id, deliverableId },
       });
     });
-    return { deliverableId, status: 'PUBLISHED' as const, requestStatus: request ? ('DELIVERED' as const) : null };
+    return {
+      deliverableId,
+      status: 'PUBLISHED' as const,
+      requestStatus: request ? ('DELIVERED' as const) : null,
+    };
   }
 
   /** Download link (files) or reference (git/url). Text content ≤ 1 MB is returned inline for agents. */
-  async read(actor: Actor, deliverableId: string, options: { version?: number; inline?: boolean } = {}) {
-    const deliverable = await this.deps.db.deliverable.findFirst({ where: { id: deliverableId, deletedAt: null } });
-    if (!deliverable || (await this.accessOf(actor.userId, deliverable.projectId)) === 'none') throw new AppError('NOT_FOUND', 'Deliverable not found');
-    if (deliverable.status !== 'PUBLISHED' && deliverable.createdByUserId !== actor.userId) throw new AppError('NOT_FOUND', 'Deliverable not found');
+  async read(
+    actor: Actor,
+    deliverableId: string,
+    options: { version?: number; inline?: boolean } = {},
+  ) {
+    const deliverable = await this.deps.db.deliverable.findFirst({
+      where: { id: deliverableId, deletedAt: null },
+    });
+    if (!deliverable || (await this.accessOf(actor.userId, deliverable.projectId)) === 'none')
+      throw new AppError('NOT_FOUND', 'Deliverable not found');
+    if (deliverable.status !== 'PUBLISHED' && deliverable.createdByUserId !== actor.userId)
+      throw new AppError('NOT_FOUND', 'Deliverable not found');
     const version = await this.deps.db.deliverableVersion.findUnique({
-      where: { deliverableId_version: { deliverableId, version: options.version ?? deliverable.currentVersion } },
+      where: {
+        deliverableId_version: {
+          deliverableId,
+          version: options.version ?? deliverable.currentVersion,
+        },
+      },
     });
     if (!version) throw new AppError('NOT_FOUND', 'Version not found');
     const fileName = version.storageKey?.split('/').pop() ?? 'deliverable';
     let content: string | null = null;
-    if (options.inline && version.storageKey && INLINE_FORMATS.includes(deliverable.format) && (version.sizeBytes ?? 0n) <= BigInt(MAX_INLINE_BYTES)) {
+    if (
+      options.inline &&
+      version.storageKey &&
+      INLINE_FORMATS.includes(deliverable.format) &&
+      (version.sizeBytes ?? 0n) <= BigInt(MAX_INLINE_BYTES)
+    ) {
       const body = await this.storage.get(version.storageKey);
       content = body ? new TextDecoder().decode(body) : null;
     }
@@ -209,7 +342,9 @@ export class DeliverablesService {
       format: deliverable.format,
       version: version.version,
       contentType: version.contentType,
-      downloadUrl: version.storageKey ? await this.storage.presignGet(version.storageKey, fileName) : null,
+      downloadUrl: version.storageKey
+        ? await this.storage.presignGet(version.storageKey, fileName)
+        : null,
       gitRef: version.gitRef,
       url: version.url,
       content,
@@ -220,12 +355,20 @@ export class DeliverablesService {
   async requestAttachmentUpload(actor: Actor, requestId: string, rawInput: AttachmentUploadInput) {
     const input = attachmentUploadSchema.parse(rawInput);
     const request = await requestsRepository.findActive(this.deps.db, requestId);
-    if (!request || (await this.accessOf(actor.userId, request.projectId)) === 'none') throw new AppError('NOT_FOUND', 'Request not found');
-    if (request.createdByUserId !== actor.userId && request.assigneeUserId !== actor.userId) throw new AppError('FORBIDDEN', 'Only the people involved can attach files');
+    if (!request || (await this.accessOf(actor.userId, request.projectId)) === 'none')
+      throw new AppError('NOT_FOUND', 'Request not found');
+    if (request.createdByUserId !== actor.userId && request.assigneeUserId !== actor.userId)
+      throw new AppError('FORBIDDEN', 'Only the people involved can attach files');
     const contentType = input.contentType.toLowerCase().split(';')[0]!.trim();
-    if (!ATTACHMENT_CONTENT_TYPES.includes(contentType)) throw new AppError('UNSUPPORTED_MEDIA_TYPE', `${contentType} attachments are not allowed`);
-    if (input.sizeBytes > MAX_FILE_BYTES) throw new AppError('PAYLOAD_TOO_LARGE', 'Files are limited to 25 MB');
-    if (input.commentId && !(await this.deps.db.requestComment.findFirst({ where: { id: input.commentId, requestId } }))) throw new AppError('NOT_FOUND', 'Comment not found');
+    if (!ATTACHMENT_CONTENT_TYPES.includes(contentType))
+      throw new AppError('UNSUPPORTED_MEDIA_TYPE', `${contentType} attachments are not allowed`);
+    if (input.sizeBytes > MAX_FILE_BYTES)
+      throw new AppError('PAYLOAD_TOO_LARGE', 'Files are limited to 25 MB');
+    if (
+      input.commentId &&
+      !(await this.deps.db.requestComment.findFirst({ where: { id: input.commentId, requestId } }))
+    )
+      throw new AppError('NOT_FOUND', 'Comment not found');
     const id = newId();
     const key = storageKeys.attachment(request.teamId, id, input.fileName);
     const attachment = await this.deps.db.attachment.create({
@@ -242,20 +385,35 @@ export class DeliverablesService {
         storageKey: key,
       },
     });
-    return { attachmentId: attachment.id, uploadUrl: await this.storage.presignPut(key, contentType, input.sizeBytes) };
+    return {
+      attachmentId: attachment.id,
+      uploadUrl: await this.storage.presignPut(key, contentType, input.sizeBytes),
+    };
   }
 
   async attachmentDownload(actor: Actor, attachmentId: string) {
-    const attachment = await this.deps.db.attachment.findFirst({ where: { id: attachmentId, deletedAt: null }, include: { request: { select: { projectId: true } } } });
-    if (!attachment?.request || (await this.accessOf(actor.userId, attachment.request.projectId)) === 'none') throw new AppError('NOT_FOUND', 'Attachment not found');
-    if (!(await this.storage.head(attachment.storageKey))) throw new AppError('NOT_FOUND', 'The file was not uploaded');
+    const attachment = await this.deps.db.attachment.findFirst({
+      where: { id: attachmentId, deletedAt: null },
+      include: { request: { select: { projectId: true } } },
+    });
+    if (
+      !attachment?.request ||
+      (await this.accessOf(actor.userId, attachment.request.projectId)) === 'none'
+    )
+      throw new AppError('NOT_FOUND', 'Attachment not found');
+    if (!(await this.storage.head(attachment.storageKey)))
+      throw new AppError('NOT_FOUND', 'The file was not uploaded');
     return { url: await this.storage.presignGet(attachment.storageKey, attachment.fileName) };
   }
 
   private async requireOwn(actor: Actor, deliverableId: string) {
-    const deliverable = await this.deps.db.deliverable.findFirst({ where: { id: deliverableId, deletedAt: null } });
-    if (!deliverable || (await this.accessOf(actor.userId, deliverable.projectId)) === 'none') throw new AppError('NOT_FOUND', 'Deliverable not found');
-    if (deliverable.createdByUserId !== actor.userId) throw new AppError('FORBIDDEN', 'Only the author can change this deliverable');
+    const deliverable = await this.deps.db.deliverable.findFirst({
+      where: { id: deliverableId, deletedAt: null },
+    });
+    if (!deliverable || (await this.accessOf(actor.userId, deliverable.projectId)) === 'none')
+      throw new AppError('NOT_FOUND', 'Deliverable not found');
+    if (deliverable.createdByUserId !== actor.userId)
+      throw new AppError('FORBIDDEN', 'Only the author can change this deliverable');
     return deliverable;
   }
 

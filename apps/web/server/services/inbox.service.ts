@@ -51,14 +51,23 @@ export class InboxService {
   async deliveredToUser(userId: string, teamId: string, limit = 10) {
     await requireTeamMember(this.deps.db, userId, teamId);
     const requests = await this.deps.db.collaborationRequest.findMany({
-      where: { teamId, createdByUserId: userId, status: 'DELIVERED', deletedAt: null, updatedAt: { gt: new Date(Date.now() - 7 * 86_400_000) } },
+      where: {
+        teamId,
+        createdByUserId: userId,
+        status: 'DELIVERED',
+        deletedAt: null,
+        updatedAt: { gt: new Date(Date.now() - 7 * 86_400_000) },
+      },
       select: {
         id: true,
         title: true,
         updatedAt: true,
         project: { select: { id: true, name: true } },
         assigneeUser: { select: { name: true } },
-        deliverables: { where: { status: 'PUBLISHED', deletedAt: null }, select: { id: true, title: true, format: true, currentVersion: true } },
+        deliverables: {
+          where: { status: 'PUBLISHED', deletedAt: null },
+          select: { id: true, title: true, format: true, currentVersion: true },
+        },
       },
       orderBy: { updatedAt: 'desc' },
       take: limit,

@@ -16,6 +16,8 @@ describe('file rules', () => {
     expect(safeFileName('///')).toBe('file');
   });
   it('builds tenant-prefixed keys', () => {
-    expect(storageKeys.deliverable('t', 'd', 2, 'spec.yaml')).toBe('teams/t/deliverables/d/v2/spec.yaml');
+    expect(storageKeys.deliverable('t', 'd', 2, 'spec.yaml')).toBe(
+      'teams/t/deliverables/d/v2/spec.yaml',
+    );
   });
 });

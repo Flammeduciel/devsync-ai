@@ -10,7 +10,12 @@ export default async function RequestLink({ params }: PageProps<'/requests/[requ
   const { requestId } = await params;
   if (!isUuid(requestId)) notFound();
   const user = await requireUser();
-  const r = await orNotFound(services().requests.get({ type: 'HUMAN', userId: user.id }, requestId));
-  const team = await db().project.findUniqueOrThrow({ where: { id: r.project.id }, select: { team: { select: { slug: true } } } });
+  const r = await orNotFound(
+    services().requests.get({ type: 'HUMAN', userId: user.id }, requestId),
+  );
+  const team = await db().project.findUniqueOrThrow({
+    where: { id: r.project.id },
+    select: { team: { select: { slug: true } } },
+  });
   redirect(`/t/${team.team.slug}/requests/${requestId}` as never);
 }

@@ -2,7 +2,12 @@
 export interface ObjectStorage {
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
   /** Pre-signed upload URL; the signature binds content type and exact length. */
-  presignPut(key: string, contentType: string, sizeBytes: number, expiresInSeconds?: number): Promise<string>;
+  presignPut(
+    key: string,
+    contentType: string,
+    sizeBytes: number,
+    expiresInSeconds?: number,
+  ): Promise<string>;
   /** Pre-signed download URL served as an attachment. */
   presignGet(key: string, fileName: string, expiresInSeconds?: number): Promise<string>;
   head(key: string): Promise<{ sizeBytes: number; contentType: string } | null>;

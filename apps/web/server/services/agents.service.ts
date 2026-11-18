@@ -9,7 +9,11 @@ import {
   type PublishActivityInput,
   type RegisterSessionInput,
 } from '@devsync/validation';
-import { aggregateAgentStatus, RECONNECT_GRACE_MS, SESSION_STALE_AFTER_MS } from '../domain/agent-status';
+import {
+  aggregateAgentStatus,
+  RECONNECT_GRACE_MS,
+  SESSION_STALE_AFTER_MS,
+} from '../domain/agent-status';
 import { hasTeamPermission } from '../domain/permissions';
 import { agentsRepository } from '../repositories/agents.repository';
 import { projectsRepository } from '../repositories/projects.repository';
@@ -227,7 +231,12 @@ export class AgentsService {
   async sweepIdleAgents(scope: { teamId?: string } = {}): Promise<number> {
     const now = clock(this.deps);
     const idle = await this.deps.db.agent.findMany({
-      where: { ...(scope.teamId ? { teamId: scope.teamId } : {}), status: { not: 'OFFLINE' }, lastActivityAt: { lt: new Date(now.getTime() - RECONNECT_GRACE_MS) }, sessions: { none: { endedAt: null } } },
+      where: {
+        ...(scope.teamId ? { teamId: scope.teamId } : {}),
+        status: { not: 'OFFLINE' },
+        lastActivityAt: { lt: new Date(now.getTime() - RECONNECT_GRACE_MS) },
+        sessions: { none: { endedAt: null } },
+      },
       select: { id: true, teamId: true, userId: true, machineId: true },
       take: 200,
     });
@@ -287,7 +296,9 @@ export class AgentsService {
       now,
     );
     // A conversation closed by the developer keeps the agent IDLE during a grace period (see sweepIdleAgents).
-    const status = await this.refreshAgentStatus(tx, emit, session.agentId, now, { graceful: reason === 'client' });
+    const status = await this.refreshAgentStatus(tx, emit, session.agentId, now, {
+      graceful: reason === 'client',
+    });
     if (status === 'OFFLINE') {
       await emit({
         type: 'agent.disconnected',

@@ -1,8 +1,22 @@
-import type { ActivityEntry, ClaimInfo, DeliveredItem, Expert, InboxItem, TeamContext } from '@devsync/sdk';
+import type {
+  ActivityEntry,
+  ClaimInfo,
+  DeliveredItem,
+  Expert,
+  InboxItem,
+  TeamContext,
+} from '@devsync/sdk';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { describeError, workingDirectory, type BridgeClient } from '../bridge';
-import { formatActivity, formatClaims, formatContext, formatDelivered, formatExperts, formatInbox } from '../format';
+import {
+  formatActivity,
+  formatClaims,
+  formatContext,
+  formatDelivered,
+  formatExperts,
+  formatInbox,
+} from '../format';
 import { registerCollaborationTools } from './collaboration';
 
 const text = (value: string) => ({ content: [{ type: 'text' as const, text: value }] });
@@ -145,8 +159,13 @@ export function registerTools(server: McpServer, bridge: BridgeClient) {
     },
     async () => {
       try {
-        const { items, delivered } = await bridge.api<{ items: InboxItem[]; delivered?: DeliveredItem[] }>('inbox');
-        return text([formatInbox(items), formatDelivered(delivered ?? [])].filter(Boolean).join('\n\n'));
+        const { items, delivered } = await bridge.api<{
+          items: InboxItem[];
+          delivered?: DeliveredItem[];
+        }>('inbox');
+        return text(
+          [formatInbox(items), formatDelivered(delivered ?? [])].filter(Boolean).join('\n\n'),
+        );
       } catch (error) {
         return failure(error);
       }

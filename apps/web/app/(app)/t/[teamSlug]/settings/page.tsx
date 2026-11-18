@@ -16,7 +16,10 @@ export default async function SettingsPage({ params }: PageProps<'/t/[teamSlug]/
   const { teamSlug } = await params;
   const { user, team } = await loadTeamPage(teamSlug);
   const canUpdate = hasTeamPermission(team.role, 'team:update');
-  const [autonomy, preferences] = await Promise.all([services().autonomy.list(user.id, team.id), services().notifications.preferences(user.id, team.id)]);
+  const [autonomy, preferences] = await Promise.all([
+    services().autonomy.list(user.id, team.id),
+    services().notifications.preferences(user.id, team.id),
+  ]);
 
   return (
     <>
@@ -41,10 +44,17 @@ export default async function SettingsPage({ params }: PageProps<'/t/[teamSlug]/
       <Card>
         <CardHeader>
           <CardTitle>Agent autonomy</CardTitle>
-          <CardDescription>What agents may do on their own when they need something from a teammate. Every agent request is audited.</CardDescription>
+          <CardDescription>
+            What agents may do on their own when they need something from a teammate. Every agent
+            request is audited.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <AutonomyForm teamId={team.id} policy={autonomy.teamDefault} editable={hasTeamPermission(team.role, 'settings:manage')} />
+          <AutonomyForm
+            teamId={team.id}
+            policy={autonomy.teamDefault}
+            editable={hasTeamPermission(team.role, 'settings:manage')}
+          />
         </CardContent>
       </Card>
       <Card>

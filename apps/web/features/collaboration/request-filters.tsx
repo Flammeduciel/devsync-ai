@@ -31,13 +31,22 @@ export function RequestFilters() {
             role="tab"
             aria-selected={scope === s.value}
             onClick={() => set('scope', s.value === 'all' ? '' : s.value)}
-            className={cn('rounded px-3 py-1 text-sm', scope === s.value ? 'bg-accent font-medium' : 'text-muted-foreground hover:text-foreground')}
+            className={cn(
+              'rounded px-3 py-1 text-sm',
+              scope === s.value
+                ? 'bg-accent font-medium'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
           >
             {s.label}
           </button>
         ))}
       </div>
-      <NativeSelect aria-label="Status" value={params.get('status') ?? ''} onChange={(e) => set('status', e.target.value)}>
+      <NativeSelect
+        aria-label="Status"
+        value={params.get('status') ?? ''}
+        onChange={(e) => set('status', e.target.value)}
+      >
         <option value="">Any status</option>
         {Object.entries(STATUS_LABEL).map(([value, label]) => (
           <option key={value} value={value}>

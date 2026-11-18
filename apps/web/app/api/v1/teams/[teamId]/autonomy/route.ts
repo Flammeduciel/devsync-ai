@@ -16,5 +16,11 @@ export const GET = handler(async (_request: Request, ctx: Ctx) => {
 export const PUT = handler(async (request: Request, ctx: Ctx) => {
   const user = await requireApiUser();
   const { teamId } = await ctx.params;
-  return json(await services().autonomy.upsert(user.id, pathId(teamId, 'Team'), autonomyPolicyUpdateSchema.parse(await readJson(request))));
+  return json(
+    await services().autonomy.upsert(
+      user.id,
+      pathId(teamId, 'Team'),
+      autonomyPolicyUpdateSchema.parse(await readJson(request)),
+    ),
+  );
 });

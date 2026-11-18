@@ -7,7 +7,10 @@ export const MAX_INLINE_BYTES = 1024 * 1024;
  * Accepted MIME types per deliverable format. SVG and HTML are refused on purpose: they can carry
  * scripts and would be served from our storage domain.
  */
-export const FORMAT_CONTENT_TYPES: Record<Exclude<DeliverableFormat, 'GIT_REF' | 'PULL_REQUEST'>, string[]> = {
+export const FORMAT_CONTENT_TYPES: Record<
+  Exclude<DeliverableFormat, 'GIT_REF' | 'PULL_REQUEST'>,
+  string[]
+> = {
   MARKDOWN: ['text/markdown', 'text/plain'],
   JSON: ['application/json'],
   OPENAPI: ['application/yaml', 'application/x-yaml', 'text/yaml', 'application/json'],

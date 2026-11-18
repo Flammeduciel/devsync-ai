@@ -66,7 +66,9 @@ export function NotificationPreferences({ teamId, initial }: { teamId: string; i
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
-            const result = await updateNotificationPreferencesAction(teamId, { preferences: prefs as never });
+            const result = await updateNotificationPreferencesAction(teamId, {
+              preferences: prefs as never,
+            });
             if (result.ok) toast.success('Preferences saved');
             else toast.error(result.error);
           })
@@ -74,7 +76,10 @@ export function NotificationPreferences({ teamId, initial }: { teamId: string; i
       >
         Save preferences
       </Button>
-      <p className="text-xs text-muted-foreground">Desktop notifications and sounds are played by the DevSync Bridge on your machine, even when Claude Code is closed.</p>
+      <p className="text-xs text-muted-foreground">
+        Desktop notifications and sounds are played by the DevSync Bridge on your machine, even when
+        Claude Code is closed.
+      </p>
     </div>
   );
 }

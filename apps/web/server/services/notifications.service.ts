@@ -19,12 +19,31 @@ interface Preference {
 }
 
 /** Sound by default for what a developer is waiting for. */
-const SOUND_BY_DEFAULT: NotificationKind[] = ['REQUEST_CREATED', 'DELIVERABLE_READY', 'REQUEST_CLARIFICATION'];
-export const defaultPreference = (kind: NotificationKind): Preference => ({ inApp: true, desktop: true, sound: SOUND_BY_DEFAULT.includes(kind) });
+const SOUND_BY_DEFAULT: NotificationKind[] = [
+  'REQUEST_CREATED',
+  'DELIVERABLE_READY',
+  'REQUEST_CLARIFICATION',
+];
+export const defaultPreference = (kind: NotificationKind): Preference => ({
+  inApp: true,
+  desktop: true,
+  sound: SOUND_BY_DEFAULT.includes(kind),
+});
 
 export const NOTIFICATION_KINDS: NotificationKind[] = [
-  'REQUEST_CREATED', 'REQUEST_ACCEPTED', 'REQUEST_REJECTED', 'REQUEST_IN_PROGRESS', 'REQUEST_CLARIFICATION', 'DELIVERABLE_READY',
-  'DEPENDENCY_RESOLVED', 'AGENT_CONNECTED', 'AGENT_DISCONNECTED', 'GIT_CONFLICT', 'KNOWLEDGE_PUBLISHED', 'INVITATION', 'BROADCAST',
+  'REQUEST_CREATED',
+  'REQUEST_ACCEPTED',
+  'REQUEST_REJECTED',
+  'REQUEST_IN_PROGRESS',
+  'REQUEST_CLARIFICATION',
+  'DELIVERABLE_READY',
+  'DEPENDENCY_RESOLVED',
+  'AGENT_CONNECTED',
+  'AGENT_DISCONNECTED',
+  'GIT_CONFLICT',
+  'KNOWLEDGE_PUBLISHED',
+  'INVITATION',
+  'BROADCAST',
 ];
 
 export interface NotificationDraft {
@@ -50,11 +69,26 @@ export async function notify(tx: Db, emit: Emit, draft: NotificationDraft): Prom
   const pref = stored ?? defaultPreference(draft.kind);
   if (!pref.inApp && !pref.desktop) return false;
   const { count } = await tx.notification.createMany({
-    data: [{ teamId: draft.teamId, userId: draft.userId, kind: draft.kind, title: draft.title, body: draft.body ?? null, link: draft.link ?? null, data: draft.data ?? {}, dedupeKey: draft.dedupeKey, readAt: pref.inApp ? null : new Date() }],
+    data: [
+      {
+        teamId: draft.teamId,
+        userId: draft.userId,
+        kind: draft.kind,
+        title: draft.title,
+        body: draft.body ?? null,
+        link: draft.link ?? null,
+        data: draft.data ?? {},
+        dedupeKey: draft.dedupeKey,
+        readAt: pref.inApp ? null : new Date(),
+      },
+    ],
     skipDuplicates: true,
   });
   if (count === 0) return false;
-  const created = await tx.notification.findUniqueOrThrow({ where: { userId_dedupeKey: { userId: draft.userId, dedupeKey: draft.dedupeKey } }, select: { id: true } });
+  const created = await tx.notification.findUniqueOrThrow({
+    where: { userId_dedupeKey: { userId: draft.userId, dedupeKey: draft.dedupeKey } },
+    select: { id: true },
+  });
   await emit({
     type: 'notification.created',
     teamId: draft.teamId,
@@ -81,19 +115,31 @@ export class NotificationsService {
    * An agent tells everyone on its project something short ("POST /payments contract changed").
    * Delivered as a notification to each project member except the sender.
    */
-  async broadcast(actor: { userId: string; agentId: string }, device: DeviceActor, rawInput: z.input<typeof broadcastSchema>) {
+  async broadcast(
+    actor: { userId: string; agentId: string },
+    device: DeviceActor,
+    rawInput: z.input<typeof broadcastSchema>,
+  ) {
     const input = broadcastSchema.parse(rawInput);
     const resolved = await resolveDeviceProject(this.deps, device, input);
-    if (!resolved) throw new AppError('NOT_FOUND', 'No project matches this repository; pass projectId');
-    if (!hasProjectAccess(resolved.access, 'write')) throw new AppError('FORBIDDEN', 'Read-only access to this project');
+    if (!resolved)
+      throw new AppError('NOT_FOUND', 'No project matches this repository; pass projectId');
+    if (!hasProjectAccess(resolved.access, 'write'))
+      throw new AppError('FORBIDDEN', 'Read-only access to this project');
     const [project, sender, members] = await Promise.all([
-      this.deps.db.project.findUniqueOrThrow({ where: { id: resolved.projectId }, select: { name: true } }),
+      this.deps.db.project.findUniqueOrThrow({
+        where: { id: resolved.projectId },
+        select: { name: true },
+      }),
       this.deps.db.user.findUniqueOrThrow({ where: { id: actor.userId }, select: { name: true } }),
       this.deps.db.teamMember.findMany({
         where: {
           teamId: device.teamId,
           userId: { not: actor.userId },
-          OR: [{ role: { in: ['OWNER', 'ADMIN'] } }, { user: { projectMemberships: { some: { projectId: resolved.projectId } } } }],
+          OR: [
+            { role: { in: ['OWNER', 'ADMIN'] } },
+            { user: { projectMemberships: { some: { projectId: resolved.projectId } } } },
+          ],
         },
         select: { userId: true },
       }),
@@ -117,7 +163,11 @@ export class NotificationsService {
     return { delivered };
   }
 
-  async list(userId: string, teamId: string, options: { unreadOnly?: boolean; limit?: number } = {}) {
+  async list(
+    userId: string,
+    teamId: string,
+    options: { unreadOnly?: boolean; limit?: number } = {},
+  ) {
     await requireTeamMember(this.deps.db, userId, teamId);
     const [items, unread] = await Promise.all([
       this.deps.db.notification.findMany({
@@ -141,21 +191,34 @@ export class NotificationsService {
 
   async preferences(userId: string, teamId: string) {
     await requireTeamMember(this.deps.db, userId, teamId);
-    const stored = await this.deps.db.notificationPreference.findMany({ where: { userId, teamId } });
+    const stored = await this.deps.db.notificationPreference.findMany({
+      where: { userId, teamId },
+    });
     return NOTIFICATION_KINDS.map((kind) => {
       const p = stored.find((s) => s.kind === kind) ?? defaultPreference(kind);
       return { kind, inApp: p.inApp, desktop: p.desktop, sound: p.sound };
     });
   }
 
-  async updatePreferences(userId: string, teamId: string, input: z.input<typeof notificationPreferencesSchema>) {
+  async updatePreferences(
+    userId: string,
+    teamId: string,
+    input: z.input<typeof notificationPreferencesSchema>,
+  ) {
     const { preferences } = notificationPreferencesSchema.parse(input);
     await requireTeamMember(this.deps.db, userId, teamId);
     await this.deps.db.$transaction(
       preferences.map((p) =>
         this.deps.db.notificationPreference.upsert({
           where: { userId_teamId_kind: { userId, teamId, kind: p.kind } },
-          create: { userId, teamId, kind: p.kind, inApp: p.inApp, desktop: p.desktop, sound: p.sound },
+          create: {
+            userId,
+            teamId,
+            kind: p.kind,
+            inApp: p.inApp,
+            desktop: p.desktop,
+            sound: p.sound,
+          },
           update: { inApp: p.inApp, desktop: p.desktop, sound: p.sound },
         }),
       ),

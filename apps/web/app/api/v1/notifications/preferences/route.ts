@@ -11,10 +11,21 @@ const team = (request: Request, resolved: Awaited<ReturnType<typeof requireActor
 
 export const GET = handler(async (request: Request) => {
   const resolved = await requireActor(request);
-  return json({ items: await services().notifications.preferences(resolved.actor.userId, team(request, resolved)) });
+  return json({
+    items: await services().notifications.preferences(
+      resolved.actor.userId,
+      team(request, resolved),
+    ),
+  });
 });
 
 export const PUT = handler(async (request: Request) => {
   const resolved = await requireActor(request);
-  return json({ items: await services().notifications.updatePreferences(resolved.actor.userId, team(request, resolved), notificationPreferencesSchema.parse(await readJson(request))) });
+  return json({
+    items: await services().notifications.updatePreferences(
+      resolved.actor.userId,
+      team(request, resolved),
+      notificationPreferencesSchema.parse(await readJson(request)),
+    ),
+  });
 });

@@ -141,22 +141,37 @@ async function inbox() {
     out('\nDelivered to you:');
     for (const d of delivered) {
       out(`  ✔ ${d.title} — ${d.project.name}, by ${d.assigneeUser?.name ?? '?'} · ${d.id}`);
-      for (const x of d.deliverables) out(`      ${x.format.toLowerCase()} "${x.title}" v${x.currentVersion} · ${x.id}`);
+      for (const x of d.deliverables)
+        out(`      ${x.format.toLowerCase()} "${x.title}" v${x.currentVersion} · ${x.id}`);
     }
   }
 }
 
-const REQUEST_ACTIONS = ['accept', 'reject', 'start', 'complete', 'cancel', 'approve', 'answer', 'clarify'];
+const REQUEST_ACTIONS = [
+  'accept',
+  'reject',
+  'start',
+  'complete',
+  'cancel',
+  'approve',
+  'answer',
+  'clarify',
+];
 
 async function request(args: string[]) {
   const [sub, id, ...rest] = args;
-  if (!sub || !id) return out('Usage: devsync request show|comment|accept|reject|start|complete|cancel|approve|answer|clarify <requestId> [message]');
+  if (!sub || !id)
+    return out(
+      'Usage: devsync request show|comment|accept|reject|start|complete|cancel|approve|answer|clarify <requestId> [message]',
+    );
   const api = await humanClient();
   const message = rest.join(' ').trim();
   if (sub === 'show') {
     const r = await api.getRequest(id);
     out(`${r.title}  [${r.status}${r.awaitingApproval ? ', awaiting approval' : ''}]`);
-    out(`${r.type.toLowerCase()} · ${r.priority} · ${r.project.name} · from ${r.initiatorAgent ? `${r.createdBy.name}'s agent` : r.createdBy.name} → ${r.assigneeUser?.name ?? '?'}${r.assigneeAgent ? ` (agent ${r.assigneeAgent.name})` : ''}`);
+    out(
+      `${r.type.toLowerCase()} · ${r.priority} · ${r.project.name} · from ${r.initiatorAgent ? `${r.createdBy.name}'s agent` : r.createdBy.name} → ${r.assigneeUser?.name ?? '?'}${r.assigneeAgent ? ` (agent ${r.assigneeAgent.name})` : ''}`,
+    );
     out(`\n${r.description}`);
     if (r.instructions) out(`\nInstructions:\n${r.instructions}`);
     if (r.comments.length) {
@@ -165,7 +180,10 @@ async function request(args: string[]) {
     }
     if (r.deliverables.length) {
       out('\nDeliverables:');
-      for (const d of r.deliverables) out(`  ${d.status.toLowerCase()} ${d.format.toLowerCase()} "${d.title}" v${d.currentVersion} · ${d.id}`);
+      for (const d of r.deliverables)
+        out(
+          `  ${d.status.toLowerCase()} ${d.format.toLowerCase()} "${d.title}" v${d.currentVersion} · ${d.id}`,
+        );
     }
     out(`\nYou can: ${r.availableActions.join(', ') || 'nothing (closed or not yours)'}`);
     return;

@@ -185,7 +185,11 @@ export async function runDaemon(
     releaseClaim: (p) => api.releaseClaim(String(p.claimId)),
     createRequest: (p) => api.createRequest(p),
     getRequest: (p) => api.getRequest(String(p.requestId)),
-    requestAction: (p) => api.requestAction(String(p.requestId), { action: String(p.action), ...(p.comment ? { comment: String(p.comment) } : {}) }),
+    requestAction: (p) =>
+      api.requestAction(String(p.requestId), {
+        action: String(p.action),
+        ...(p.comment ? { comment: String(p.comment) } : {}),
+      }),
     comment: (p) => api.comment(String(p.requestId), { body: String(p.body) }),
     requestDependencies: (p) => api.requestDependencies(String(p.requestId)),
     taskDependencies: (p) => api.taskDependencies(String(p.taskId)),
@@ -196,11 +200,16 @@ export async function runDaemon(
       return api.addDeliverableVersion(String(deliverableId), body);
     },
     publishDeliverable: (p) => api.publishDeliverable(String(p.deliverableId)),
-    readDeliverable: (p) => api.readDeliverable(String(p.deliverableId), { ...(typeof p.version === 'number' ? { version: p.version } : {}), inline: true }),
+    readDeliverable: (p) =>
+      api.readDeliverable(String(p.deliverableId), {
+        ...(typeof p.version === 'number' ? { version: p.version } : {}),
+        inline: true,
+      }),
     broadcast: (p) => api.broadcast(p),
     /** Reads a project file locally, registers an upload version and sends the bytes to storage. */
     uploadDeliverableFile: async (p) => {
-      if (typeof p.workingDirectory !== 'string') throw new Error('workingDirectory is required to upload a file');
+      if (typeof p.workingDirectory !== 'string')
+        throw new Error('workingDirectory is required to upload a file');
       const file = await readDeliverableFile(String(p.filePath), p.workingDirectory);
       const version = await api.addDeliverableVersion(String(p.deliverableId), {
         kind: 'upload',
@@ -212,7 +221,12 @@ export async function runDaemon(
       });
       if (!version.uploadUrl) throw new Error('The server did not return an upload URL');
       await api.upload(version.uploadUrl, file.body, file.contentType);
-      return { deliverableId: version.deliverableId, version: version.version, fileName: file.fileName, sizeBytes: file.sizeBytes };
+      return {
+        deliverableId: version.deliverableId,
+        version: version.version,
+        fileName: file.fileName,
+        sizeBytes: file.sizeBytes,
+      };
     },
   };
 

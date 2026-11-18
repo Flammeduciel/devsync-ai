@@ -168,31 +168,63 @@ export class DevSyncClient {
     return this.request<RequestDetail>('GET', `/collaboration/${encodeURIComponent(requestId)}`);
   }
   requestAction(requestId: string, body: { action: string; comment?: string }) {
-    return this.request<RequestSummary>('POST', `/collaboration/${encodeURIComponent(requestId)}/actions`, body);
+    return this.request<RequestSummary>(
+      'POST',
+      `/collaboration/${encodeURIComponent(requestId)}/actions`,
+      body,
+    );
   }
   comment(requestId: string, body: { body: string }) {
-    return this.request<{ id: string }>('POST', `/collaboration/${encodeURIComponent(requestId)}/comments`, body);
+    return this.request<{ id: string }>(
+      'POST',
+      `/collaboration/${encodeURIComponent(requestId)}/comments`,
+      body,
+    );
   }
   requestDependencies(requestId: string) {
-    return this.request<DependencyGraph>('GET', `/collaboration/${encodeURIComponent(requestId)}/dependencies`);
+    return this.request<DependencyGraph>(
+      'GET',
+      `/collaboration/${encodeURIComponent(requestId)}/dependencies`,
+    );
   }
   taskDependencies(taskId: string) {
-    return this.request<DependencyGraph>('GET', `/tasks/${encodeURIComponent(taskId)}/dependencies`);
+    return this.request<DependencyGraph>(
+      'GET',
+      `/tasks/${encodeURIComponent(taskId)}/dependencies`,
+    );
   }
   createTask(body: Record<string, unknown>) {
     return this.request<{ id: string; title: string; status: string }>('POST', '/tasks', body);
   }
   createDeliverable(body: Record<string, unknown>) {
-    return this.request<{ id: string; title: string; format: string }>('POST', '/deliverables', body);
+    return this.request<{ id: string; title: string; format: string }>(
+      'POST',
+      '/deliverables',
+      body,
+    );
   }
   addDeliverableVersion(deliverableId: string, body: Record<string, unknown>) {
-    return this.request<{ deliverableId: string; version: number; versionId: string; uploadUrl: string | null }>('POST', `/deliverables/${encodeURIComponent(deliverableId)}/versions`, body);
+    return this.request<{
+      deliverableId: string;
+      version: number;
+      versionId: string;
+      uploadUrl: string | null;
+    }>('POST', `/deliverables/${encodeURIComponent(deliverableId)}/versions`, body);
   }
   publishDeliverable(deliverableId: string) {
-    return this.request<{ deliverableId: string; status: string }>('POST', `/deliverables/${encodeURIComponent(deliverableId)}/publish`);
+    return this.request<{ deliverableId: string; status: string }>(
+      'POST',
+      `/deliverables/${encodeURIComponent(deliverableId)}/publish`,
+    );
   }
   readDeliverable(deliverableId: string, options: { version?: number; inline?: boolean } = {}) {
-    return this.request<DeliverableContent>('GET', withQuery(`/deliverables/${encodeURIComponent(deliverableId)}`, { version: options.version, inline: options.inline ? 1 : undefined }));
+    return this.request<DeliverableContent>(
+      'GET',
+      withQuery(`/deliverables/${encodeURIComponent(deliverableId)}`, {
+        version: options.version,
+        inline: options.inline ? 1 : undefined,
+      }),
+    );
   }
   broadcast(body: Record<string, unknown>) {
     return this.request<{ delivered: number }>('POST', '/broadcast', body);
@@ -206,7 +238,12 @@ export class DevSyncClient {
       body,
       signal: AbortSignal.timeout(120_000),
     });
-    if (!response.ok) throw new DevSyncApiError(response.status, 'UPLOAD_FAILED', `Upload failed with status ${response.status}`);
+    if (!response.ok)
+      throw new DevSyncApiError(
+        response.status,
+        'UPLOAD_FAILED',
+        `Upload failed with status ${response.status}`,
+      );
   }
 }
 /** Builds `path?key=value&key=v2`, skipping undefined values. */

@@ -10,7 +10,15 @@ import { ACTION_LABEL } from './labels';
 const NEEDS_TEXT = new Set(['clarify', 'answer']);
 const DESTRUCTIVE = new Set(['reject', 'cancel']);
 
-export function RequestActions({ requestId, actions, canComment }: { requestId: string; actions: string[]; canComment: boolean }) {
+export function RequestActions({
+  requestId,
+  actions,
+  canComment,
+}: {
+  requestId: string;
+  actions: string[];
+  canComment: boolean;
+}) {
   const [text, setText] = useState('');
   const [pending, startTransition] = useTransition();
 
@@ -21,7 +29,10 @@ export function RequestActions({ requestId, actions, canComment }: { requestId: 
         return;
       }
       if (DESTRUCTIVE.has(action) && !confirm(`${ACTION_LABEL[action]}?`)) return;
-      const result = await requestActionAction(requestId, { action: action as 'accept', ...(text.trim() ? { comment: text.trim() } : {}) });
+      const result = await requestActionAction(requestId, {
+        action: action as 'accept',
+        ...(text.trim() ? { comment: text.trim() } : {}),
+      });
       if (result.ok) {
         setText('');
         toast.success(`${ACTION_LABEL[action]}: done`);
@@ -38,7 +49,13 @@ export function RequestActions({ requestId, actions, canComment }: { requestId: 
   if (!canComment && actions.length === 0) return null;
   return (
     <div className="grid gap-3">
-      <Textarea aria-label="Message" rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="Comment, question, answer or reason…" />
+      <Textarea
+        aria-label="Message"
+        rows={3}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Comment, question, answer or reason…"
+      />
       <div className="flex flex-wrap gap-2">
         {canComment ? (
           <Button variant="outline" disabled={pending || !text.trim()} onClick={comment}>
@@ -46,7 +63,12 @@ export function RequestActions({ requestId, actions, canComment }: { requestId: 
           </Button>
         ) : null}
         {actions.map((action) => (
-          <Button key={action} variant={DESTRUCTIVE.has(action) ? 'ghost' : 'default'} disabled={pending} onClick={() => run(action)}>
+          <Button
+            key={action}
+            variant={DESTRUCTIVE.has(action) ? 'ghost' : 'default'}
+            disabled={pending}
+            onClick={() => run(action)}
+          >
             {ACTION_LABEL[action] ?? action}
           </Button>
         ))}

@@ -20,9 +20,23 @@ export const tasksRepository = {
       },
     });
   },
-  addDependency(db: Db, data: { teamId: string; projectId: string; dependentTaskId: string; blockingTaskId: string; description?: string | undefined }) {
+  addDependency(
+    db: Db,
+    data: {
+      teamId: string;
+      projectId: string;
+      dependentTaskId: string;
+      blockingTaskId: string;
+      description?: string | undefined;
+    },
+  ) {
     return db.dependency.upsert({
-      where: { dependentTaskId_blockingTaskId: { dependentTaskId: data.dependentTaskId, blockingTaskId: data.blockingTaskId } },
+      where: {
+        dependentTaskId_blockingTaskId: {
+          dependentTaskId: data.dependentTaskId,
+          blockingTaskId: data.blockingTaskId,
+        },
+      },
       create: { ...data, description: data.description ?? null },
       update: {},
     });
@@ -31,11 +45,24 @@ export const tasksRepository = {
   openDependenciesBlockedBy(db: Db, blockingTaskId: string) {
     return db.dependency.findMany({
       where: { blockingTaskId, status: 'OPEN' },
-      include: { dependentTask: { select: { id: true, title: true, assigneeUserId: true, assigneeAgentId: true, status: true } } },
+      include: {
+        dependentTask: {
+          select: {
+            id: true,
+            title: true,
+            assigneeUserId: true,
+            assigneeAgentId: true,
+            status: true,
+          },
+        },
+      },
     });
   },
   resolveDependency(db: Db, dependencyId: string, now: Date) {
-    return db.dependency.update({ where: { id: dependencyId }, data: { status: 'RESOLVED', resolvedAt: now } });
+    return db.dependency.update({
+      where: { id: dependencyId },
+      data: { status: 'RESOLVED', resolvedAt: now },
+    });
   },
   graph(db: Db, taskIds: string[]) {
     return db.dependency.findMany({

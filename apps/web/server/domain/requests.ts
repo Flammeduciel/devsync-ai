@@ -1,13 +1,27 @@
 import { createHash } from 'node:crypto';
 import type { RequestStatus } from '@devsync/validation';
 
-export const REQUEST_ACTIONS = ['approve', 'accept', 'reject', 'start', 'clarify', 'answer', 'complete', 'cancel'] as const;
+export const REQUEST_ACTIONS = [
+  'approve',
+  'accept',
+  'reject',
+  'start',
+  'clarify',
+  'answer',
+  'complete',
+  'cancel',
+] as const;
 export type RequestAction = (typeof REQUEST_ACTIONS)[number];
 
 /** Role of the actor towards a request. Agents act with their owner's role. */
 export type RequestRole = 'creator' | 'assignee' | 'manager';
 
-export const OPEN_STATUSES: RequestStatus[] = ['PENDING', 'ACCEPTED', 'IN_PROGRESS', 'WAITING_FOR_CLARIFICATION'];
+export const OPEN_STATUSES: RequestStatus[] = [
+  'PENDING',
+  'ACCEPTED',
+  'IN_PROGRESS',
+  'WAITING_FOR_CLARIFICATION',
+];
 export const TERMINAL_STATUSES: RequestStatus[] = ['DELIVERED', 'REJECTED', 'CANCELLED'];
 
 interface Transition {
@@ -27,13 +41,22 @@ export const TRANSITIONS: Record<RequestAction, Transition> = {
   accept: { from: ['PENDING'], to: 'ACCEPTED', by: ['assignee'] },
   reject: { from: ['PENDING', 'ACCEPTED'], to: 'REJECTED', by: ['assignee'] },
   start: { from: ['ACCEPTED', 'PENDING'], to: 'IN_PROGRESS', by: ['assignee'] },
-  clarify: { from: ['PENDING', 'ACCEPTED', 'IN_PROGRESS'], to: 'WAITING_FOR_CLARIFICATION', by: ['assignee'] },
+  clarify: {
+    from: ['PENDING', 'ACCEPTED', 'IN_PROGRESS'],
+    to: 'WAITING_FOR_CLARIFICATION',
+    by: ['assignee'],
+  },
   answer: { from: ['WAITING_FOR_CLARIFICATION'], to: null, by: ['creator', 'manager'] },
   complete: { from: ['IN_PROGRESS'], to: 'COMPLETED', by: ['assignee'] },
-  cancel: { from: ['PENDING', 'ACCEPTED', 'IN_PROGRESS', 'WAITING_FOR_CLARIFICATION', 'COMPLETED'], to: 'CANCELLED', by: ['creator', 'manager'] },
+  cancel: {
+    from: ['PENDING', 'ACCEPTED', 'IN_PROGRESS', 'WAITING_FOR_CLARIFICATION', 'COMPLETED'],
+    to: 'CANCELLED',
+    by: ['creator', 'manager'],
+  },
 };
 
-export type TransitionDenial = 'INVALID_STATE' | 'NOT_ALLOWED' | 'AWAITING_APPROVAL' | 'ALREADY_APPROVED';
+export type TransitionDenial =
+  'INVALID_STATE' | 'NOT_ALLOWED' | 'AWAITING_APPROVAL' | 'ALREADY_APPROVED';
 
 export function checkTransition(params: {
   action: RequestAction;
@@ -51,14 +74,39 @@ export function checkTransition(params: {
 }
 
 /** Actions an actor can take now (drives buttons in the UI and the MCP tool help). */
-export function availableActions(status: RequestStatus, roles: RequestRole[], awaitingApproval: boolean): RequestAction[] {
-  return REQUEST_ACTIONS.filter((action) => checkTransition({ action, status, roles, awaitingApproval }) === null);
+export function availableActions(
+  status: RequestStatus,
+  roles: RequestRole[],
+  awaitingApproval: boolean,
+): RequestAction[] {
+  return REQUEST_ACTIONS.filter(
+    (action) => checkTransition({ action, status, roles, awaitingApproval }) === null,
+  );
 }
 
 /** Same project, type, assignee and normalized title ⇒ same request (repetition detection). */
-export function requestFingerprint(input: { projectId: string; type: string; assigneeUserId?: string | null; assigneeAgentId?: string | null; title: string }): string {
-  const title = input.title.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+export function requestFingerprint(input: {
+  projectId: string;
+  type: string;
+  assigneeUserId?: string | null;
+  assigneeAgentId?: string | null;
+  title: string;
+}): string {
+  const title = input.title
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
   return createHash('sha256')
-    .update([input.projectId, input.type, input.assigneeUserId ?? '', input.assigneeAgentId ?? '', title].join('|'))
+    .update(
+      [
+        input.projectId,
+        input.type,
+        input.assigneeUserId ?? '',
+        input.assigneeAgentId ?? '',
+        title,
+      ].join('|'),
+    )
     .digest('hex');
 }

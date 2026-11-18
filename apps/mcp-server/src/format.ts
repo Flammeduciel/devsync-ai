@@ -1,4 +1,13 @@
-import type { ActivityEntry, ClaimInfo, DeliveredItem, DependencyGraph, Expert, InboxItem, RequestDetail, TeamContext } from '@devsync/sdk';
+import type {
+  ActivityEntry,
+  ClaimInfo,
+  DeliveredItem,
+  DependencyGraph,
+  Expert,
+  InboxItem,
+  RequestDetail,
+  TeamContext,
+} from '@devsync/sdk';
 
 const ago = (iso: string) => {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -62,16 +71,38 @@ export function formatContext(ctx: TeamContext): string {
     );
   }
   const work = ctx.yourWork;
-  if (work && (work.lastDeclaredTask || work.previousSession || work.claimsHeld.length || work.assignedInProgress.length || work.waitingOnOthers.length)) {
+  if (
+    work &&
+    (work.lastDeclaredTask ||
+      work.previousSession ||
+      work.claimsHeld.length ||
+      work.assignedInProgress.length ||
+      work.waitingOnOthers.length)
+  ) {
     lines.push('', '## Resume your work (from your previous sessions on this machine)');
-    if (work.lastDeclaredTask) lines.push(`- Last declared task (${ago(work.lastDeclaredTask.at)}): ${work.lastDeclaredTask.task}`);
+    if (work.lastDeclaredTask)
+      lines.push(
+        `- Last declared task (${ago(work.lastDeclaredTask.at)}): ${work.lastDeclaredTask.task}`,
+      );
     if (work.previousSession) {
-      lines.push(`- Previous session ended ${ago(work.previousSession.endedAt)}${work.previousSession.branch ? ` on branch ${work.previousSession.branch}` : ''}`);
-      if (work.previousSession.edited.length) lines.push(`  ${work.previousSession.edited.join(', ')}`);
+      lines.push(
+        `- Previous session ended ${ago(work.previousSession.endedAt)}${work.previousSession.branch ? ` on branch ${work.previousSession.branch}` : ''}`,
+      );
+      if (work.previousSession.edited.length)
+        lines.push(`  ${work.previousSession.edited.join(', ')}`);
     }
-    for (const c of work.claimsHeld) lines.push(`- You still hold ${c.resourceType.toLowerCase()} \`${c.resourceKey}\` (claimId ${c.id}) — release it if you are done`);
-    for (const r of work.assignedInProgress) lines.push(`- Your request in progress: "${r.title}" (${r.status.toLowerCase().replace(/_/g, ' ')}, id ${r.id})`);
-    for (const r of work.waitingOnOthers) lines.push(`- Waiting on ${r.assignee ?? 'a teammate'}: "${r.title}" (${r.status.toLowerCase().replace(/_/g, ' ')}, id ${r.id})`);
+    for (const c of work.claimsHeld)
+      lines.push(
+        `- You still hold ${c.resourceType.toLowerCase()} \`${c.resourceKey}\` (claimId ${c.id}) — release it if you are done`,
+      );
+    for (const r of work.assignedInProgress)
+      lines.push(
+        `- Your request in progress: "${r.title}" (${r.status.toLowerCase().replace(/_/g, ' ')}, id ${r.id})`,
+      );
+    for (const r of work.waitingOnOthers)
+      lines.push(
+        `- Waiting on ${r.assignee ?? 'a teammate'}: "${r.title}" (${r.status.toLowerCase().replace(/_/g, ' ')}, id ${r.id})`,
+      );
     lines.push('Confirm with the developer before resuming any of this.');
   }
   lines.push('', '## Teammates working now');
@@ -97,7 +128,10 @@ export function formatDelivered(items: DeliveredItem[]): string {
     'Delivered to you (read with team_read_deliverable):',
     ...items.flatMap((d) => [
       `- "${d.title}" (${d.project.name}) by ${d.assigneeUser?.name ?? '?'} — request ${d.id}`,
-      ...d.deliverables.map((x) => `  · ${x.format.toLowerCase()} "${x.title}" v${x.currentVersion} (deliverableId ${x.id})`),
+      ...d.deliverables.map(
+        (x) =>
+          `  · ${x.format.toLowerCase()} "${x.title}" v${x.currentVersion} (deliverableId ${x.id})`,
+      ),
     ]),
   ].join('\n');
 }
@@ -112,15 +146,36 @@ export function formatRequest(r: RequestDetail): string {
     r.description,
   ];
   if (r.instructions) lines.push('', '## Instructions', r.instructions);
-  if (r.expectedDeliverables.length) lines.push('', '## Expected deliverables', ...r.expectedDeliverables.map((d) => `- ${d.title} (${d.format})${d.description ? ` — ${d.description}` : ''}`));
-  if (r.comments.length) lines.push('', '## Conversation', ...r.comments.map((c) => `- ${c.author}: ${c.body}`));
-  if (r.deliverables.length) lines.push('', '## Deliverables', ...r.deliverables.map((d) => `- ${d.status.toLowerCase()} ${d.format.toLowerCase()} "${d.title}" v${d.currentVersion} by ${d.by} (deliverableId ${d.id})`));
-  if (r.tasks.length) lines.push('', `Tasks: ${r.tasks.map((t) => `${t.title} [${t.status}] (taskId ${t.id})`).join('; ')}`);
+  if (r.expectedDeliverables.length)
+    lines.push(
+      '',
+      '## Expected deliverables',
+      ...r.expectedDeliverables.map(
+        (d) => `- ${d.title} (${d.format})${d.description ? ` — ${d.description}` : ''}`,
+      ),
+    );
+  if (r.comments.length)
+    lines.push('', '## Conversation', ...r.comments.map((c) => `- ${c.author}: ${c.body}`));
+  if (r.deliverables.length)
+    lines.push(
+      '',
+      '## Deliverables',
+      ...r.deliverables.map(
+        (d) =>
+          `- ${d.status.toLowerCase()} ${d.format.toLowerCase()} "${d.title}" v${d.currentVersion} by ${d.by} (deliverableId ${d.id})`,
+      ),
+    );
+  if (r.tasks.length)
+    lines.push(
+      '',
+      `Tasks: ${r.tasks.map((t) => `${t.title} [${t.status}] (taskId ${t.id})`).join('; ')}`,
+    );
   return lines.join('\n');
 }
 
 export function formatDependencies(g: DependencyGraph): string {
-  const line = (e: DependencyGraph['blockedBy'][number]) => `- [${e.status.toLowerCase()}] ${e.task.title} (${e.task.status.toLowerCase()}, taskId ${e.task.id}${e.task.requestId ? `, request ${e.task.requestId}` : ''})`;
+  const line = (e: DependencyGraph['blockedBy'][number]) =>
+    `- [${e.status.toLowerCase()}] ${e.task.title} (${e.task.status.toLowerCase()}, taskId ${e.task.id}${e.task.requestId ? `, request ${e.task.requestId}` : ''})`;
   return [
     `Tasks: ${g.tasks.map((t) => `${t.title} [${t.status}]`).join('; ')}`,
     'Blocked by:',

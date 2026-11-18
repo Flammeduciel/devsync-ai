@@ -14,11 +14,25 @@ describe('readDeliverableFile', () => {
     await symlink(join(outside, 'id_rsa'), join(root, 'key.yaml'));
     await writeFile(join(root, 'run.sh'), 'echo');
 
-    await expect(readDeliverableFile(join(root, 'docs', 'openapi.yaml'), root)).resolves.toMatchObject({ fileName: 'openapi.yaml', contentType: 'application/yaml', sizeBytes: 15 });
-    await expect(readDeliverableFile('docs/openapi.yaml', root)).resolves.toMatchObject({ fileName: 'openapi.yaml' });
-    await expect(readDeliverableFile('../' + outside.split('/').pop() + '/id_rsa', root)).rejects.toThrow('inside the project');
-    await expect(readDeliverableFile(join(outside, 'id_rsa'), root)).rejects.toThrow('inside the project');
-    await expect(readDeliverableFile(join(root, 'key.yaml'), root)).rejects.toThrow('inside the project');
+    await expect(
+      readDeliverableFile(join(root, 'docs', 'openapi.yaml'), root),
+    ).resolves.toMatchObject({
+      fileName: 'openapi.yaml',
+      contentType: 'application/yaml',
+      sizeBytes: 15,
+    });
+    await expect(readDeliverableFile('docs/openapi.yaml', root)).resolves.toMatchObject({
+      fileName: 'openapi.yaml',
+    });
+    await expect(
+      readDeliverableFile('../' + outside.split('/').pop() + '/id_rsa', root),
+    ).rejects.toThrow('inside the project');
+    await expect(readDeliverableFile(join(outside, 'id_rsa'), root)).rejects.toThrow(
+      'inside the project',
+    );
+    await expect(readDeliverableFile(join(root, 'key.yaml'), root)).rejects.toThrow(
+      'inside the project',
+    );
     await expect(readDeliverableFile(join(root, 'run.sh'), root)).rejects.toThrow('Unsupported');
   });
 });

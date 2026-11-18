@@ -42,21 +42,51 @@ export function evaluateAgentRequest(
   },
 ): AutonomyDecision {
   if (request.createdByAgentLastHour >= policy.maxRequestsPerHour) {
-    return { outcome: 'deny', code: 'RATE_LIMITED', reason: `Limit of ${policy.maxRequestsPerHour} agent requests per hour reached` };
+    return {
+      outcome: 'deny',
+      code: 'RATE_LIMITED',
+      reason: `Limit of ${policy.maxRequestsPerHour} agent requests per hour reached`,
+    };
   }
-  if (request.assigneeAgentId && policy.allowedAgentIds.length > 0 && !policy.allowedAgentIds.includes(request.assigneeAgentId)) {
-    return { outcome: 'deny', code: 'FORBIDDEN', reason: 'The team policy does not allow agents to solicit this agent' };
+  if (
+    request.assigneeAgentId &&
+    policy.allowedAgentIds.length > 0 &&
+    !policy.allowedAgentIds.includes(request.assigneeAgentId)
+  ) {
+    return {
+      outcome: 'deny',
+      code: 'FORBIDDEN',
+      reason: 'The team policy does not allow agents to solicit this agent',
+    };
   }
   const maxDepth = policy.level === 'COORDINATED' ? policy.maxChainDepth : 0;
   if (request.depth > maxDepth) {
-    return { outcome: 'deny', code: 'FORBIDDEN', reason: policy.level === 'COORDINATED' ? `Request chains are limited to ${maxDepth} levels` : 'Agents cannot chain requests at this autonomy level (needs level 3)' };
+    return {
+      outcome: 'deny',
+      code: 'FORBIDDEN',
+      reason:
+        policy.level === 'COORDINATED'
+          ? `Request chains are limited to ${maxDepth} levels`
+          : 'Agents cannot chain requests at this autonomy level (needs level 3)',
+    };
   }
   if (request.assigneeAgentId && request.chainInitiatorAgentIds.includes(request.assigneeAgentId)) {
-    return { outcome: 'deny', code: 'CONFLICT', reason: 'Request loop: this agent is already part of the request chain' };
+    return {
+      outcome: 'deny',
+      code: 'CONFLICT',
+      reason: 'Request loop: this agent is already part of the request chain',
+    };
   }
-  if (policy.level === 'SUGGEST') return { outcome: 'needs_approval', reason: 'Autonomy level 1: a developer approves every agent request' };
+  if (policy.level === 'SUGGEST')
+    return {
+      outcome: 'needs_approval',
+      reason: 'Autonomy level 1: a developer approves every agent request',
+    };
   if (PRIORITY_RANK[request.priority] > PRIORITY_RANK[policy.maxPriority]) {
-    return { outcome: 'needs_approval', reason: `Priority above ${policy.maxPriority} needs a developer's approval` };
+    return {
+      outcome: 'needs_approval',
+      reason: `Priority above ${policy.maxPriority} needs a developer's approval`,
+    };
   }
   if (policy.requireApprovalActions.includes('request.create')) {
     return { outcome: 'needs_approval', reason: 'The team requires approval for agent requests' };

@@ -7,7 +7,10 @@ import { TeamSwitcher } from '@/features/shell/team-switcher';
 export default async function TeamLayout({ children, params }: LayoutProps<'/t/[teamSlug]'>) {
   const { teamSlug } = await params;
   const { user, team } = await loadTeamPage(teamSlug);
-  const [teams, { unread }] = await Promise.all([services().teams.listMine(user.id), services().notifications.list(user.id, team.id, { unreadOnly: true, limit: 1 })]);
+  const [teams, { unread }] = await Promise.all([
+    services().teams.listMine(user.id),
+    services().notifications.list(user.id, team.id, { unreadOnly: true, limit: 1 }),
+  ]);
   const badge = <UnreadBadge count={unread} />;
   return (
     <div className="grid min-h-dvh grid-cols-[minmax(0,1fr)] md:grid-cols-[15rem_minmax(0,1fr)]">

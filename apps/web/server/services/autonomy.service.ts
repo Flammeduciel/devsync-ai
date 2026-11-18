@@ -12,7 +12,11 @@ export class AutonomyService {
 
   async list(userId: string, teamId: string) {
     await requireTeamMember(this.deps.db, userId, teamId);
-    const policies = await this.deps.db.autonomyPolicy.findMany({ where: { teamId }, include: { project: { select: { name: true } } }, orderBy: { createdAt: 'asc' } });
+    const policies = await this.deps.db.autonomyPolicy.findMany({
+      where: { teamId },
+      include: { project: { select: { name: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
     const teamDefault = policies.find((p) => p.projectId === null);
     return {
       teamDefault: teamDefault ?? { ...DEFAULT_POLICY, projectId: null },
@@ -25,7 +29,8 @@ export class AutonomyService {
     await requireTeamPermission(this.deps.db, userId, teamId, 'settings:manage');
     if (input.projectId) {
       const project = await projectsRepository.findActiveById(this.deps.db, input.projectId);
-      if (!project || project.teamId !== teamId) throw new AppError('NOT_FOUND', 'Project not found');
+      if (!project || project.teamId !== teamId)
+        throw new AppError('NOT_FOUND', 'Project not found');
     }
     const data = {
       level: input.level,
@@ -36,11 +41,20 @@ export class AutonomyService {
       requireApprovalActions: input.requireApprovalActions,
     };
     return this.deps.db.$transaction(async (tx) => {
-      const existing = await tx.autonomyPolicy.findFirst({ where: { teamId, projectId: input.projectId } });
+      const existing = await tx.autonomyPolicy.findFirst({
+        where: { teamId, projectId: input.projectId },
+      });
       const policy = existing
         ? await tx.autonomyPolicy.update({ where: { id: existing.id }, data })
         : await tx.autonomyPolicy.create({ data: { teamId, projectId: input.projectId, ...data } });
-      await recordAudit(tx, { teamId, actorUserId: userId, action: 'autonomy.updated', targetType: 'autonomy_policy', targetId: policy.id, metadata: { ...data, projectId: input.projectId } });
+      await recordAudit(tx, {
+        teamId,
+        actorUserId: userId,
+        action: 'autonomy.updated',
+        targetType: 'autonomy_policy',
+        targetId: policy.id,
+        metadata: { ...data, projectId: input.projectId },
+      });
       return policy;
     });
   }

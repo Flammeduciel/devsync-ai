@@ -1,8 +1,9 @@
 ---
 name: request
 description: Show or act on a DevSync collaboration request
-argument-hint: "<requestId> [accept|reject|start|complete|cancel|approve]"
-allowed-tools: [mcp__plugin_devsync_devsync__team_get_request, mcp__plugin_devsync_devsync__team_update_request]
+argument-hint: '<requestId> [accept|reject|start|complete|cancel|approve]'
+allowed-tools:
+  [mcp__plugin_devsync_devsync__team_get_request, mcp__plugin_devsync_devsync__team_update_request]
 ---
 
 # DevSync request

@@ -9,5 +9,8 @@ import { handler, json } from '@/server/http/respond';
 export const POST = handler(async (request: Request) => {
   const { actor, device } = await requireActor(request);
   if (!device) throw new AppError('FORBIDDEN', 'Tasks are declared by agents');
-  return json(await services().tasks.create(device, actor, createTaskSchema.parse(await readJson(request))), 201);
+  return json(
+    await services().tasks.create(device, actor, createTaskSchema.parse(await readJson(request))),
+    201,
+  );
 });

@@ -138,16 +138,41 @@ export interface RequestSummary {
 }
 
 export interface RequestDetail extends RequestSummary {
-  history: { at: string; action: string; fromStatus: string | null; toStatus: string | null; by: string }[];
+  history: {
+    at: string;
+    action: string;
+    fromStatus: string | null;
+    toStatus: string | null;
+    by: string;
+  }[];
   comments: { id: string; at: string; body: string; author: string }[];
-  deliverables: { id: string; title: string; format: string; status: string; currentVersion: number; by: string; versions: { version: number; contentType: string | null; url: string | null; notes: string | null }[] }[];
+  deliverables: {
+    id: string;
+    title: string;
+    format: string;
+    status: string;
+    currentVersion: number;
+    by: string;
+    versions: {
+      version: number;
+      contentType: string | null;
+      url: string | null;
+      notes: string | null;
+    }[];
+  }[];
   tasks: { id: string; title: string; status: string }[];
 }
 
 export interface DependencyGraph {
   tasks: { id: string; title: string; status: string; requestId: string | null }[];
-  blockedBy: { status: string; task: { id: string; title: string; status: string; requestId: string | null } }[];
-  blocking: { status: string; task: { id: string; title: string; status: string; requestId: string | null } }[];
+  blockedBy: {
+    status: string;
+    task: { id: string; title: string; status: string; requestId: string | null };
+  }[];
+  blocking: {
+    status: string;
+    task: { id: string; title: string; status: string; requestId: string | null };
+  }[];
 }
 
 export interface DeliverableContent {

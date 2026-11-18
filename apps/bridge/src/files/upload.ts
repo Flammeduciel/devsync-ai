@@ -29,15 +29,25 @@ const CONTENT_TYPES: Record<string, string> = {
  */
 export async function readDeliverableFile(filePath: string, projectDirectory: string) {
   // Relative paths are relative to the session's project, not to the daemon's working directory.
-  const [file, root] = await Promise.all([realpath(resolve(projectDirectory, filePath)), realpath(projectDirectory)]);
+  const [file, root] = await Promise.all([
+    realpath(resolve(projectDirectory, filePath)),
+    realpath(projectDirectory),
+  ]);
   if (file !== root && !file.startsWith(root.endsWith(sep) ? root : root + sep)) {
     throw new Error('Only files inside the project directory can be delivered');
   }
   const info = await stat(file);
   if (!info.isFile()) throw new Error('Not a regular file');
-  if (info.size === 0 || info.size > MAX_UPLOAD_BYTES) throw new Error('Files must be between 1 byte and 25 MB');
+  if (info.size === 0 || info.size > MAX_UPLOAD_BYTES)
+    throw new Error('Files must be between 1 byte and 25 MB');
   const contentType = CONTENT_TYPES[extname(file).toLowerCase()];
   if (!contentType) throw new Error(`Unsupported file type ${extname(file) || '(none)'}`);
   const body = new Uint8Array(await readFile(file));
-  return { fileName: basename(file), contentType, body, sizeBytes: body.byteLength, checksumSha256: createHash('sha256').update(body).digest('hex') };
+  return {
+    fileName: basename(file),
+    contentType,
+    body,
+    sizeBytes: body.byteLength,
+    checksumSha256: createHash('sha256').update(body).digest('hex'),
+  };
 }

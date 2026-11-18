@@ -9,12 +9,19 @@ const bucket = () => serverEnv().S3_BUCKET;
 
 export const s3ObjectStorage: ObjectStorage = {
   async put(key, body, contentType) {
-    await storage().send(new PutObjectCommand({ Bucket: bucket(), Key: key, Body: body, ContentType: contentType }));
+    await storage().send(
+      new PutObjectCommand({ Bucket: bucket(), Key: key, Body: body, ContentType: contentType }),
+    );
   },
   presignPut(key, contentType, sizeBytes, expiresIn = 600) {
     return getSignedUrl(
       storage(),
-      new PutObjectCommand({ Bucket: bucket(), Key: key, ContentType: contentType, ContentLength: sizeBytes }),
+      new PutObjectCommand({
+        Bucket: bucket(),
+        Key: key,
+        ContentType: contentType,
+        ContentLength: sizeBytes,
+      }),
       { expiresIn, signableHeaders: new Set(['content-type', 'content-length']) },
     );
   },
@@ -32,7 +39,10 @@ export const s3ObjectStorage: ObjectStorage = {
   async head(key) {
     try {
       const r = await storage().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
-      return { sizeBytes: Number(r.ContentLength ?? 0), contentType: r.ContentType ?? 'application/octet-stream' };
+      return {
+        sizeBytes: Number(r.ContentLength ?? 0),
+        contentType: r.ContentType ?? 'application/octet-stream',
+      };
     } catch {
       return null;
     }

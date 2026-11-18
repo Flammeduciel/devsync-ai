@@ -23,12 +23,25 @@ const TYPES = [
   ['COLLABORATION', 'Collaboration'],
 ] as const;
 
-export function NewRequestForm({ teamSlug, projects, assignees }: { teamSlug: string; projects: { id: string; name: string }[]; assignees: AssigneeOption[] }) {
+export function NewRequestForm({
+  teamSlug,
+  projects,
+  assignees,
+}: {
+  teamSlug: string;
+  projects: { id: string; name: string }[];
+  assignees: AssigneeOption[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  if (projects.length === 0) return <p className="text-sm text-muted-foreground">You need write access to a project to create requests.</p>;
+  if (projects.length === 0)
+    return (
+      <p className="text-sm text-muted-foreground">
+        You need write access to a project to create requests.
+      </p>
+    );
 
   return (
     <form
@@ -95,7 +108,14 @@ export function NewRequestForm({ teamSlug, projects, assignees }: { teamSlug: st
         </FormField>
       </div>
       <FormField id="title" label="Title" error={errors.title}>
-        <Input id="title" name="title" required minLength={3} maxLength={200} placeholder="Payment API contract for the checkout form" />
+        <Input
+          id="title"
+          name="title"
+          required
+          minLength={3}
+          maxLength={200}
+          placeholder="Payment API contract for the checkout form"
+        />
       </FormField>
       <FormField id="description" label="What do you need?" error={errors.description}>
         <Textarea id="description" name="description" required rows={5} maxLength={5000} />
