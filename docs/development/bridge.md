@@ -18,6 +18,13 @@ pnpm bridge stop
 Use `DEVSYNC_HOME=/some/dir` to run several isolated Bridges on one machine (tests, demos), and
 `devsync login --server https://devsync.example.com` for a remote server.
 
+## Several machines, one developer
+
+Each machine is paired separately (`devsync login` on each; one device token per machine, revocable
+on its own), but everything belongs to the same user: Git overlaps are never reported between the
+machines of one developer, the session context lists them under "Your other machines" instead of
+teammates, and "Resume your work" covers all of them.
+
 ## Pairing (device authorization flow)
 
 1. `devsync login` → `POST /api/v1/devices/authorize` → `{ deviceCode, userCode, verificationUri }`.
