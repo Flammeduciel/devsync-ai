@@ -6,6 +6,7 @@ import { mailer } from './infrastructure/mailer';
 import { connectedMachines } from './infrastructure/presence';
 import { redisDeviceFlowStore } from './infrastructure/device-flow-store';
 import { publishControl } from './infrastructure/event-publisher';
+import { bullJobs, workerQueryEmbedder } from './infrastructure/jobs';
 import { s3ObjectStorage } from './infrastructure/object-storage';
 import { AgentsService } from './services/agents.service';
 import { AutonomyService } from './services/autonomy.service';
@@ -17,6 +18,7 @@ import { ClaimsService } from './services/claims.service';
 import { DashboardService } from './services/dashboard.service';
 import { DevicesService } from './services/devices.service';
 import { InboxService } from './services/inbox.service';
+import { KnowledgeService } from './services/knowledge.service';
 import { RealtimeTokenService } from './services/realtime-token.service';
 import { TeamDirectoryService } from './services/team-directory.service';
 import { InvitationsService } from './services/invitations.service';
@@ -30,17 +32,21 @@ function createContainer() {
     db: db(),
     mailer: mailer(),
     publisher: redisEventPublisher,
+    jobs: bullJobs,
+    embedder: workerQueryEmbedder,
     appUrl: serverEnv().APP_URL,
   };
   const agents = new AgentsService(deps);
   const inbox = new InboxService(deps);
   const claims = new ClaimsService(deps);
+  const deliverables = new DeliverablesService(deps, s3ObjectStorage);
   return {
     agents,
     claims,
     directory: new TeamDirectoryService(deps, agents, inbox, claims),
     requests: new RequestsService(deps),
-    deliverables: new DeliverablesService(deps, s3ObjectStorage),
+    deliverables,
+    knowledge: new KnowledgeService(deps, deliverables),
     tasks: new TasksService(deps),
     notifications: new NotificationsService(deps),
     autonomy: new AutonomyService(deps),
