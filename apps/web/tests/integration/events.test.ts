@@ -9,11 +9,24 @@ describe.skipIf(!testDatabaseUrl)('event outbox', () => {
 
   it('persists events with increasing sequences and publishes them after commit', async () => {
     const user = await h.user('Eve');
-    const team = await new TeamsService(h.deps).create(user.id, { name: 'Events', slug: `events-${h.run}` });
+    const team = await new TeamsService(h.deps).create(user.id, {
+      name: 'Events',
+      slug: `events-${h.run}`,
+    });
     const agentId = '01a1ee8d-715d-7b0d-8f27-918b280a0001';
     await withEvents(h.deps, async (_tx, emit) => {
-      await emit({ type: 'agent.status.updated', teamId: team.id, actor: { type: 'SYSTEM' }, payload: { agentId, userId: user.id, status: 'IDLE' } });
-      await emit({ type: 'agent.status.updated', teamId: team.id, actor: { type: 'SYSTEM' }, payload: { agentId, userId: user.id, status: 'WORKING' } });
+      await emit({
+        type: 'agent.status.updated',
+        teamId: team.id,
+        actor: { type: 'SYSTEM' },
+        payload: { agentId, userId: user.id, status: 'IDLE' },
+      });
+      await emit({
+        type: 'agent.status.updated',
+        teamId: team.id,
+        actor: { type: 'SYSTEM' },
+        payload: { agentId, userId: user.id, status: 'WORKING' },
+      });
     });
     const [a, b] = h.publisher.published.slice(-2);
     expect(b!.sequence!).toBeGreaterThan(a!.sequence!);
@@ -22,11 +35,19 @@ describe.skipIf(!testDatabaseUrl)('event outbox', () => {
 
   it('neither persists nor publishes when the transaction fails', async () => {
     const user = await h.user('Fay');
-    const team = await new TeamsService(h.deps).create(user.id, { name: 'Rollback', slug: `rollback-${h.run}` });
+    const team = await new TeamsService(h.deps).create(user.id, {
+      name: 'Rollback',
+      slug: `rollback-${h.run}`,
+    });
     const before = h.publisher.published.length;
     await expect(
       withEvents(h.deps, async (_tx, emit) => {
-        await emit({ type: 'agent.status.updated', teamId: team.id, actor: { type: 'SYSTEM' }, payload: { agentId: user.id, userId: user.id, status: 'IDLE' } });
+        await emit({
+          type: 'agent.status.updated',
+          teamId: team.id,
+          actor: { type: 'SYSTEM' },
+          payload: { agentId: user.id, userId: user.id, status: 'IDLE' },
+        });
         throw new Error('boom');
       }),
     ).rejects.toThrow('boom');
@@ -37,7 +58,12 @@ describe.skipIf(!testDatabaseUrl)('event outbox', () => {
   it('rejects payloads that do not match the event catalog', async () => {
     await expect(
       withEvents(h.deps, async (_tx, emit) => {
-        await emit({ type: 'agent.status.updated', teamId: h.run, actor: { type: 'SYSTEM' }, payload: { status: 'DREAMING' } as never });
+        await emit({
+          type: 'agent.status.updated',
+          teamId: h.run,
+          actor: { type: 'SYSTEM' },
+          payload: { status: 'DREAMING' } as never,
+        });
       }),
     ).rejects.toThrow();
   });

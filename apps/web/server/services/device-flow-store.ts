@@ -15,7 +15,9 @@ export interface DeviceFlowRecord {
 export interface DeviceFlowStore {
   create(deviceCodeHash: string, record: DeviceFlowRecord, ttlSeconds: number): Promise<void>;
   getByDeviceCode(deviceCodeHash: string): Promise<DeviceFlowRecord | null>;
-  getByUserCode(userCode: string): Promise<{ deviceCodeHash: string; record: DeviceFlowRecord } | null>;
+  getByUserCode(
+    userCode: string,
+  ): Promise<{ deviceCodeHash: string; record: DeviceFlowRecord } | null>;
   update(deviceCodeHash: string, record: DeviceFlowRecord): Promise<void>;
   /** Atomically reads and deletes: an approved code can be exchanged only once. */
   take(deviceCodeHash: string): Promise<DeviceFlowRecord | null>;
@@ -33,7 +35,8 @@ export class MemoryDeviceFlowStore implements DeviceFlowStore {
   }
   async getByUserCode(userCode: string) {
     for (const [deviceCodeHash, entry] of this.records) {
-      if (entry.record.userCode === userCode && entry.expiresAt > Date.now()) return { deviceCodeHash, record: entry.record };
+      if (entry.record.userCode === userCode && entry.expiresAt > Date.now())
+        return { deviceCodeHash, record: entry.record };
     }
     return null;
   }

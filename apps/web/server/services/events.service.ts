@@ -21,7 +21,10 @@ export interface EventPublisher {
 }
 
 /** Inserts the event in the outbox inside the caller's transaction and returns the envelope. */
-export async function appendEvent<T extends EventType>(tx: Db, draft: DraftEvent<T>): Promise<Envelope> {
+export async function appendEvent<T extends EventType>(
+  tx: Db,
+  draft: DraftEvent<T>,
+): Promise<Envelope> {
   const payload = eventCatalog[draft.type].parse(draft.payload) as Prisma.InputJsonValue;
   const row = await tx.event.create({
     data: {

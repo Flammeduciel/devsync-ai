@@ -20,13 +20,17 @@ export default async function AgentsPage({ params }: PageProps<'/t/[teamSlug]/ag
 
   return (
     <>
-      <PageHeader title="Live agents" description="Claude Code agents of the team, from their Bridges' heartbeats and declarations." />
+      <PageHeader
+        title="Live agents"
+        description="Claude Code agents of the team, from their Bridges' heartbeats and declarations."
+      />
       <LiveAgents teamId={team.id} initial={JSON.parse(JSON.stringify(agents)) as LiveAgent[]} />
       <Card>
         <CardHeader>
           <CardTitle>Machines</CardTitle>
           <CardDescription>
-            Paired with <code className="font-mono">devsync login</code>. Revoking a machine disconnects its Bridge immediately.
+            Paired with <code className="font-mono">devsync login</code>. Revoking a machine
+            disconnects its Bridge immediately.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -38,11 +42,18 @@ export default async function AgentsPage({ params }: PageProps<'/t/[teamSlug]/ag
                 <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
                   <div className="min-w-0 text-sm">
                     <p className="flex items-center gap-2 font-medium">
-                      <span aria-label={m.connected ? 'Bridge connected' : 'Bridge offline'} className={cn('size-2 rounded-full', m.connected ? 'bg-success' : 'bg-muted-foreground/40')} />
+                      <span
+                        aria-label={m.connected ? 'Bridge connected' : 'Bridge offline'}
+                        className={cn(
+                          'size-2 rounded-full',
+                          m.connected ? 'bg-success' : 'bg-muted-foreground/40',
+                        )}
+                      />
                       {m.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {m.user.name} · {m.os ?? 'unknown OS'} · Bridge {m.bridgeVersion ?? '?'} · {m.lastSeenAt ? `seen ${timeAgo(m.lastSeenAt)}` : 'never seen'}
+                      {m.user.name} · {m.os ?? 'unknown OS'} · Bridge {m.bridgeVersion ?? '?'} ·{' '}
+                      {m.lastSeenAt ? `seen ${timeAgo(m.lastSeenAt)}` : 'never seen'}
                     </p>
                   </div>
                   <RevokeMachineButton teamId={team.id} machineId={m.id} name={m.name} />

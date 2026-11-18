@@ -5,7 +5,14 @@ import { readFile, rm, writeFile } from 'node:fs/promises';
 import { hostname, platform, release } from 'node:os';
 import { parseArgs } from 'node:util';
 import { DevSyncApiError, DevSyncClient, type InboxItem } from '@devsync/sdk';
-import { bridgePaths, clearCredentials, loadConfig, loadToken, saveConfig, saveToken } from './config';
+import {
+  bridgePaths,
+  clearCredentials,
+  loadConfig,
+  loadToken,
+  saveConfig,
+  saveToken,
+} from './config';
 import { runDaemon } from './daemon/daemon';
 import { ipcCall } from './daemon/ipc';
 import { BRIDGE_VERSION } from './version';
@@ -15,12 +22,20 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const out = (line = '') => process.stdout.write(`${line}\n`);
 
 function openBrowser(url: string) {
-  const command = platform() === 'darwin' ? 'open' : platform() === 'win32' ? 'explorer.exe' : 'xdg-open';
+  const command =
+    platform() === 'darwin' ? 'open' : platform() === 'win32' ? 'explorer.exe' : 'xdg-open';
   execFile(command, [url], () => undefined);
 }
 
 async function login(args: string[]) {
-  const { values } = parseArgs({ args, options: { server: { type: 'string' }, name: { type: 'string' }, 'no-browser': { type: 'boolean' } } });
+  const { values } = parseArgs({
+    args,
+    options: {
+      server: { type: 'string' },
+      name: { type: 'string' },
+      'no-browser': { type: 'boolean' },
+    },
+  });
   const config = await loadConfig(paths);
   const serverUrl = (values.server ?? config.serverUrl).replace(/\/+$/, '');
   const api = new DevSyncClient({ baseUrl: serverUrl });
@@ -31,7 +46,9 @@ async function login(args: string[]) {
     bridgeVersion: BRIDGE_VERSION,
   });
 
-  out(`To connect this machine, open:\n\n  ${auth.verificationUri}\n\nand enter the code:\n\n  ${auth.userCode}\n`);
+  out(
+    `To connect this machine, open:\n\n  ${auth.verificationUri}\n\nand enter the code:\n\n  ${auth.userCode}\n`,
+  );
   if (!values['no-browser']) openBrowser(auth.verificationUriComplete);
 
   const deadline = Date.now() + auth.expiresIn * 1000;
@@ -42,14 +59,22 @@ async function login(args: string[]) {
       result = await api.exchangeDeviceCode(auth.deviceCode);
     } catch (error) {
       // Network blips (server restart, Wi-Fi) must not abort the login: keep polling until expiry.
-      if (error instanceof DevSyncApiError && error.status !== 429 && error.status < 500) throw error;
+      if (error instanceof DevSyncApiError && error.status !== 429 && error.status < 500)
+        throw error;
       continue;
     }
     if (result.status === 'pending') continue;
     if (result.status === 'denied') throw new Error('The request was denied in the browser.');
     await saveToken(paths, result.deviceToken);
     const me = await new DevSyncClient({ baseUrl: serverUrl, token: result.deviceToken }).whoami();
-    await saveConfig(paths, { serverUrl, machineId: me.machine.id, teamId: me.team.id, teamSlug: me.team.slug, userId: me.user.id, userEmail: me.user.email });
+    await saveConfig(paths, {
+      serverUrl,
+      machineId: me.machine.id,
+      teamId: me.team.id,
+      teamSlug: me.team.slug,
+      userId: me.user.id,
+      userEmail: me.user.email,
+    });
     out(`✔ ${me.machine.name} is connected to team "${me.team.name}" as ${me.user.email}.`);
     out('  Start the background service with: devsync start');
     return;
@@ -68,12 +93,23 @@ async function status() {
     out(`User:    ${me.user.name} <${me.user.email}>`);
     out(`Machine: ${me.machine.name}`);
   } catch (error) {
-    out(`Machine: ${error instanceof DevSyncApiError && error.status === 401 ? 'token revoked — run `devsync login`' : 'server unreachable'}`);
+    out(
+      `Machine: ${error instanceof DevSyncApiError && error.status === 401 ? 'token revoked — run `devsync login`' : 'server unreachable'}`,
+    );
   }
   try {
-    const daemon = await ipcCall<{ realtime: string; sessions: { externalSessionId: string; status?: string; currentTask?: string }[]; pendingOutbox: number }>(paths.socket, 'status');
-    out(`Daemon:  running, realtime ${daemon.realtime}, ${daemon.sessions.length} session(s), ${daemon.pendingOutbox} queued`);
-    for (const s of daemon.sessions) out(`  - ${s.externalSessionId} ${s.status ?? ''} ${s.currentTask ? `· ${s.currentTask}` : ''}`);
+    const daemon = await ipcCall<{
+      realtime: string;
+      sessions: { externalSessionId: string; status?: string; currentTask?: string }[];
+      pendingOutbox: number;
+    }>(paths.socket, 'status');
+    out(
+      `Daemon:  running, realtime ${daemon.realtime}, ${daemon.sessions.length} session(s), ${daemon.pendingOutbox} queued`,
+    );
+    for (const s of daemon.sessions)
+      out(
+        `  - ${s.externalSessionId} ${s.status ?? ''} ${s.currentTask ? `· ${s.currentTask}` : ''}`,
+      );
   } catch {
     out('Daemon:  not running (devsync start)');
   }
@@ -82,7 +118,9 @@ async function status() {
 function formatInbox(items: InboxItem[]) {
   if (items.length === 0) return out('Inbox is empty.');
   for (const item of items) {
-    const from = item.initiatorAgent ? `${item.createdBy.name}'s agent ${item.initiatorAgent.name}` : item.createdBy.name;
+    const from = item.initiatorAgent
+      ? `${item.createdBy.name}'s agent ${item.initiatorAgent.name}`
+      : item.createdBy.name;
     out(`${item.priority.padEnd(7)} ${item.status.padEnd(26)} ${item.title}`);
     out(`        ${item.type.toLowerCase()} · ${item.project.name} · from ${from} · ${item.id}`);
   }
@@ -103,7 +141,10 @@ async function start() {
     /* not running */
   }
   const log = openSync(paths.log, 'a');
-  const child = spawn(process.execPath, [process.argv[1]!, 'daemon'], { detached: true, stdio: ['ignore', log, log] });
+  const child = spawn(process.execPath, [process.argv[1]!, 'daemon'], {
+    detached: true,
+    stdio: ['ignore', log, log],
+  });
   child.unref();
   await writeFile(paths.pid, String(child.pid), { mode: 0o600 });
   for (let i = 0; i < 20; i++) {
@@ -159,7 +200,9 @@ async function main() {
     case 'logout':
       await stop().catch(() => undefined);
       await clearCredentials(paths);
-      return out('✔ Credentials removed. Revoke the machine from Settings → Machines to invalidate the token server-side.');
+      return out(
+        '✔ Credentials removed. Revoke the machine from Settings → Machines to invalidate the token server-side.',
+      );
     case 'status':
       return status();
     case 'inbox':

@@ -3,7 +3,14 @@ import type { AgentStatus, Db, Prisma } from '@devsync/database';
 export const agentsRepository = {
   upsertAgent(
     db: Db,
-    data: { teamId: string; userId: string; machineId: string; name: string; pluginVersion?: string | undefined; specialties?: string[] | undefined },
+    data: {
+      teamId: string;
+      userId: string;
+      machineId: string;
+      name: string;
+      pluginVersion?: string | undefined;
+      specialties?: string[] | undefined;
+    },
   ) {
     return db.agent.upsert({
       where: { machineId_name: { machineId: data.machineId, name: data.name } },
@@ -32,7 +39,15 @@ export const agentsRepository = {
 
   upsertSession(
     db: Db,
-    data: { teamId: string; agentId: string; externalSessionId: string; projectId: string | null; workingDirectory?: string | undefined; branch?: string | undefined; now: Date },
+    data: {
+      teamId: string;
+      agentId: string;
+      externalSessionId: string;
+      projectId: string | null;
+      workingDirectory?: string | undefined;
+      branch?: string | undefined;
+      now: Date;
+    },
   ) {
     const fields = {
       projectId: data.projectId,
@@ -43,8 +58,19 @@ export const agentsRepository = {
       endedAt: null,
     };
     return db.agentSession.upsert({
-      where: { agentId_externalSessionId: { agentId: data.agentId, externalSessionId: data.externalSessionId } },
-      create: { teamId: data.teamId, agentId: data.agentId, externalSessionId: data.externalSessionId, startedAt: data.now, ...fields },
+      where: {
+        agentId_externalSessionId: {
+          agentId: data.agentId,
+          externalSessionId: data.externalSessionId,
+        },
+      },
+      create: {
+        teamId: data.teamId,
+        agentId: data.agentId,
+        externalSessionId: data.externalSessionId,
+        startedAt: data.now,
+        ...fields,
+      },
       update: fields,
     });
   },
@@ -62,7 +88,10 @@ export const agentsRepository = {
   },
 
   activeSessionStatuses(db: Db, agentId: string) {
-    return db.agentSession.findMany({ where: { agentId, endedAt: null }, select: { status: true } });
+    return db.agentSession.findMany({
+      where: { agentId, endedAt: null },
+      select: { status: true },
+    });
   },
 
   staleSessions(db: Db, before: Date, limit: number) {
@@ -74,12 +103,25 @@ export const agentsRepository = {
   },
 
   activeSessionsOfMachine(db: Db, machineId: string) {
-    return db.agentSession.findMany({ where: { endedAt: null, agent: { machineId } }, include: { agent: true } });
+    return db.agentSession.findMany({
+      where: { endedAt: null, agent: { machineId } },
+      include: { agent: true },
+    });
   },
 
   createActivity(
     db: Db,
-    data: { id?: string | undefined; teamId: string; agentId: string; sessionId: string | null; projectId: string | null; kind: string; summary: string; tool?: string | undefined; occurredAt: Date },
+    data: {
+      id?: string | undefined;
+      teamId: string;
+      agentId: string;
+      sessionId: string | null;
+      projectId: string | null;
+      kind: string;
+      summary: string;
+      tool?: string | undefined;
+      occurredAt: Date;
+    },
   ) {
     return db.agentActivity.create({ data: { ...data, tool: data.tool ?? null } });
   },
@@ -96,7 +138,14 @@ export const agentsRepository = {
         machine: { select: { id: true, name: true, revokedAt: true } },
         sessions: {
           where: { endedAt: null },
-          select: { id: true, projectId: true, branch: true, status: true, startedAt: true, lastHeartbeatAt: true },
+          select: {
+            id: true,
+            projectId: true,
+            branch: true,
+            status: true,
+            startedAt: true,
+            lastHeartbeatAt: true,
+          },
           orderBy: { startedAt: 'desc' },
         },
       },

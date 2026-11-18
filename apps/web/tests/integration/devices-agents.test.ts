@@ -26,7 +26,11 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
   let projectId: string;
 
   async function pair(userId: string): Promise<{ token: string; device: DeviceActor }> {
-    const { deviceCode, userCode } = await devices.authorize({ machineName: 'laptop', bridgeVersion: '0.1.0', os: 'darwin' });
+    const { deviceCode, userCode } = await devices.authorize({
+      machineName: 'laptop',
+      bridgeVersion: '0.1.0',
+      os: 'darwin',
+    });
     await devices.approve(userId, { userCode: userCode.toLowerCase().replace('-', ' '), teamId });
     const result = await devices.exchange(deviceCode);
     if (result.status !== 'approved') throw new Error('not approved');
@@ -47,11 +51,16 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
   afterAll(() => h.cleanup());
 
   it('runs the device flow once and stores only a token hash', async () => {
-    const { deviceCode, userCode, verificationUriComplete } = await devices.authorize({ machineName: 'mbp', bridgeVersion: '0.1.0' });
+    const { deviceCode, userCode, verificationUriComplete } = await devices.authorize({
+      machineName: 'mbp',
+      bridgeVersion: '0.1.0',
+    });
     expect(verificationUriComplete).toBe(`http://app.test/device?code=${userCode}`);
     await expect(devices.exchange(deviceCode)).resolves.toEqual({ status: 'pending' });
     await expect(devices.describe(userCode)).resolves.toMatchObject({ machineName: 'mbp' });
-    await expect(devices.approve(viewer.id, { userCode, teamId })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(devices.approve(viewer.id, { userCode, teamId })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
     await devices.approve(owner.id, { userCode, teamId });
     const result = await devices.exchange(deviceCode);
     expect(result).toMatchObject({ status: 'approved', teamId, userId: owner.id });
@@ -65,7 +74,10 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
   });
 
   it('honours a denial', async () => {
-    const { deviceCode, userCode } = await devices.authorize({ machineName: 'x', bridgeVersion: '0.1.0' });
+    const { deviceCode, userCode } = await devices.authorize({
+      machineName: 'x',
+      bridgeVersion: '0.1.0',
+    });
     await devices.deny(owner.id, userCode);
     await expect(devices.exchange(deviceCode)).resolves.toEqual({ status: 'denied' });
   });
@@ -73,15 +85,26 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
   it('registers sessions, aggregates status and emits events', async () => {
     const { device } = await pair(owner.id);
     h.publisher.published.length = 0;
-    const { agentId, sessionId, projectId: resolved } = await agents.registerSession(device, {
+    const {
+      agentId,
+      sessionId,
+      projectId: resolved,
+    } = await agents.registerSession(device, {
       externalSessionId: 'claude-1',
       repositoryRemote: 'git@github.com:acme/payments.git',
       branch: 'feat/checkout',
     });
     expect(resolved).toBe(projectId);
-    expect(h.publisher.types()).toEqual(['agent.connected', 'agent.activity.updated', 'agent.status.updated']);
+    expect(h.publisher.types()).toEqual([
+      'agent.connected',
+      'agent.activity.updated',
+      'agent.status.updated',
+    ]);
 
-    await agents.heartbeat(device, sessionId, { status: 'WORKING', currentTask: 'Implement payment form' });
+    await agents.heartbeat(device, sessionId, {
+      status: 'WORKING',
+      currentTask: 'Implement payment form',
+    });
     const listed = await agents.listForTeam(owner.id, teamId);
     const agent = listed.find((a) => a.id === agentId)!;
     expect(agent).toMatchObject({ status: 'WORKING', currentTask: 'Implement payment form' });
@@ -90,7 +113,9 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
     const second = await agents.registerSession(device, { externalSessionId: 'claude-2' });
     await agents.heartbeat(device, second.sessionId, { status: 'IDLE' });
     await agents.endSession(device, sessionId);
-    expect((await agents.listForTeam(owner.id, teamId)).find((a) => a.id === agentId)?.status).toBe('IDLE');
+    expect((await agents.listForTeam(owner.id, teamId)).find((a) => a.id === agentId)?.status).toBe(
+      'IDLE',
+    );
   });
 
   it('dedupes activities by producer id and checks session ownership', async () => {
@@ -98,9 +123,27 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
     const b = await pair(owner.id);
     const { sessionId } = await agents.registerSession(a.device, { externalSessionId: 'own' });
     const id = '01a1ee8d-715d-7b0d-8f27-918b280affff';
-    await expect(agents.publishActivity(a.device, { id, sessionId, kind: 'tool_used', summary: 'Edited payment.service.ts', tool: 'Edit' })).resolves.toEqual({ duplicate: false });
-    await expect(agents.publishActivity(a.device, { id, sessionId, kind: 'tool_used', summary: 'Edited payment.service.ts', tool: 'Edit' })).resolves.toEqual({ duplicate: true });
-    await expect(agents.heartbeat(b.device, sessionId, {})).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(
+      agents.publishActivity(a.device, {
+        id,
+        sessionId,
+        kind: 'tool_used',
+        summary: 'Edited payment.service.ts',
+        tool: 'Edit',
+      }),
+    ).resolves.toEqual({ duplicate: false });
+    await expect(
+      agents.publishActivity(a.device, {
+        id,
+        sessionId,
+        kind: 'tool_used',
+        summary: 'Edited payment.service.ts',
+        tool: 'Edit',
+      }),
+    ).resolves.toEqual({ duplicate: true });
+    await expect(agents.heartbeat(b.device, sessionId, {})).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
   });
 
   it('closes stale sessions and marks agents offline', async () => {
@@ -109,7 +152,10 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
     now = new Date(now.getTime() + 5 * 60_000);
     h.publisher.published.length = 0;
     expect(await agents.sweepStaleSessions()).toBeGreaterThan(0);
-    const offline = h.publisher.published.find((e) => e.type === 'agent.disconnected' && (e.payload as { agentId: string }).agentId === agentId);
+    const offline = h.publisher.published.find(
+      (e) =>
+        e.type === 'agent.disconnected' && (e.payload as { agentId: string }).agentId === agentId,
+    );
     expect(offline?.payload).toMatchObject({ reason: 'timeout' });
     now = new Date();
   });
@@ -117,11 +163,15 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
   it('revocation disconnects the machine and invalidates its token', async () => {
     const { token, device } = await pair(owner.id);
     await agents.registerSession(device, { externalSessionId: 'to-revoke' });
-    await expect(devices.revoke(viewer.id, teamId, device.machineId)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(devices.revoke(viewer.id, teamId, device.machineId)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
     await devices.revoke(owner.id, teamId, device.machineId);
     expect(revoked).toContain(device.machineId);
     await expect(devices.authenticate(token)).resolves.toBeNull();
-    const sessions = await h.db.agentSession.count({ where: { agent: { machineId: device.machineId }, endedAt: null } });
+    const sessions = await h.db.agentSession.count({
+      where: { agent: { machineId: device.machineId }, endedAt: null },
+    });
     expect(sessions).toBe(0);
   });
 
@@ -129,7 +179,9 @@ describe.skipIf(!testDatabaseUrl)('device pairing and agent registry', () => {
     const dev = await h.user('Leo');
     await h.db.teamMember.create({ data: { teamId, userId: dev.id, role: 'DEVELOPER' } });
     const { token, device } = await pair(dev.id);
-    await expect(agents.registerSession(device, { externalSessionId: 's', projectId })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(
+      agents.registerSession(device, { externalSessionId: 's', projectId }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await h.db.teamMember.delete({ where: { teamId_userId: { teamId, userId: dev.id } } });
     await expect(devices.authenticate(token)).resolves.toBeNull();
   });

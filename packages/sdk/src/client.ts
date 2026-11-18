@@ -1,6 +1,12 @@
 import { API_BASE_PATH } from '@devsync/protocol';
 import type { ActivityBody, DeviceAuthInput, HeartbeatBody, SessionBody } from './inputs';
-import type { DeviceAuthorization, DeviceTokenResult, InboxItem, RegisteredSession, WhoAmI } from './types';
+import type {
+  DeviceAuthorization,
+  DeviceTokenResult,
+  InboxItem,
+  RegisteredSession,
+  WhoAmI,
+} from './types';
 
 export interface DevSyncClientOptions {
   baseUrl: string;

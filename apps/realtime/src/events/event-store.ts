@@ -17,7 +17,11 @@ export function prismaEventStore(db: DatabaseClient): EventStore {
   return {
     async since(teamId, afterSequence, limit) {
       const rows = await db.event.findMany({
-        where: { teamId, sequence: { gt: BigInt(afterSequence) }, createdAt: { gt: new Date(Date.now() - MAX_AGE_MS) } },
+        where: {
+          teamId,
+          sequence: { gt: BigInt(afterSequence) },
+          createdAt: { gt: new Date(Date.now() - MAX_AGE_MS) },
+        },
         orderBy: { sequence: 'asc' },
         take: limit,
       });

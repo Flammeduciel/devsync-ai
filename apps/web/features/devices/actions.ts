@@ -23,7 +23,10 @@ export async function denyDeviceAction(userCode: string): Promise<ActionResult> 
   });
 }
 
-export async function revokeMachineAction(teamId: string, machineId: string): Promise<ActionResult> {
+export async function revokeMachineAction(
+  teamId: string,
+  machineId: string,
+): Promise<ActionResult> {
   return runAction(async () => {
     const user = await requireUser();
     await services().devices.revoke(user.id, teamId, machineId);

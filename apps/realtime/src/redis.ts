@@ -19,7 +19,8 @@ export async function connectRedis(server: RealtimeServer, redisUrl: string, log
   events.on('message', (channel, raw) => {
     try {
       if (channel === redisChannels.events) server.ingest(JSON.parse(raw) as StoredEvent);
-      else if (channel === redisChannels.control) void server.control(JSON.parse(raw) as ControlMessage);
+      else if (channel === redisChannels.control)
+        void server.control(JSON.parse(raw) as ControlMessage);
     } catch (error) {
       logger.warn({ err: error, channel }, 'dropped malformed message');
     }

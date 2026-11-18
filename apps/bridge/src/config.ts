@@ -21,7 +21,10 @@ export function bridgePaths(home = process.env.DEVSYNC_HOME ?? join(homedir(), '
     credentials: join(home, 'credentials'),
     state: join(home, 'state.json'),
     outbox: join(home, 'outbox.json'),
-    socket: process.platform === 'win32' ? `\\\\.\\pipe\\devsync-${process.env.USERNAME ?? 'user'}` : join(home, 'bridge.sock'),
+    socket:
+      process.platform === 'win32'
+        ? `\\\\.\\pipe\\devsync-${process.env.USERNAME ?? 'user'}`
+        : join(home, 'bridge.sock'),
     pid: join(home, 'bridge.pid'),
     log: join(home, 'bridge.log'),
   };
@@ -45,9 +48,12 @@ export async function writeJsonAtomic(path: string, data: unknown, mode = 0o600)
 }
 
 export const loadConfig = (paths: BridgePaths) =>
-  readJson<BridgeConfig>(paths.config, { serverUrl: process.env.DEVSYNC_SERVER_URL ?? DEFAULT_SERVER_URL });
+  readJson<BridgeConfig>(paths.config, {
+    serverUrl: process.env.DEVSYNC_SERVER_URL ?? DEFAULT_SERVER_URL,
+  });
 
-export const saveConfig = (paths: BridgePaths, config: BridgeConfig) => writeJsonAtomic(paths.config, config);
+export const saveConfig = (paths: BridgePaths, config: BridgeConfig) =>
+  writeJsonAtomic(paths.config, config);
 
 export async function loadToken(paths: BridgePaths): Promise<string | null> {
   try {

@@ -5,7 +5,11 @@ import { io as connect, type Socket } from 'socket.io-client';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Identity } from '../src/auth/identity';
 import type { EventStore, StoredEvent } from '../src/events/event-store';
-import { createRealtimeServer, type RealtimeServer, type RealtimeServerOptions } from '../src/server';
+import {
+  createRealtimeServer,
+  type RealtimeServer,
+  type RealtimeServerOptions,
+} from '../src/server';
 
 const logger = createLogger('test', { level: 'silent' });
 const TEAM_A = '01a1ee8d-0000-7000-8000-00000000000a';
@@ -17,7 +21,12 @@ const MACHINE = '01a1ee8d-0000-7000-8000-00000000ac01';
 const identities: Record<string, Identity> = {
   ['a'.repeat(30)]: { kind: 'dashboard', userId: ALICE, teamIds: [TEAM_A] },
   ['b'.repeat(30)]: { kind: 'dashboard', userId: BOB, teamIds: [TEAM_A, TEAM_B] },
-  ['dsd_' + 'm'.repeat(30)]: { kind: 'bridge', userId: ALICE, teamIds: [TEAM_A], machineId: MACHINE },
+  ['dsd_' + 'm'.repeat(30)]: {
+    kind: 'bridge',
+    userId: ALICE,
+    teamIds: [TEAM_A],
+    machineId: MACHINE,
+  },
 };
 
 let server: RealtimeServer | undefined;
@@ -29,23 +38,49 @@ afterEach(async () => {
 });
 
 async function start(extra: Partial<RealtimeServerOptions> = {}) {
-  server = createRealtimeServer({ corsOrigin: '*', logger, authenticate: async (t) => identities[t] ?? null, ...extra });
+  server = createRealtimeServer({
+    corsOrigin: '*',
+    logger,
+    authenticate: async (t) => identities[t] ?? null,
+    ...extra,
+  });
   await new Promise<void>((resolve) => server!.http.listen(0, resolve));
   return `http://localhost:${(server.http.address() as AddressInfo).port}`;
 }
 
-const auth = (token: string, extra: object = {}) => ({ token, clientKind: 'dashboard', protocolVersion: PROTOCOL_VERSION, clientVersion: '0.0.0', ...extra });
+const auth = (token: string, extra: object = {}) => ({
+  token,
+  clientKind: 'dashboard',
+  protocolVersion: PROTOCOL_VERSION,
+  clientVersion: '0.0.0',
+  ...extra,
+});
 
 function open(url: string, token: string, extra: object = {}) {
-  const client = connect(url, { auth: auth(token, extra), transports: ['websocket'], reconnection: false });
+  const client = connect(url, {
+    auth: auth(token, extra),
+    transports: ['websocket'],
+    reconnection: false,
+  });
   clients.push(client);
   const received: Envelope[] = [];
   client.on(channels.deliver, (e: Envelope) => received.push(e));
-  return { client, received, ready: new Promise<void>((resolve, reject) => { client.on('connect', () => resolve()); client.on('connect_error', reject); }) };
+  return {
+    client,
+    received,
+    ready: new Promise<void>((resolve, reject) => {
+      client.on('connect', () => resolve());
+      client.on('connect_error', reject);
+    }),
+  };
 }
 
 function connectError(url: string, authPayload: object): Promise<string> {
-  const client = connect(url, { auth: authPayload, transports: ['websocket'], reconnection: false });
+  const client = connect(url, {
+    auth: authPayload,
+    transports: ['websocket'],
+    reconnection: false,
+  });
   clients.push(client);
   return new Promise((resolve, reject) => {
     client.on('connect_error', (e) => resolve(e.message));
@@ -75,7 +110,9 @@ describe('handshake', () => {
   it('rejects malformed, incompatible and unknown tokens', async () => {
     const url = await start();
     await expect(connectError(url, { token: 'short' })).resolves.toBe('BAD_REQUEST');
-    await expect(connectError(url, auth('a'.repeat(30), { protocolVersion: '99.0' }))).resolves.toBe('BAD_REQUEST');
+    await expect(
+      connectError(url, auth('a'.repeat(30), { protocolVersion: '99.0' })),
+    ).resolves.toBe('BAD_REQUEST');
     await expect(connectError(url, auth('z'.repeat(30)))).resolves.toBe('UNAUTHENTICATED');
   });
   it('refuses every connection without an authenticator', async () => {
@@ -117,7 +154,10 @@ describe('replay', () => {
     event({ teamId: TEAM_A, sequence: 6, audience: [BOB] }),
     event({ teamId: TEAM_A, sequence: 7 }),
   ];
-  const store: EventStore = { since: async (teamId, after) => stored.filter((e) => e.teamId === teamId && e.sequence! > after) };
+  const store: EventStore = {
+    since: async (teamId, after) =>
+      stored.filter((e) => e.teamId === teamId && e.sequence! > after),
+  };
 
   it('replays missed events from the handshake sequence, respecting the audience', async () => {
     const url = await start({ eventStore: store });
@@ -131,7 +171,9 @@ describe('replay', () => {
     const url = await start({ eventStore: store });
     const bob = open(url, 'b'.repeat(30));
     await bob.ready;
-    const ack = await bob.client.emitWithAck(channels.resume, { lastSequence: { [TEAM_A]: 4, [TEAM_B]: 0, evil: 'x' } });
+    const ack = await bob.client.emitWithAck(channels.resume, {
+      lastSequence: { [TEAM_A]: 4, [TEAM_B]: 0, evil: 'x' },
+    });
     expect(ack).toMatchObject({ ok: true, replayed: 3 });
   });
 });

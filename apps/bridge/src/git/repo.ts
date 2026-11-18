@@ -13,9 +13,14 @@ async function git(cwd: string, args: string[]): Promise<string | null> {
 }
 
 /** Branch and origin remote of the repository containing `cwd` (null outside a Git repo). */
-export async function detectRepository(cwd: string): Promise<{ branch?: string; remote?: string } | null> {
+export async function detectRepository(
+  cwd: string,
+): Promise<{ branch?: string; remote?: string } | null> {
   const root = await git(cwd, ['rev-parse', '--show-toplevel']);
   if (!root) return null;
-  const [branch, remote] = await Promise.all([git(cwd, ['rev-parse', '--abbrev-ref', 'HEAD']), git(cwd, ['remote', 'get-url', 'origin'])]);
+  const [branch, remote] = await Promise.all([
+    git(cwd, ['rev-parse', '--abbrev-ref', 'HEAD']),
+    git(cwd, ['remote', 'get-url', 'origin']),
+  ]);
   return { ...(branch && branch !== 'HEAD' ? { branch } : {}), ...(remote ? { remote } : {}) };
 }

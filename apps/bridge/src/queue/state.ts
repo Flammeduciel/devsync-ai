@@ -47,14 +47,20 @@ export class DeliveryState {
   }
 
   static async load(file: string): Promise<DeliveryState> {
-    return new DeliveryState(file, await readJson<PersistedState>(file, { lastSequence: {}, seenIds: [] }));
+    return new DeliveryState(
+      file,
+      await readJson<PersistedState>(file, { lastSequence: {}, seenIds: [] }),
+    );
   }
 
   /** Returns false for duplicates. */
   accept(event: { id: string; teamId: string; sequence?: number }): boolean {
     if (!this.seen.add(event.id)) return false;
     if (event.sequence !== undefined) {
-      this.lastSequence[event.teamId] = Math.max(this.lastSequence[event.teamId] ?? 0, event.sequence);
+      this.lastSequence[event.teamId] = Math.max(
+        this.lastSequence[event.teamId] ?? 0,
+        event.sequence,
+      );
     }
     this.schedulePersist();
     return true;
@@ -63,7 +69,10 @@ export class DeliveryState {
   async flush(): Promise<void> {
     clearTimeout(this.timer);
     this.timer = undefined;
-    await writeJsonAtomic(this.file, { lastSequence: this.lastSequence, seenIds: this.seen.toJSON() });
+    await writeJsonAtomic(this.file, {
+      lastSequence: this.lastSequence,
+      seenIds: this.seen.toJSON(),
+    });
   }
 
   private schedulePersist() {

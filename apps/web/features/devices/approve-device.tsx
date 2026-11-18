@@ -5,17 +5,33 @@ import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/select';
 import { approveDeviceAction, denyDeviceAction } from './actions';
 
-export function ApproveDevice({ userCode, teams }: { userCode: string; teams: { id: string; name: string }[] }) {
+export function ApproveDevice({
+  userCode,
+  teams,
+}: {
+  userCode: string;
+  teams: { id: string; name: string }[];
+}) {
   const [teamId, setTeamId] = useState(teams[0]?.id ?? '');
   const [result, setResult] = useState<'approved' | 'denied' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  if (result === 'approved') return <p className="text-sm">✔ Approved. You can return to your terminal.</p>;
-  if (result === 'denied') return <p className="text-sm">The request was denied. Nothing was connected.</p>;
-  if (teams.length === 0) return <p className="text-sm text-muted-foreground">You need a Developer role (or higher) in a team to connect an agent.</p>;
+  if (result === 'approved')
+    return <p className="text-sm">✔ Approved. You can return to your terminal.</p>;
+  if (result === 'denied')
+    return <p className="text-sm">The request was denied. Nothing was connected.</p>;
+  if (teams.length === 0)
+    return (
+      <p className="text-sm text-muted-foreground">
+        You need a Developer role (or higher) in a team to connect an agent.
+      </p>
+    );
 
-  const run = (action: () => Promise<{ ok: boolean; error?: string }>, next: 'approved' | 'denied') =>
+  const run = (
+    action: () => Promise<{ ok: boolean; error?: string }>,
+    next: 'approved' | 'denied',
+  ) =>
     startTransition(async () => {
       const r = await action();
       if (r.ok) setResult(next);
@@ -34,12 +50,23 @@ export function ApproveDevice({ userCode, teams }: { userCode: string; teams: { 
           ))}
         </NativeSelect>
       </label>
-      {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
       <div className="flex gap-3">
-        <Button disabled={pending} onClick={() => run(() => approveDeviceAction(userCode, teamId), 'approved')}>
+        <Button
+          disabled={pending}
+          onClick={() => run(() => approveDeviceAction(userCode, teamId), 'approved')}
+        >
           Approve
         </Button>
-        <Button variant="outline" disabled={pending} onClick={() => run(() => denyDeviceAction(userCode), 'denied')}>
+        <Button
+          variant="outline"
+          disabled={pending}
+          onClick={() => run(() => denyDeviceAction(userCode), 'denied')}
+        >
           Deny
         </Button>
       </div>

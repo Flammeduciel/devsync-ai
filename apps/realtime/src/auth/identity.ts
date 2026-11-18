@@ -15,7 +15,12 @@ export function createAuthenticator(db: DatabaseClient, jwtSecret: string): Auth
   return async (token) => {
     if (token.startsWith('dsd_')) {
       const machine = await db.agentMachine.findFirst({
-        where: { deviceTokenHash: sha256Hex(token), revokedAt: null, team: { deletedAt: null }, user: { deletedAt: null } },
+        where: {
+          deviceTokenHash: sha256Hex(token),
+          revokedAt: null,
+          team: { deletedAt: null },
+          user: { deletedAt: null },
+        },
         select: { id: true, userId: true, teamId: true },
       });
       if (!machine) return null;
@@ -23,10 +28,27 @@ export function createAuthenticator(db: DatabaseClient, jwtSecret: string): Auth
         where: { teamId_userId: { teamId: machine.teamId, userId: machine.userId } },
         select: { id: true },
       });
-      return member ? { kind: 'bridge', userId: machine.userId, teamIds: [machine.teamId], machineId: machine.id } : null;
+      return member
+        ? {
+            kind: 'bridge',
+            userId: machine.userId,
+            teamIds: [machine.teamId],
+            machineId: machine.id,
+          }
+        : null;
     }
     const claims = verifyJwt<{ sub?: unknown; kind?: unknown; teams?: unknown }>(token, jwtSecret);
-    if (!claims || claims.kind !== 'dashboard' || typeof claims.sub !== 'string' || !Array.isArray(claims.teams)) return null;
-    return { kind: 'dashboard', userId: claims.sub, teamIds: claims.teams.filter((t): t is string => typeof t === 'string') };
+    if (
+      !claims ||
+      claims.kind !== 'dashboard' ||
+      typeof claims.sub !== 'string' ||
+      !Array.isArray(claims.teams)
+    )
+      return null;
+    return {
+      kind: 'dashboard',
+      userId: claims.sub,
+      teamIds: claims.teams.filter((t): t is string => typeof t === 'string'),
+    };
   };
 }

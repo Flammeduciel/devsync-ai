@@ -11,7 +11,8 @@ export interface IpcRequest {
   method: string;
   params?: unknown;
 }
-export type IpcResponse = { id: number; result: unknown } | { id: number; error: { message: string } };
+export type IpcResponse =
+  { id: number; result: unknown } | { id: number; error: { message: string } };
 
 export type IpcHandlers = Record<string, (params: unknown) => Promise<unknown>>;
 
@@ -47,7 +48,10 @@ export async function startIpcServer(path: string, handlers: IpcHandlers): Promi
     try {
       return { id: request.id, result: (await handler(request.params ?? {})) ?? null };
     } catch (error) {
-      return { id: request.id, error: { message: error instanceof Error ? error.message : 'Request failed' } };
+      return {
+        id: request.id,
+        error: { message: error instanceof Error ? error.message : 'Request failed' },
+      };
     }
   }
 
@@ -60,7 +64,12 @@ export async function startIpcServer(path: string, handlers: IpcHandlers): Promi
 }
 
 /** One request/response round trip. Rejects quickly when the daemon is not running. */
-export function ipcCall<T = unknown>(path: string, method: string, params?: unknown, timeoutMs = 5000): Promise<T> {
+export function ipcCall<T = unknown>(
+  path: string,
+  method: string,
+  params?: unknown,
+  timeoutMs = 5000,
+): Promise<T> {
   return new Promise((resolve, reject) => {
     const socket = createConnection(path);
     let buffer = '';
@@ -82,7 +91,11 @@ export function ipcCall<T = unknown>(path: string, method: string, params?: unkn
     });
     socket.on('error', (error) => {
       clearTimeout(timer);
-      reject(Object.assign(new Error('DevSync daemon is not running (start it with `devsync start`)'), { cause: error }));
+      reject(
+        Object.assign(new Error('DevSync daemon is not running (start it with `devsync start`)'), {
+          cause: error,
+        }),
+      );
     });
   });
 }

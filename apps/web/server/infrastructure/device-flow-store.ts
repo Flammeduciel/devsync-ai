@@ -7,7 +7,11 @@ const ucKey = (userCode: string) => `device:uc:${userCode}`;
 
 export const redisDeviceFlowStore: DeviceFlowStore = {
   async create(hash, record, ttl) {
-    await redis().multi().set(dcKey(hash), JSON.stringify(record), 'EX', ttl).set(ucKey(record.userCode), hash, 'EX', ttl).exec();
+    await redis()
+      .multi()
+      .set(dcKey(hash), JSON.stringify(record), 'EX', ttl)
+      .set(ucKey(record.userCode), hash, 'EX', ttl)
+      .exec();
   },
   async getByDeviceCode(hash) {
     const raw = await redis().get(dcKey(hash));

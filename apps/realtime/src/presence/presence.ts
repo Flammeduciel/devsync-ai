@@ -10,7 +10,11 @@ export const presenceKey = (machineId: string) => `presence:machine:${machineId}
 export function createPresence(redis: Redis) {
   return {
     async connect(machineId: string) {
-      await redis.multi().incr(presenceKey(machineId)).expire(presenceKey(machineId), PRESENCE_TTL_SECONDS).exec();
+      await redis
+        .multi()
+        .incr(presenceKey(machineId))
+        .expire(presenceKey(machineId), PRESENCE_TTL_SECONDS)
+        .exec();
     },
     async refresh(machineId: string) {
       await redis.expire(presenceKey(machineId), PRESENCE_TTL_SECONDS);

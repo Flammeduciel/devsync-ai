@@ -1,6 +1,16 @@
 import { AppError, randomToken, sha256Hex } from '@devsync/shared';
-import { deviceApproveSchema, deviceAuthorizeSchema, type DeviceApproveInput, type DeviceAuthorizeInput } from '@devsync/validation';
-import { DEVICE_CODE_TTL_SECONDS, DEVICE_POLL_INTERVAL_SECONDS, generateUserCode, normalizeUserCode } from '../domain/devices';
+import {
+  deviceApproveSchema,
+  deviceAuthorizeSchema,
+  type DeviceApproveInput,
+  type DeviceAuthorizeInput,
+} from '@devsync/validation';
+import {
+  DEVICE_CODE_TTL_SECONDS,
+  DEVICE_POLL_INTERVAL_SECONDS,
+  generateUserCode,
+  normalizeUserCode,
+} from '../domain/devices';
 import { hasTeamPermission } from '../domain/permissions';
 import { recordAudit } from '../repositories/audit.repository';
 import { machinesRepository } from '../repositories/machines.repository';
@@ -31,8 +41,12 @@ export class DevicesService {
   constructor(
     private readonly deps: ServiceDeps,
     private readonly store: DeviceFlowStore,
-    private readonly onRevoked: (machine: { machineId: string; teamId: string }) => Promise<void> = async () => {},
-    private readonly presence: (machineIds: string[]) => Promise<Set<string>> = async () => new Set(),
+    private readonly onRevoked: (machine: {
+      machineId: string;
+      teamId: string;
+    }) => Promise<void> = async () => {},
+    private readonly presence: (machineIds: string[]) => Promise<Set<string>> = async () =>
+      new Set(),
   ) {}
 
   async authorize(rawInput: DeviceAuthorizeInput) {
@@ -60,7 +74,8 @@ export class DevicesService {
   async describe(userCodeInput: string) {
     const userCode = normalizeUserCode(userCodeInput);
     const found = userCode ? await this.store.getByUserCode(userCode) : null;
-    if (!found || found.record.status !== 'pending') throw new AppError('NOT_FOUND', 'This code is invalid or has expired');
+    if (!found || found.record.status !== 'pending')
+      throw new AppError('NOT_FOUND', 'This code is invalid or has expired');
     const { machineName, hostname, os, bridgeVersion, createdAt } = found.record;
     return { userCode: found.record.userCode, machineName, hostname, os, bridgeVersion, createdAt };
   }
@@ -73,7 +88,12 @@ export class DevicesService {
       throw new AppError('FORBIDDEN', 'Viewers cannot connect agents to a team');
     }
     const found = await this.findPending(input.userCode);
-    await this.store.update(found.deviceCodeHash, { ...found.record, status: 'approved', userId, teamId: input.teamId });
+    await this.store.update(found.deviceCodeHash, {
+      ...found.record,
+      status: 'approved',
+      userId,
+      teamId: input.teamId,
+    });
   }
 
   async deny(userId: string, userCodeInput: string) {
@@ -91,7 +111,8 @@ export class DevicesService {
     if (!taken) throw new AppError('NOT_FOUND', 'This device code is invalid or has expired');
     if (taken.status === 'denied') return { status: 'denied' };
 
-    const { userId, teamId } = taken as Required<Pick<typeof taken, 'userId' | 'teamId'>> & typeof taken;
+    const { userId, teamId } = taken as Required<Pick<typeof taken, 'userId' | 'teamId'>> &
+      typeof taken;
     const deviceToken = randomToken(32, 'dsd_');
     const machine = await this.deps.db.$transaction(async (tx) => {
       const created = await machinesRepository.create(tx, {
@@ -103,7 +124,14 @@ export class DevicesService {
         bridgeVersion: taken.bridgeVersion,
         deviceTokenHash: sha256Hex(deviceToken),
       });
-      await recordAudit(tx, { teamId, actorUserId: userId, action: 'machine.paired', targetType: 'machine', targetId: created.id, metadata: { name: taken.machineName } });
+      await recordAudit(tx, {
+        teamId,
+        actorUserId: userId,
+        action: 'machine.paired',
+        targetType: 'machine',
+        targetId: created.id,
+        metadata: { name: taken.machineName },
+      });
       return created;
     });
     return { status: 'approved', deviceToken, machineId: machine.id, teamId, userId };
@@ -112,12 +140,18 @@ export class DevicesService {
   /** Bearer authentication of a Bridge. Removed members and revoked machines are rejected. */
   async authenticate(deviceToken: string): Promise<DeviceActor | null> {
     if (!deviceToken.startsWith('dsd_')) return null;
-    const machine = await machinesRepository.findActiveByTokenHash(this.deps.db, sha256Hex(deviceToken));
+    const machine = await machinesRepository.findActiveByTokenHash(
+      this.deps.db,
+      sha256Hex(deviceToken),
+    );
     if (!machine) return null;
     const membership = await membersRepository.find(this.deps.db, machine.teamId, machine.userId);
     if (!membership) return null;
     const now = clock(this.deps);
-    if (!machine.lastSeenAt || now.getTime() - machine.lastSeenAt.getTime() > LAST_SEEN_THROTTLE_MS) {
+    if (
+      !machine.lastSeenAt ||
+      now.getTime() - machine.lastSeenAt.getTime() > LAST_SEEN_THROTTLE_MS
+    ) {
       await machinesRepository.touch(this.deps.db, machine.id, now);
     }
     return { machineId: machine.id, userId: machine.userId, teamId: machine.teamId };
@@ -135,7 +169,11 @@ export class DevicesService {
         team: { select: { id: true, name: true, slug: true } },
       },
     });
-    return { machine: { id: machine.id, name: machine.name, pairedAt: machine.createdAt }, user: machine.user, team: machine.team };
+    return {
+      machine: { id: machine.id, name: machine.name, pairedAt: machine.createdAt },
+      user: machine.user,
+      team: machine.team,
+    };
   }
 
   /** Developers see their machines; owners/admins see every machine of the team. */
@@ -144,7 +182,10 @@ export class DevicesService {
     const all = hasTeamPermission(role, 'member:remove');
     const machines = await machinesRepository.list(this.deps.db, teamId, all ? {} : { userId });
     const connected = await this.presence(machines.map((m) => m.id));
-    return machines.map(({ deviceTokenHash: _hash, ...machine }) => ({ ...machine, connected: connected.has(machine.id) }));
+    return machines.map(({ deviceTokenHash: _hash, ...machine }) => ({
+      ...machine,
+      connected: connected.has(machine.id),
+    }));
   }
 
   async revoke(userId: string, teamId: string, machineId: string) {
@@ -156,7 +197,13 @@ export class DevicesService {
     }
     await this.deps.db.$transaction(async (tx) => {
       await machinesRepository.revoke(tx, machineId, clock(this.deps));
-      await recordAudit(tx, { teamId, actorUserId: userId, action: 'machine.revoked', targetType: 'machine', targetId: machineId });
+      await recordAudit(tx, {
+        teamId,
+        actorUserId: userId,
+        action: 'machine.revoked',
+        targetType: 'machine',
+        targetId: machineId,
+      });
     });
     await this.onRevoked({ machineId, teamId });
   }
@@ -164,7 +211,8 @@ export class DevicesService {
   private async findPending(userCodeInput: string) {
     const userCode = normalizeUserCode(userCodeInput);
     const found = userCode ? await this.store.getByUserCode(userCode) : null;
-    if (!found || found.record.status !== 'pending') throw new AppError('NOT_FOUND', 'This code is invalid or has expired');
+    if (!found || found.record.status !== 'pending')
+      throw new AppError('NOT_FOUND', 'This code is invalid or has expired');
     return found;
   }
 }

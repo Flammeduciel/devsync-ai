@@ -19,7 +19,14 @@ export class RealtimeTokenService {
 
   async issue(userId: string) {
     const memberships = await teamsRepository.listForUser(this.deps.db, userId);
-    const claims: RealtimeClaims = { sub: userId, kind: 'dashboard', teams: memberships.map((m) => m.teamId) };
-    return { token: signJwt(claims, this.secret, REALTIME_TOKEN_TTL_SECONDS), expiresIn: REALTIME_TOKEN_TTL_SECONDS };
+    const claims: RealtimeClaims = {
+      sub: userId,
+      kind: 'dashboard',
+      teams: memberships.map((m) => m.teamId),
+    };
+    return {
+      token: signJwt(claims, this.secret, REALTIME_TOKEN_TTL_SECONDS),
+      expiresIn: REALTIME_TOKEN_TTL_SECONDS,
+    };
   }
 }

@@ -12,10 +12,14 @@ import { logger } from './infrastructure/logger';
 const connection = new Redis(serverEnv().REDIS_URL, { maxRetriesPerRequest: null });
 
 const queue = new Queue(MAINTENANCE_QUEUE, { connection });
-await queue.upsertJobScheduler(jobs.sweepStaleSessions.name, { every: jobs.sweepStaleSessions.everyMs }, {
-  name: jobs.sweepStaleSessions.name,
-  opts: { removeOnComplete: 100, removeOnFail: 500 },
-});
+await queue.upsertJobScheduler(
+  jobs.sweepStaleSessions.name,
+  { every: jobs.sweepStaleSessions.everyMs },
+  {
+    name: jobs.sweepStaleSessions.name,
+    opts: { removeOnComplete: 100, removeOnFail: 500 },
+  },
+);
 
 const worker = new Worker(
   MAINTENANCE_QUEUE,

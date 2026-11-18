@@ -62,7 +62,8 @@ describe('credentials', () => {
     const paths = bridgePaths(await tmp());
     await saveToken(paths, 'dsd_secret');
     expect(await loadToken(paths)).toBe('dsd_secret');
-    if (process.platform !== 'win32') expect((await stat(paths.credentials)).mode & 0o777).toBe(0o600);
+    if (process.platform !== 'win32')
+      expect((await stat(paths.credentials)).mode & 0o777).toBe(0o600);
     expect(await readFile(paths.credentials, 'utf8')).toBe('dsd_secret');
   });
 });

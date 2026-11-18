@@ -7,5 +7,11 @@ import { handler, json } from '@/server/http/respond';
 /** Bridge: a Claude Code session started (or resumed) on this machine. */
 export const POST = handler(async (request: Request) => {
   const device = await requireDevice(request);
-  return json(await services().agents.registerSession(device, registerSessionSchema.parse(await readJson(request))), 201);
+  return json(
+    await services().agents.registerSession(
+      device,
+      registerSessionSchema.parse(await readJson(request)),
+    ),
+    201,
+  );
 });

@@ -60,10 +60,26 @@ export class AgentsService {
           teamId: device.teamId,
           projectId,
           actor: this.actor(device, agent.id),
-          payload: { agentId: agent.id, userId: device.userId, sessionId: session.id, machineId: device.machineId, ...(input.pluginVersion ? { pluginVersion: input.pluginVersion } : {}) },
+          payload: {
+            agentId: agent.id,
+            userId: device.userId,
+            sessionId: session.id,
+            machineId: device.machineId,
+            ...(input.pluginVersion ? { pluginVersion: input.pluginVersion } : {}),
+          },
         });
       }
-      await this.recordActivity(tx, emit, device, agent.id, session.id, projectId, 'session_started', `Session started${input.branch ? ` on ${input.branch}` : ''}`, now);
+      await this.recordActivity(
+        tx,
+        emit,
+        device,
+        agent.id,
+        session.id,
+        projectId,
+        'session_started',
+        `Session started${input.branch ? ` on ${input.branch}` : ''}`,
+        now,
+      );
       await this.refreshAgentStatus(tx, emit, agent.id, now);
       return { agentId: agent.id, sessionId: session.id, projectId };
     });
@@ -71,16 +87,33 @@ export class AgentsService {
 
   async heartbeat(device: DeviceActor, sessionId: string, rawInput: HeartbeatInput) {
     const input = heartbeatSchema.parse(rawInput);
-    const session = await agentsRepository.findActiveSession(this.deps.db, sessionId, device.machineId);
+    const session = await agentsRepository.findActiveSession(
+      this.deps.db,
+      sessionId,
+      device.machineId,
+    );
     if (!session) throw new AppError('NOT_FOUND', 'Session not found or ended');
     const now = clock(this.deps);
 
     return withEvents(this.deps, async (tx, emit) => {
-      await agentsRepository.updateSession(tx, sessionId, { lastHeartbeatAt: now, ...(input.status ? { status: input.status } : {}) });
+      await agentsRepository.updateSession(tx, sessionId, {
+        lastHeartbeatAt: now,
+        ...(input.status ? { status: input.status } : {}),
+      });
       if (input.currentTask !== undefined && input.currentTask !== session.agent.currentTask) {
         await agentsRepository.updateAgent(tx, session.agentId, { currentTask: input.currentTask });
         if (input.currentTask) {
-          await this.recordActivity(tx, emit, device, session.agentId, sessionId, session.projectId, 'task_declared', input.currentTask, now);
+          await this.recordActivity(
+            tx,
+            emit,
+            device,
+            session.agentId,
+            sessionId,
+            session.projectId,
+            'task_declared',
+            input.currentTask,
+            now,
+          );
         }
       }
       const status = await this.refreshAgentStatus(tx, emit, session.agentId, now);
@@ -89,20 +122,43 @@ export class AgentsService {
   }
 
   async endSession(device: DeviceActor, sessionId: string) {
-    const session = await agentsRepository.findActiveSession(this.deps.db, sessionId, device.machineId);
+    const session = await agentsRepository.findActiveSession(
+      this.deps.db,
+      sessionId,
+      device.machineId,
+    );
     if (!session) throw new AppError('NOT_FOUND', 'Session not found or ended');
-    await withEvents(this.deps, (tx, emit) => this.closeSession(tx, emit, session, 'client', clock(this.deps)));
+    await withEvents(this.deps, (tx, emit) =>
+      this.closeSession(tx, emit, session, 'client', clock(this.deps)),
+    );
   }
 
   /** Idempotent when the producer supplies `id` (Bridge retries after a lost ack). */
   async publishActivity(device: DeviceActor, rawInput: PublishActivityInput) {
     const input = publishActivitySchema.parse(rawInput);
-    if (input.id && (await agentsRepository.activityExists(this.deps.db, input.id))) return { duplicate: true };
-    const session = await agentsRepository.findActiveSession(this.deps.db, input.sessionId, device.machineId);
+    if (input.id && (await agentsRepository.activityExists(this.deps.db, input.id)))
+      return { duplicate: true };
+    const session = await agentsRepository.findActiveSession(
+      this.deps.db,
+      input.sessionId,
+      device.machineId,
+    );
     if (!session) throw new AppError('NOT_FOUND', 'Session not found or ended');
     const now = clock(this.deps);
     await withEvents(this.deps, async (tx, emit) => {
-      await this.recordActivity(tx, emit, device, session.agentId, session.id, session.projectId, input.kind, input.summary, now, input.tool, input.id);
+      await this.recordActivity(
+        tx,
+        emit,
+        device,
+        session.agentId,
+        session.id,
+        session.projectId,
+        input.kind,
+        input.summary,
+        now,
+        input.tool,
+        input.id,
+      );
       await agentsRepository.updateSession(tx, session.id, { lastHeartbeatAt: now });
     });
     return { duplicate: false };
@@ -113,7 +169,11 @@ export class AgentsService {
     const { role } = await requireTeamMember(this.deps.db, userId, teamId);
     const [agents, projects] = await Promise.all([
       agentsRepository.listForTeam(this.deps.db, teamId),
-      projectsRepository.list(this.deps.db, teamId, hasTeamPermission(role, 'project:read_all') ? {} : { memberUserId: userId }),
+      projectsRepository.list(
+        this.deps.db,
+        teamId,
+        hasTeamPermission(role, 'project:read_all') ? {} : { memberUserId: userId },
+      ),
     ]);
     const visible = new Map(projects.map((p) => [p.id, p.name]));
     return agents
@@ -135,7 +195,10 @@ export class AgentsService {
           branch: s.branch,
           startedAt: s.startedAt,
           lastHeartbeatAt: s.lastHeartbeatAt,
-          project: s.projectId && visible.has(s.projectId) ? { id: s.projectId, name: visible.get(s.projectId)! } : null,
+          project:
+            s.projectId && visible.has(s.projectId)
+              ? { id: s.projectId, name: visible.get(s.projectId)! }
+              : null,
         })),
       }));
   }
@@ -143,9 +206,15 @@ export class AgentsService {
   /** Background job: sessions that stopped sending heartbeats are closed (status from facts, not hope). */
   async sweepStaleSessions(batchSize = 200): Promise<number> {
     const now = clock(this.deps);
-    const stale = await agentsRepository.staleSessions(this.deps.db, new Date(now.getTime() - SESSION_STALE_AFTER_MS), batchSize);
+    const stale = await agentsRepository.staleSessions(
+      this.deps.db,
+      new Date(now.getTime() - SESSION_STALE_AFTER_MS),
+      batchSize,
+    );
     for (const session of stale) {
-      await withEvents(this.deps, (tx, emit) => this.closeSession(tx, emit, session, 'timeout', now));
+      await withEvents(this.deps, (tx, emit) =>
+        this.closeSession(tx, emit, session, 'timeout', now),
+      );
     }
     return stale.length;
   }
@@ -155,20 +224,42 @@ export class AgentsService {
     const now = clock(this.deps);
     const sessions = await agentsRepository.activeSessionsOfMachine(this.deps.db, machineId);
     for (const session of sessions) {
-      await withEvents(this.deps, (tx, emit) => this.closeSession(tx, emit, session, 'revoked', now));
+      await withEvents(this.deps, (tx, emit) =>
+        this.closeSession(tx, emit, session, 'revoked', now),
+      );
     }
   }
 
   private async closeSession(
     tx: Db,
     emit: Emit,
-    session: { id: string; teamId: string; agentId: string; projectId: string | null; agent: { userId: string; machineId: string } },
+    session: {
+      id: string;
+      teamId: string;
+      agentId: string;
+      projectId: string | null;
+      agent: { userId: string; machineId: string };
+    },
     reason: DisconnectReason,
     now: Date,
   ) {
-    const device = { machineId: session.agent.machineId, userId: session.agent.userId, teamId: session.teamId };
+    const device = {
+      machineId: session.agent.machineId,
+      userId: session.agent.userId,
+      teamId: session.teamId,
+    };
     await agentsRepository.updateSession(tx, session.id, { endedAt: now, status: 'OFFLINE' });
-    await this.recordActivity(tx, emit, device, session.agentId, session.id, session.projectId, 'session_ended', reason === 'client' ? 'Session ended' : `Session closed (${reason})`, now);
+    await this.recordActivity(
+      tx,
+      emit,
+      device,
+      session.agentId,
+      session.id,
+      session.projectId,
+      'session_ended',
+      reason === 'client' ? 'Session ended' : `Session closed (${reason})`,
+      now,
+    );
     const status = await this.refreshAgentStatus(tx, emit, session.agentId, now);
     if (status === 'OFFLINE') {
       await emit({
@@ -181,7 +272,12 @@ export class AgentsService {
     }
   }
 
-  private async refreshAgentStatus(tx: Db, emit: Emit, agentId: string, now: Date): Promise<AgentStatus> {
+  private async refreshAgentStatus(
+    tx: Db,
+    emit: Emit,
+    agentId: string,
+    now: Date,
+  ): Promise<AgentStatus> {
     const agent = await agentsRepository.findAgent(tx, agentId);
     if (!agent) throw new AppError('NOT_FOUND', 'Agent not found');
     const sessions = await agentsRepository.activeSessionStatuses(tx, agentId);
@@ -215,13 +311,30 @@ export class AgentsService {
     tool?: string,
     id?: string,
   ) {
-    await agentsRepository.createActivity(tx, { id, teamId: device.teamId, agentId, sessionId, projectId, kind, summary, tool, occurredAt: now });
+    await agentsRepository.createActivity(tx, {
+      id,
+      teamId: device.teamId,
+      agentId,
+      sessionId,
+      projectId,
+      kind,
+      summary,
+      tool,
+      occurredAt: now,
+    });
     await emit({
       type: 'agent.activity.updated',
       teamId: device.teamId,
       projectId,
       actor: this.actor(device, agentId),
-      payload: { agentId, userId: device.userId, ...(sessionId ? { sessionId } : {}), kind, summary, ...(tool ? { tool } : {}) },
+      payload: {
+        agentId,
+        userId: device.userId,
+        ...(sessionId ? { sessionId } : {}),
+        kind,
+        summary,
+        ...(tool ? { tool } : {}),
+      },
     });
   }
 
@@ -230,9 +343,14 @@ export class AgentsService {
   }
 
   /** The project must belong to the device's team and be accessible to its owner. */
-  private async resolveProject(device: DeviceActor, projectId?: string, remote?: string): Promise<string | null> {
+  private async resolveProject(
+    device: DeviceActor,
+    projectId?: string,
+    remote?: string,
+  ): Promise<string | null> {
     const membership = await membersRepository.find(this.deps.db, device.teamId, device.userId);
-    if (!membership) throw new AppError('UNAUTHENTICATED', 'Device owner is no longer a team member');
+    if (!membership)
+      throw new AppError('UNAUTHENTICATED', 'Device owner is no longer a team member');
     const canAccess = async (id: string) => {
       const project = await projectsRepository.findActiveById(this.deps.db, id);
       if (!project || project.teamId !== device.teamId) return false;

@@ -9,7 +9,10 @@ export class InboxService {
 
   async forUser(userId: string, teamId: string, limit = 25) {
     await requireTeamMember(this.deps.db, userId, teamId);
-    const agents = await this.deps.db.agent.findMany({ where: { teamId, userId }, select: { id: true } });
+    const agents = await this.deps.db.agent.findMany({
+      where: { teamId, userId },
+      select: { id: true },
+    });
     const requests = await this.deps.db.collaborationRequest.findMany({
       where: {
         teamId,
@@ -17,7 +20,11 @@ export class InboxService {
         status: { in: [...OPEN_STATUSES] },
         // Level-1 (suggest-only) requests reach the assignee only once a human approved them.
         OR: [{ requiresApproval: false }, { approvedAt: { not: null } }],
-        AND: [{ OR: [{ assigneeUserId: userId }, { assigneeAgentId: { in: agents.map((a) => a.id) } }] }],
+        AND: [
+          {
+            OR: [{ assigneeUserId: userId }, { assigneeAgentId: { in: agents.map((a) => a.id) } }],
+          },
+        ],
         project: { deletedAt: null },
       },
       select: {

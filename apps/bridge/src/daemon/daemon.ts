@@ -34,7 +34,10 @@ const activity = sessionRef.extend({
 });
 
 /** Long-running process: one per machine, many Claude Code sessions. */
-export async function runDaemon(paths: BridgePaths, options: { logger?: Logger; notifier?: Notifier } = {}) {
+export async function runDaemon(
+  paths: BridgePaths,
+  options: { logger?: Logger; notifier?: Notifier } = {},
+) {
   const logger = options.logger ?? createLogger('bridge');
   const notify = options.notifier ?? createNotifier();
   const config = await loadConfig(paths);
@@ -53,16 +56,27 @@ export async function runDaemon(paths: BridgePaths, options: { logger?: Logger; 
     if (unauthorized) return;
     unauthorized = true;
     link?.close();
-    logger.error('device token rejected (machine revoked or membership removed); run `devsync login` again');
-    void notify({ title: 'DevSync disconnected', body: 'This machine is no longer authorized. Run devsync login.' });
+    logger.error(
+      'device token rejected (machine revoked or membership removed); run `devsync login` again',
+    );
+    void notify({
+      title: 'DevSync disconnected',
+      body: 'This machine is no longer authorized. Run devsync login.',
+    });
   };
   sessions.onTokenRejected(onUnauthorized);
 
   const onEvent = async (event: Envelope) => {
     logger.debug({ type: event.type, sequence: event.sequence }, 'event received');
     if (event.type === 'notification.created') {
-      const n = event.payload as { userId: string; title: string; body?: string; playSound: boolean };
-      if (n.userId === me.user.id) await notify({ title: n.title, ...(n.body ? { body: n.body } : {}), sound: n.playSound });
+      const n = event.payload as {
+        userId: string;
+        title: string;
+        body?: string;
+        playSound: boolean;
+      };
+      if (n.userId === me.user.id)
+        await notify({ title: n.title, ...(n.body ? { body: n.body } : {}), sound: n.playSound });
     }
   };
 
@@ -101,11 +115,18 @@ export async function runDaemon(paths: BridgePaths, options: { logger?: Logger; 
       await sessions.activity(externalSessionId, body);
     },
     'inbox.list': async () => (await api.inbox()).items,
-    'notify.test': async () => notify({ title: 'DevSync', body: `Notifications work on ${hostname()}`, sound: true }),
+    'notify.test': async () =>
+      notify({ title: 'DevSync', body: `Notifications work on ${hostname()}`, sound: true }),
   });
 
-  const timer = setInterval(() => void sessions.tick().catch((error) => logger.warn({ err: error }, 'tick failed')), HEARTBEAT_INTERVAL_MS);
-  logger.info({ team: me.team.slug, machine: me.machine.name, socket: paths.socket }, 'DevSync Bridge running');
+  const timer = setInterval(
+    () => void sessions.tick().catch((error) => logger.warn({ err: error }, 'tick failed')),
+    HEARTBEAT_INTERVAL_MS,
+  );
+  logger.info(
+    { team: me.team.slug, machine: me.machine.name, socket: paths.socket },
+    'DevSync Bridge running',
+  );
 
   return {
     async stop() {

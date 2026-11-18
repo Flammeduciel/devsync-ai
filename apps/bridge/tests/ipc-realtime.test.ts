@@ -40,12 +40,20 @@ describe('realtime link', () => {
     const handshakes: unknown[] = [];
     const acks: unknown[] = [];
     const event = (id: string, sequence: number): Envelope => ({
-      id, type: 'agent.status.updated', version: '1.0', timestamp: new Date().toISOString(), teamId: 't1', actor: { type: 'SYSTEM' }, sequence, payload: {},
+      id,
+      type: 'agent.status.updated',
+      version: '1.0',
+      timestamp: new Date().toISOString(),
+      teamId: 't1',
+      actor: { type: 'SYSTEM' },
+      sequence,
+      payload: {},
     });
     io.on('connection', async (socket) => {
       handshakes.push(socket.handshake.auth.lastSequence);
       if (handshakes.length === 1) {
-        for (const e of [event('e1', 10), event('e1', 10), event('e2', 11)]) acks.push(await socket.emitWithAck(channels.deliver, e));
+        for (const e of [event('e1', 10), event('e1', 10), event('e2', 11)])
+          acks.push(await socket.emitWithAck(channels.deliver, e));
         socket.disconnect(true); // simulates a gateway restart
       }
     });
@@ -54,7 +62,14 @@ describe('realtime link', () => {
 
     const state = await DeliveryState.load(join(await tmp(), 'state.json'));
     const received: string[] = [];
-    const link = createRealtimeLink({ url, token: 'dsd_x', state, logger, onEvent: (e) => void received.push(e.id), onUnauthorized: () => {} });
+    const link = createRealtimeLink({
+      url,
+      token: 'dsd_x',
+      state,
+      logger,
+      onEvent: (e) => void received.push(e.id),
+      onUnauthorized: () => {},
+    });
     await new Promise((r) => setTimeout(r, 2500));
     link.close();
     io.close();

@@ -17,9 +17,21 @@ function fakeApi() {
     if (!online) throw new TypeError('fetch failed');
   };
   const api = {
-    registerSession: async (b: { externalSessionId: string }) => (guard(), calls.push(`register:${b.externalSessionId}`), { agentId: 'a', sessionId: `srv-${b.externalSessionId}`, projectId: null }),
-    heartbeat: async (id: string, b: object) => (guard(), calls.push(`heartbeat:${id}:${JSON.stringify(b)}`), { status: 'ONLINE' }),
-    publishActivity: async (b: { summary: string; id?: string }) => (guard(), calls.push(`activity:${b.summary}`), { duplicate: false }),
+    registerSession: async (b: { externalSessionId: string }) => (
+      guard(),
+      calls.push(`register:${b.externalSessionId}`),
+      { agentId: 'a', sessionId: `srv-${b.externalSessionId}`, projectId: null }
+    ),
+    heartbeat: async (id: string, b: object) => (
+      guard(),
+      calls.push(`heartbeat:${id}:${JSON.stringify(b)}`),
+      { status: 'ONLINE' }
+    ),
+    publishActivity: async (b: { summary: string; id?: string }) => (
+      guard(),
+      calls.push(`activity:${b.summary}`),
+      { duplicate: false }
+    ),
     endSession: async (id: string) => (guard(), void calls.push(`end:${id}`)),
   } as unknown as DevSyncClient;
   return { api, calls, setOnline: (v: boolean) => (online = v) };
@@ -27,7 +39,10 @@ function fakeApi() {
 
 async function setup() {
   const fake = fakeApi();
-  const outbox = await new Outbox(join(await mkdtemp(join(tmpdir(), 'devsync-sm-')), 'outbox.json'), () => 0).load();
+  const outbox = await new Outbox(
+    join(await mkdtemp(join(tmpdir(), 'devsync-sm-')), 'outbox.json'),
+    () => 0,
+  ).load();
   return { ...fake, outbox, manager: new SessionManager(fake.api, outbox, logger) };
 }
 
@@ -50,7 +65,9 @@ describe('SessionManager', () => {
   it('keeps work queued while offline and replays it in order', async () => {
     const { manager, calls, setOnline, outbox } = await setup();
     setOnline(false);
-    await expect(manager.start({ externalSessionId: 'c2' })).resolves.toEqual({ registered: false });
+    await expect(manager.start({ externalSessionId: 'c2' })).resolves.toEqual({
+      registered: false,
+    });
     await manager.activity('c2', { kind: 'tool_used', summary: 'first' });
     await manager.activity('c2', { kind: 'tool_used', summary: 'second' });
     expect(outbox.size).toBe(2);
@@ -74,9 +91,14 @@ describe('SessionManager', () => {
 
 describe('notificationCommands', () => {
   it('escapes AppleScript strings and never uses a shell', () => {
-    const [[file, args]] = notificationCommands({ title: 'Deliverable "ready"', body: 'a\\b"; do shell script "rm -rf ~"', sound: false }, 'darwin') as [[string, string[]]];
+    const [[file, args]] = notificationCommands(
+      { title: 'Deliverable "ready"', body: 'a\\b"; do shell script "rm -rf ~"', sound: false },
+      'darwin',
+    ) as [[string, string[]]];
     expect(file).toBe('osascript');
-    expect(args[1]).toBe('display notification "a\\\\b\\"; do shell script \\"rm -rf ~\\"" with title "Deliverable \\"ready\\""');
+    expect(args[1]).toBe(
+      'display notification "a\\\\b\\"; do shell script \\"rm -rf ~\\"" with title "Deliverable \\"ready\\""',
+    );
   });
   it('plays a sound only when asked', () => {
     expect(notificationCommands({ title: 't', sound: true }, 'darwin')).toHaveLength(2);

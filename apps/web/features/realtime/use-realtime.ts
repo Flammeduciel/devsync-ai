@@ -32,7 +32,14 @@ export function useRealtime(onEvent: (event: Envelope) => void): RealtimeStatus 
           reconnectionDelayMax: 15_000,
           auth: (cb) => {
             void fetchToken()
-              .then(({ token }) => cb({ token, clientKind: 'dashboard', protocolVersion: PROTOCOL_VERSION, clientVersion: 'web' }))
+              .then(({ token }) =>
+                cb({
+                  token,
+                  clientKind: 'dashboard',
+                  protocolVersion: PROTOCOL_VERSION,
+                  clientVersion: 'web',
+                }),
+              )
               .catch(() => cb({}));
           },
         });

@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { DevSyncApiError, type DevSyncClient, type HeartbeatBody, type SessionBody } from '@devsync/sdk';
+import {
+  DevSyncApiError,
+  type DevSyncClient,
+  type HeartbeatBody,
+  type SessionBody,
+} from '@devsync/sdk';
 import type { Logger } from '@devsync/config';
 import type { Outbox } from '../queue/outbox';
 
@@ -13,7 +18,10 @@ interface LocalSession {
 export const HEARTBEAT_INTERVAL_MS = 30_000;
 
 const isRetryable = (error: unknown) =>
-  !(error instanceof DevSyncApiError) || error.status >= 500 || error.status === 429 || error.status === 408;
+  !(error instanceof DevSyncApiError) ||
+  error.status >= 500 ||
+  error.status === 429 ||
+  error.status === 408;
 
 /**
  * Local Claude Code sessions of this machine. Registration and heartbeats are retried by `tick()`;
@@ -34,12 +42,20 @@ export class SessionManager {
   }
 
   list() {
-    return [...this.sessions.entries()].map(([key, s]) => ({ externalSessionId: key, registered: !!s.serverId, ...s.state }));
+    return [...this.sessions.entries()].map(([key, s]) => ({
+      externalSessionId: key,
+      registered: !!s.serverId,
+      ...s.state,
+    }));
   }
 
   async start(info: SessionBody) {
     const existing = this.sessions.get(info.externalSessionId);
-    this.sessions.set(info.externalSessionId, { info, state: existing?.state ?? {}, ...(existing?.serverId ? { serverId: existing.serverId } : {}) });
+    this.sessions.set(info.externalSessionId, {
+      info,
+      state: existing?.state ?? {},
+      ...(existing?.serverId ? { serverId: existing.serverId } : {}),
+    });
     await this.register(info.externalSessionId);
     return { registered: !!this.sessions.get(info.externalSessionId)?.serverId };
   }
@@ -51,8 +67,12 @@ export class SessionManager {
     await this.sendHeartbeat(externalSessionId);
   }
 
-  async activity(externalSessionId: string, body: { kind: string; summary: string; tool?: string }) {
-    if (!this.sessions.has(externalSessionId)) throw new Error(`Unknown session ${externalSessionId}`);
+  async activity(
+    externalSessionId: string,
+    body: { kind: string; summary: string; tool?: string },
+  ) {
+    if (!this.sessions.has(externalSessionId))
+      throw new Error(`Unknown session ${externalSessionId}`);
     await this.outbox.enqueue('activity', externalSessionId, { ...body, id: randomUUID() });
     await this.flush();
   }
@@ -84,7 +104,10 @@ export class SessionManager {
       }
       try {
         if (item.kind === 'activity') {
-          await this.api.publishActivity({ ...(item.body as { kind: 'tool_used'; summary: string }), sessionId: session.serverId });
+          await this.api.publishActivity({
+            ...(item.body as { kind: 'tool_used'; summary: string }),
+            sessionId: session.serverId,
+          });
         } else {
           await this.api.endSession(session.serverId).catch((error: unknown) => {
             if (!(error instanceof DevSyncApiError && error.status === 404)) throw error; // already ended
@@ -112,7 +135,8 @@ export class SessionManager {
       session.serverId = result.sessionId;
       if (Object.keys(session.state).length) await this.sendHeartbeat(key);
     } catch (error) {
-      if (!this.handleAuth(error)) this.logger.debug({ err: error }, 'session registration deferred');
+      if (!this.handleAuth(error))
+        this.logger.debug({ err: error }, 'session registration deferred');
     }
   }
 

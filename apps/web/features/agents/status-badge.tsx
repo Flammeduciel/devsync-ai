@@ -12,8 +12,16 @@ const STYLES: Record<AgentStatus, string> = {
 
 export function AgentStatusBadge({ status }: { status: AgentStatus }) {
   return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium', STYLES[status])}>
-      <span aria-hidden className={cn('size-1.5 rounded-full bg-current', status === 'WORKING' && 'animate-pulse')} />
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium',
+        STYLES[status],
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn('size-1.5 rounded-full bg-current', status === 'WORKING' && 'animate-pulse')}
+      />
       {status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   );

@@ -36,7 +36,9 @@ export class Outbox {
   ) {}
 
   async load(): Promise<this> {
-    this.items = (await readJson<OutboxItem[]>(this.file, [])).filter((i) => this.now() - i.createdAt < MAX_AGE_MS);
+    this.items = (await readJson<OutboxItem[]>(this.file, [])).filter(
+      (i) => this.now() - i.createdAt < MAX_AGE_MS,
+    );
     return this;
   }
 
@@ -44,8 +46,20 @@ export class Outbox {
     return this.items.length;
   }
 
-  async enqueue(kind: OutboxKind, sessionKey: string, body: Record<string, unknown>): Promise<OutboxItem> {
-    const item: OutboxItem = { id: randomUUID(), kind, sessionKey, body, attempts: 0, nextAttemptAt: 0, createdAt: this.now() };
+  async enqueue(
+    kind: OutboxKind,
+    sessionKey: string,
+    body: Record<string, unknown>,
+  ): Promise<OutboxItem> {
+    const item: OutboxItem = {
+      id: randomUUID(),
+      kind,
+      sessionKey,
+      body,
+      attempts: 0,
+      nextAttemptAt: 0,
+      createdAt: this.now(),
+    };
     this.items.push(item);
     await this.persist();
     return item;

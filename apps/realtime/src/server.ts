@@ -36,7 +36,8 @@ const resumeSchemaGuard = (value: unknown): Record<string, number> => {
   if (!value || typeof value !== 'object') return {};
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>).filter(
-      (entry): entry is [string, number] => typeof entry[1] === 'number' && Number.isInteger(entry[1]) && entry[1] >= 0,
+      (entry): entry is [string, number] =>
+        typeof entry[1] === 'number' && Number.isInteger(entry[1]) && entry[1] >= 0,
     ),
   );
 };
@@ -52,7 +53,12 @@ export function createRealtimeServer(options: RealtimeServerOptions): RealtimeSe
     res.writeHead(404).end();
   });
 
-  const io = new Server<Record<string, never>, Record<string, never>, Record<string, never>, SocketData>(http, {
+  const io = new Server<
+    Record<string, never>,
+    Record<string, never>,
+    Record<string, never>,
+    SocketData
+  >(http, {
     cors: { origin: options.corsOrigin, credentials: true },
     maxHttpBufferSize: 1_000_000,
     pingInterval: 25_000,
@@ -102,13 +108,22 @@ export function createRealtimeServer(options: RealtimeServerOptions): RealtimeSe
     if (identity.kind === 'bridge') {
       await socket.join(roomFor.machine(identity.machineId));
       await options.presence?.connect(identity.machineId);
-      presenceTimer = setInterval(() => void options.presence?.refresh(identity.machineId), options.presenceRefreshMs ?? 30_000);
+      presenceTimer = setInterval(
+        () => void options.presence?.refresh(identity.machineId),
+        options.presenceRefreshMs ?? 30_000,
+      );
     }
-    logger.info({ kind: identity.kind, userId: identity.userId, socket: socket.id }, 'client connected');
+    logger.info(
+      { kind: identity.kind, userId: identity.userId, socket: socket.id },
+      'client connected',
+    );
 
     socket.on(channels.resume, async (raw: unknown, ack?: (result: unknown) => void) => {
       try {
-        const result = await replay(socket, resumeSchemaGuard((raw as { lastSequence?: unknown })?.lastSequence));
+        const result = await replay(
+          socket,
+          resumeSchemaGuard((raw as { lastSequence?: unknown })?.lastSequence),
+        );
         ack?.({ ok: true, ...result });
       } catch (error) {
         logger.error({ err: error }, 'replay failed');
@@ -123,8 +138,13 @@ export function createRealtimeServer(options: RealtimeServerOptions): RealtimeSe
     });
 
     // Catch up on what happened while the client was away (sequence sent in the handshake).
-    const lastSequence = resumeSchemaGuard((socket.handshake.auth as { lastSequence?: unknown }).lastSequence);
-    if (Object.keys(lastSequence).length) await replay(socket, lastSequence).catch((error) => logger.error({ err: error }, 'replay failed'));
+    const lastSequence = resumeSchemaGuard(
+      (socket.handshake.auth as { lastSequence?: unknown }).lastSequence,
+    );
+    if (Object.keys(lastSequence).length)
+      await replay(socket, lastSequence).catch((error) =>
+        logger.error({ err: error }, 'replay failed'),
+      );
   });
 
   function ingest(event: StoredEvent) {

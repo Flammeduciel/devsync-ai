@@ -27,10 +27,15 @@ function createContainer() {
   const agents = new AgentsService(deps);
   return {
     agents,
-    devices: new DevicesService(deps, redisDeviceFlowStore, async ({ machineId, teamId }) => {
-      await agents.disconnectMachine(machineId);
-      await publishControl({ type: 'machine.revoked', machineId, teamId });
-    }, connectedMachines),
+    devices: new DevicesService(
+      deps,
+      redisDeviceFlowStore,
+      async ({ machineId, teamId }) => {
+        await agents.disconnectMachine(machineId);
+        await publishControl({ type: 'machine.revoked', machineId, teamId });
+      },
+      connectedMachines,
+    ),
     inbox: new InboxService(deps),
     realtimeTokens: new RealtimeTokenService(deps, serverEnv().REALTIME_JWT_SECRET),
     teams: new TeamsService(deps),

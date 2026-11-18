@@ -2,7 +2,11 @@ import type { Envelope } from '@devsync/protocol';
 import type { StoredEvent } from './event-store';
 
 /** Whether a user may receive an event of one of their teams. */
-export function canReceive(event: StoredEvent, userId: string, teamIds: readonly string[]): boolean {
+export function canReceive(
+  event: StoredEvent,
+  userId: string,
+  teamIds: readonly string[],
+): boolean {
   if (!teamIds.includes(event.teamId)) return false;
   return !event.audience?.length || event.audience.includes(userId);
 }

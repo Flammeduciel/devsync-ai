@@ -19,7 +19,13 @@ export interface LiveAgent {
   lastActivityAt: string | null;
   user: { id: string; name: string };
   machine: { id: string; name: string };
-  sessions: { id: string; status: AgentStatus; branch: string | null; lastHeartbeatAt: string; project: { id: string; name: string } | null }[];
+  sessions: {
+    id: string;
+    status: AgentStatus;
+    branch: string | null;
+    lastHeartbeatAt: string;
+    project: { id: string; name: string } | null;
+  }[];
 }
 
 async function fetchAgents(teamId: string): Promise<LiveAgent[]> {
@@ -42,20 +48,37 @@ export function LiveAgents({ teamId, initial }: { teamId: string; initial: LiveA
     }
   });
 
-  const sorted = [...agents].sort((a, b) => Number(a.status === 'OFFLINE') - Number(b.status === 'OFFLINE'));
+  const sorted = [...agents].sort(
+    (a, b) => Number(a.status === 'OFFLINE') - Number(b.status === 'OFFLINE'),
+  );
 
   return (
     <div className="space-y-4">
       <p className="flex items-center gap-2 text-xs text-muted-foreground" aria-live="polite">
-        <span className={cn('size-2 rounded-full', status === 'live' ? 'bg-success' : status === 'connecting' ? 'bg-warning' : 'bg-destructive')} />
-        {status === 'live' ? 'Live updates' : status === 'connecting' ? 'Connecting…' : 'Live updates unavailable, refreshing every minute'}
+        <span
+          className={cn(
+            'size-2 rounded-full',
+            status === 'live'
+              ? 'bg-success'
+              : status === 'connecting'
+                ? 'bg-warning'
+                : 'bg-destructive',
+          )}
+        />
+        {status === 'live'
+          ? 'Live updates'
+          : status === 'connecting'
+            ? 'Connecting…'
+            : 'Live updates unavailable, refreshing every minute'}
       </p>
       {sorted.length === 0 ? (
         <Card className="items-center gap-2 p-10 text-center">
           <Bot className="size-6 text-muted-foreground" />
           <p className="text-sm font-medium">No agent connected yet</p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Install the Bridge, run <code className="font-mono">devsync login</code> then <code className="font-mono">devsync start</code>. Agents appear here when a Claude Code session starts.
+            Install the Bridge, run <code className="font-mono">devsync login</code> then{' '}
+            <code className="font-mono">devsync start</code>. Agents appear here when a Claude Code
+            session starts.
           </p>
         </Card>
       ) : (
@@ -66,7 +89,8 @@ export function LiveAgents({ teamId, initial }: { teamId: string; initial: LiveA
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium">
-                      {agent.user.name} · <span className="text-muted-foreground">{agent.name}</span>
+                      {agent.user.name} ·{' '}
+                      <span className="text-muted-foreground">{agent.name}</span>
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {agent.machine.name}
@@ -93,7 +117,9 @@ export function LiveAgents({ teamId, initial }: { teamId: string; initial: LiveA
                   </ul>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    {agent.lastActivityAt ? `Last activity ${timeAgo(agent.lastActivityAt)}` : 'Never active'}
+                    {agent.lastActivityAt
+                      ? `Last activity ${timeAgo(agent.lastActivityAt)}`
+                      : 'Never active'}
                   </p>
                 )}
                 {agent.specialties.length ? (
