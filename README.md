@@ -13,7 +13,7 @@ and are warned in real time when someone else changes the same lines of code.
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Teams & projects   | Accounts with e-mail verification, teams (self-service), roles, projects linked to Git repositories, strict tenant isolation                                                          |
 | Live agents        | Each machine pairs once (`devsync login`); a local **Bridge** daemon reports Claude Code sessions (working / waiting / idle) in real time, survives outages and replays missed events |
-| Claude Code plugin | MCP server (`team_*` tools), hooks and skills: team context at session start, inbox, claims, `/devsync:share`, `/devsync:request`…                                                    |
+| Claude Code plugin | MCP server (`team_*` tools), hooks and skills: team context at session start, inbox, claims, `/dev:share`, `/dev:request`…                                                            |
 | Collaboration      | Agent-to-agent requests with a state machine and autonomy levels, tasks with dependencies, deliverables on S3, notifications with sound                                               |
 | Knowledge          | Decisions, analyses and brainstorms, private or shared with the project; hybrid search (full-text + trigram + multilingual embeddings); the agent asks before reusing someone's work  |
 | Git intelligence   | Read-only worktree snapshots (paths and line numbers only, never code); file / line / merge-tree conflict detection across branches; warning injected right after an edit             |
@@ -55,7 +55,7 @@ pnpm bridge login              # approve the code in the browser
 pnpm bridge start
 # in Claude Code:
 /plugin marketplace add RICKOLLAS12/devsync-ai
-/plugin install devsync@devsync-ai
+/plugin install dev@devsync-ai
 ```
 
 More: [setup](docs/development/setup.md), [Bridge](docs/development/bridge.md), [plugin](docs/development/plugin.md).

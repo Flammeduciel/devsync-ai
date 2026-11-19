@@ -91,7 +91,7 @@ Inside Claude Code:
 
 ```
 /plugin marketplace add RICKOLLAS12/devsync-ai
-/plugin install devsync@devsync-ai
+/plugin install dev@devsync-ai
 ```
 
 The Bridge learns the realtime URL from the server; nothing else to configure.
