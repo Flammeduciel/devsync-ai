@@ -1,7 +1,7 @@
 ---
 name: inbox
 description: Show DevSync collaboration requests waiting for you or your agents
-allowed-tools: [mcp__plugin_devsync_devsync__team_get_inbox]
+allowed-tools: [mcp__plugin_dev_devsync__team_get_inbox]
 ---
 
 # DevSync inbox

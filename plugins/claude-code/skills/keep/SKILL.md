@@ -4,8 +4,8 @@ description: Save this session's result privately so the developer's future sess
 argument-hint: '[what to keep]'
 allowed-tools:
   [
-    mcp__plugin_devsync_devsync__team_publish_knowledge,
-    mcp__plugin_devsync_devsync__team_search_knowledge,
+    mcp__plugin_dev_devsync__team_publish_knowledge,
+    mcp__plugin_dev_devsync__team_search_knowledge,
   ]
 ---
 
@@ -17,4 +17,4 @@ their future sessions will find it (through the session-start context and `team_
 Write a reusable synthesis (context, findings, key files, next steps, open questions), never a transcript. Show its
 title and one-sentence summary to the developer and wait for their confirmation, then publish it with
 `team_publish_knowledge` and `visibility: PRIVATE`. Mention it can be shared later with
-`/devsync:share`.
+`/dev:share`.

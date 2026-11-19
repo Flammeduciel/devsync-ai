@@ -2,7 +2,7 @@
 name: status
 description: Show who in the DevSync team is working on what right now
 allowed-tools:
-  [mcp__plugin_devsync_devsync__team_search_agents, mcp__plugin_devsync_devsync__team_get_activity]
+  [mcp__plugin_dev_devsync__team_search_agents, mcp__plugin_dev_devsync__team_get_activity]
 ---
 
 # DevSync team status
