@@ -21,9 +21,10 @@ async function describe(code: string) {
 }
 
 export default async function DevicePage({ searchParams }: PageProps<'/device'>) {
-  const user = await requireUser();
   const code =
     typeof (await searchParams).code === 'string' ? ((await searchParams).code as string) : '';
+  // `devsync login` opens /device?code=…: keep the code through sign-in so it is not typed again.
+  const user = await requireUser(code ? `/device?code=${encodeURIComponent(code)}` : '/device');
   const request = code ? await describe(code) : null;
   const teams = (await services().teams.listMine(user.id)).filter((t) =>
     hasTeamPermission(t.role, 'project:create'),

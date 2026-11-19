@@ -27,7 +27,8 @@ teammates, and "Resume your work" covers all of them.
 
 ## Pairing (device authorization flow)
 
-1. `devsync login` → `POST /api/v1/devices/authorize` → `{ deviceCode, userCode, verificationUri }`.
+1. `devsync login` → `POST /api/v1/devices/authorize` → `{ deviceCode, userCode, verificationUri, verificationUriComplete }`;
+   the browser opens `verificationUriComplete` (`/device?code=…`), which keeps the code through sign-in.
    The device code (secret) stays in the terminal; only its SHA-256 is stored (Redis, 10 min).
 2. The developer opens `/device`, signs in, checks the code shown in **their own** terminal,
    picks a team and approves (Viewers cannot pair agents).
