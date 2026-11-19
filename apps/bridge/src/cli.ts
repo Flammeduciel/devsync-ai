@@ -46,8 +46,9 @@ async function login(args: string[]) {
     bridgeVersion: BRIDGE_VERSION,
   });
 
+  // The link carries the code (pre-filled in the browser); the code stays visible so the user can check it.
   out(
-    `To connect this machine, open:\n\n  ${auth.verificationUri}\n\nand enter the code:\n\n  ${auth.userCode}\n`,
+    `To connect this machine, open:\n\n  ${auth.verificationUriComplete}\n\nand check that the page shows the code:\n\n  ${auth.userCode}\n`,
   );
   if (!values['no-browser']) openBrowser(auth.verificationUriComplete);
 
