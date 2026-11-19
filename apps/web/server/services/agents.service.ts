@@ -15,7 +15,9 @@ import {
   SESSION_STALE_AFTER_MS,
 } from '../domain/agent-status';
 import { hasTeamPermission } from '../domain/permissions';
+import { mergeSpecialties } from '../domain/experts';
 import { agentsRepository } from '../repositories/agents.repository';
+import { membersRepository } from '../repositories/members.repository';
 import { projectsRepository } from '../repositories/projects.repository';
 import { requireTeamMember } from './access.service';
 import { resolveDeviceProject } from './device-project.service';
@@ -175,13 +177,14 @@ export class AgentsService {
   /** Live Agents view. Project ids are only revealed for projects the viewer can access. */
   async listForTeam(userId: string, teamId: string) {
     const { role } = await requireTeamMember(this.deps.db, userId, teamId);
-    const [agents, projects] = await Promise.all([
+    const [agents, projects, memberSpecialties] = await Promise.all([
       agentsRepository.listForTeam(this.deps.db, teamId),
       projectsRepository.list(
         this.deps.db,
         teamId,
         hasTeamPermission(role, 'project:read_all') ? {} : { memberUserId: userId },
       ),
+      membersRepository.specialtiesByUser(this.deps.db, teamId),
     ]);
     const visible = new Map(projects.map((p) => [p.id, p.name]));
     return agents
@@ -192,7 +195,8 @@ export class AgentsService {
         kind: agent.kind,
         status: agent.status,
         currentTask: agent.currentTask,
-        specialties: agent.specialties,
+        // What the owner declared in Settings applies to all their agents, on every machine.
+        specialties: mergeSpecialties(agent.specialties, memberSpecialties.get(agent.userId)),
         pluginVersion: agent.pluginVersion,
         lastActivityAt: agent.lastActivityAt,
         user: agent.user,

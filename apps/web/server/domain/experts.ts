@@ -35,6 +35,16 @@ export function topicTokens(topic: string): string[] {
   ];
 }
 
+/** Agent-declared + member-declared specialties, deduplicated case-insensitively (first spelling wins). */
+export function mergeSpecialties(...lists: (readonly string[] | undefined)[]): string[] {
+  const seen = new Map<string, string>();
+  for (const s of lists.flatMap((l) => l ?? [])) {
+    const key = s.trim().toLowerCase();
+    if (key && !seen.has(key)) seen.set(key, s.trim());
+  }
+  return [...seen.values()];
+}
+
 export interface ExpertSignals {
   specialties: string[];
   currentTask: string | null;

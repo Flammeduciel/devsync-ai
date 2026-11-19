@@ -4,6 +4,7 @@ import { ClaimsService } from '../../server/services/claims.service';
 import { MemoryDeviceFlowStore } from '../../server/services/device-flow-store';
 import { DevicesService, type DeviceActor } from '../../server/services/devices.service';
 import { InboxService } from '../../server/services/inbox.service';
+import { MembersService } from '../../server/services/members.service';
 import { ProjectsService } from '../../server/services/projects.service';
 import { TeamDirectoryService } from '../../server/services/team-directory.service';
 import { TeamsService } from '../../server/services/teams.service';
@@ -114,6 +115,26 @@ describe.skipIf(!testDatabaseUrl)('team directory and claims', () => {
     const experts = await directory.findExperts(bob, { topic: 'stripe payments webhooks' });
     expect(experts[0]).toMatchObject({ owner: 'Alba' });
     expect(experts[0]!.reasons.join(' ')).toContain('specialty: payments');
+  });
+
+  it('uses the expertise members declare in Settings, on all their agents', async () => {
+    const members = new MembersService(deps);
+    expect(
+      await members.updateMySpecialties(bob.userId, teamId, {
+        specialties: ['Design system', 'design system', 'Accessibility'],
+      }),
+    ).toEqual(['Design system', 'Accessibility']);
+    expect(await members.mySpecialties(bob.userId, teamId)).toEqual([
+      'Design system',
+      'Accessibility',
+    ]);
+    const experts = await directory.findExperts(alice, { topic: 'accessibility audit' });
+    expect(experts[0]).toMatchObject({ owner: 'Boris' });
+    expect(experts[0]!.reasons.join(' ')).toContain('specialty: accessibility');
+    const boris = (await agents.listForTeam(alice.userId, teamId)).find(
+      (a) => a.user.name === 'Boris',
+    )!;
+    expect(boris.specialties).toEqual(['frontend', 'Design system', 'Accessibility']);
   });
 
   it('arbitrates claims between agents', async () => {

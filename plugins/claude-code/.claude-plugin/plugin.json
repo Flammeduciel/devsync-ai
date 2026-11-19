@@ -1,6 +1,6 @@
 {
   "name": "devsync",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Connects Claude Code to your DevSync AI team: shared context, teammates' agents, inbox, expert finding and resource claims.",
   "author": {
     "name": "DevSync AI"

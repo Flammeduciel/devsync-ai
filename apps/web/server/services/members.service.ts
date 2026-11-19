@@ -1,6 +1,8 @@
 import { AppError } from '@devsync/shared';
 import {
+  memberSpecialtiesSchema,
   updateMemberRoleSchema,
+  type MemberSpecialtiesInput,
   type TeamRole,
   type UpdateMemberRoleInput,
 } from '@devsync/validation';
@@ -23,6 +25,29 @@ export class MembersService {
     await requireTeamMember(this.deps.db, userId, teamId);
     const members = await membersRepository.list(this.deps.db, teamId);
     return members.map((m) => ({ ...m.user, role: m.role, joinedAt: m.joinedAt }));
+  }
+
+  /** The current member's declared areas of expertise in this team. */
+  async mySpecialties(userId: string, teamId: string): Promise<string[]> {
+    const { membership } = await requireTeamMember(this.deps.db, userId, teamId);
+    return membership.specialties;
+  }
+
+  /** Each member declares their own expertise; nobody edits someone else's. */
+  async updateMySpecialties(
+    userId: string,
+    teamId: string,
+    rawInput: MemberSpecialtiesInput,
+  ): Promise<string[]> {
+    const { specialties } = memberSpecialtiesSchema.parse(rawInput);
+    await requireTeamMember(this.deps.db, userId, teamId);
+    const updated = await membersRepository.updateSpecialties(
+      this.deps.db,
+      teamId,
+      userId,
+      specialties,
+    );
+    return updated.specialties;
   }
 
   async updateRole(
