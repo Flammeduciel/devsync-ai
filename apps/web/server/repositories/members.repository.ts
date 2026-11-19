@@ -21,6 +21,22 @@ export const membersRepository = {
     return db.teamMember.create({ data });
   },
 
+  updateSpecialties(db: Db, teamId: string, userId: string, specialties: string[]) {
+    return db.teamMember.update({
+      where: { teamId_userId: { teamId, userId } },
+      data: { specialties },
+    });
+  },
+
+  /** userId → declared specialties, for merging into agent profiles. */
+  async specialtiesByUser(db: Db, teamId: string): Promise<Map<string, string[]>> {
+    const rows = await db.teamMember.findMany({
+      where: { teamId },
+      select: { userId: true, specialties: true },
+    });
+    return new Map(rows.map((r) => [r.userId, r.specialties]));
+  },
+
   updateRole(db: Db, teamId: string, userId: string, role: TeamRole) {
     return db.teamMember.update({ where: { teamId_userId: { teamId, userId } }, data: { role } });
   },

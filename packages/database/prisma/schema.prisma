@@ -326,11 +326,13 @@ model Team {
 }
 
 model TeamMember {
-  id       String   @id @default(uuid(7)) @db.Uuid
-  teamId   String   @db.Uuid
-  userId   String   @db.Uuid
-  role     TeamRole @default(DEVELOPER)
-  joinedAt DateTime @default(now()) @db.Timestamptz(3)
+  id          String   @id @default(uuid(7)) @db.Uuid
+  teamId      String   @db.Uuid
+  userId      String   @db.Uuid
+  role        TeamRole @default(DEVELOPER)
+  /// Areas of expertise the member declares (Settings); merged into their agents' specialties for team_find_expert.
+  specialties String[] @default([])
+  joinedAt    DateTime @default(now()) @db.Timestamptz(3)
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

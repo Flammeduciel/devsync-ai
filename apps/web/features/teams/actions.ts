@@ -7,6 +7,7 @@ import {
   updateTeamSchema,
   type CreateTeamInput,
   type InviteMemberInput,
+  type MemberSpecialtiesInput,
   type TeamRole,
   type UpdateTeamInput,
 } from '@devsync/validation';
@@ -85,6 +86,18 @@ export async function updateMemberRoleAction(
     );
     revalidatePath('/t/[teamSlug]/members', 'page');
     return undefined;
+  });
+}
+
+export async function updateMySpecialtiesAction(
+  teamId: string,
+  input: MemberSpecialtiesInput,
+): Promise<ActionResult<{ specialties: string[] }>> {
+  return runAction(async () => {
+    const user = await requireUser();
+    const specialties = await services().members.updateMySpecialties(user.id, teamId, input);
+    revalidatePath('/t/[teamSlug]', 'layout');
+    return { specialties };
   });
 }
 

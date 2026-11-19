@@ -1,7 +1,6 @@
 ---
-disable-model-invocation: true
 name: share
-description: Share what was just worked out in this session (project understanding, decision, analysis, solution, brainstorm) with the project team as reusable knowledge
+description: Share what was just worked out in this session (project understanding, decision, analysis, solution, brainstorm) with the project team as reusable knowledge. Use when the developer accepts your offer to share a significant result, or asks to share it.
 argument-hint: "[what to share, e.g. 'the architecture overview']"
 allowed-tools:
   [
@@ -25,5 +24,6 @@ The developer wants teammates (and their agents) to benefit from this session's 
    together, conventions, pitfalls, open questions. Pick the kind (DOCUMENTATION for project understanding,
    DECISION, ANALYSIS, SOLUTION, API_CONTRACT, BRAINSTORM), a clear title, a one-sentence summary, a few tags and
    file references. Never include secrets, credentials or private reasoning.
-4. Show the title and summary to the developer in a few lines and ask for confirmation.
+4. Show the title and summary to the developer in a few lines and ask for confirmation. Wait for their answer,
+   even if they already accepted your offer to share: they validate the content, not only the idea.
 5. Publish with `team_publish_knowledge` and `visibility: PROJECT`. Tell them it is now findable by the team.

@@ -60,6 +60,8 @@ describe('plugin hooks', () => {
     const out = JSON.parse((await handleHook('SessionStart', base))!);
     expect(out.hookSpecificOutput.hookEventName).toBe('SessionStart');
     expect(out.hookSpecificOutput.additionalContext).toContain('# DevSync — team Squad');
+    expect(out.hookSpecificOutput.additionalContext).toContain('`team_find_expert`');
+    expect(out.hookSpecificOutput.additionalContext).toContain('skill `devsync:share`');
     expect(calls.map((c) => c.method)).toEqual(['session.start', 'api.call']);
   });
 

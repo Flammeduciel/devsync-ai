@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeResourceKey } from '../server/domain/claims';
-import { scoreExpert, topicTokens } from '../server/domain/experts';
+import { memberSpecialtiesSchema } from '@devsync/validation';
+import { mergeSpecialties, scoreExpert, topicTokens } from '../server/domain/experts';
 
 describe('experts', () => {
   it('extracts meaningful tokens', () => {
@@ -34,6 +35,22 @@ describe('experts', () => {
       scoreExpert(tokens, { specialties: ['frontend'], currentTask: null, recentSummaries: [] })
         .score,
     ).toBe(0);
+  });
+  it('merges agent and member specialties without case duplicates', () => {
+    expect(
+      mergeSpecialties(['Payments', 'backend'], [' payments', 'Stripe', ''], undefined),
+    ).toEqual(['Payments', 'backend', 'Stripe']);
+  });
+  it('validates declared specialties', () => {
+    expect(
+      memberSpecialtiesSchema.parse({ specialties: [' Stripe ', 'stripe', 'CI'] }).specialties,
+    ).toEqual(['Stripe', 'CI']);
+    expect(memberSpecialtiesSchema.safeParse({ specialties: ['x'] }).success).toBe(false);
+    expect(
+      memberSpecialtiesSchema.safeParse({
+        specialties: Array.from({ length: 21 }, (_, i) => `t${i}`),
+      }).success,
+    ).toBe(false);
   });
 });
 

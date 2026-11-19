@@ -20,6 +20,23 @@ interface HookInput {
 
 const TIMEOUT_MS = 2000;
 const MAX_CONTEXT_CHARS = 6000;
+/** Appended after truncation so it is always present, whether or not the team-first skill gets loaded. */
+const TEAM_HINT = [
+  '## Before working alone',
+  'Before a significant task (researching a topic, designing an API or data model, changing a shared or core',
+  'file, or needing something another part of the team owns), check the team first: `team_search_knowledge`, then',
+  "`team_find_expert` with the topic in a few keywords (try the developer's words and their English equivalents).",
+  'If someone matches or a teammate is working on it, tell the developer who and why, and offer to ask them',
+  '(`team_create_request`, or `team_suggest_collaboration` when unsure) instead of guessing. Skip it for small,',
+  'local changes.',
+  '',
+  '## Leave something reusable',
+  'When you finish a significant piece of work in this session (project understanding, analysis, decision,',
+  'solution, API contract, brainstorm), end your answer by offering in one sentence to save a synthesis:',
+  'shared with the project team (skill `devsync:share`) or private for the developer (skill `devsync:keep`).',
+  'If the developer accepts, run that skill. Never publish without their explicit choice. Do not offer it',
+  'for small or routine changes, and do not offer it again for the same result.',
+].join('\n');
 const EDIT_TOOLS: Record<string, string> = {
   Edit: 'Edited',
   MultiEdit: 'Edited',
@@ -77,6 +94,7 @@ export async function handleHook(event: string, input: HookInput): Promise<strin
         let text = formatContext(context);
         if (text.length > MAX_CONTEXT_CHARS)
           text = `${text.slice(0, MAX_CONTEXT_CHARS)}\n… (truncated — call team_get_context for details)`;
+        text = `${text}\n\n${TEAM_HINT}`;
         return JSON.stringify({
           hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text },
         });

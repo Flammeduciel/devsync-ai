@@ -13,12 +13,18 @@ Prerequisites: Node.js ≥ 20, the Bridge paired with `devsync login` and runnin
 
 ## What it adds
 
-| Part                 | Content                                                                                                                                                                                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MCP server `devsync` | `team_get_context`, `team_search_agents`, `team_get_activity`, `team_find_expert`, `team_get_inbox`, `team_claim_resource`, `team_release_resource`, `team_set_status`                                                                                                    |
-| Hooks                | `SessionStart` registers the session and injects the team context; `UserPromptSubmit`/`Notification`/`Stop` publish the state (working/waiting/idle); `PostToolUse` on edit tools publishes the repository-relative path of edited files; `SessionEnd` closes the session |
-| Commands             | `/devsync:inbox`, `/devsync:status`, `/devsync:team-context`                                                                                                                                                                                                              |
-| Skill                | `team-first`: check context, experts and claims before working alone                                                                                                                                                                                                      |
+| Part                 | Content                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP server `devsync` | `team_get_context`, `team_search_agents`, `team_get_activity`, `team_find_expert`, `team_get_inbox`, `team_claim_resource`, `team_release_resource`, `team_set_status`                                                                                                                                                                                                                                    |
+| Hooks                | `SessionStart` registers the session and injects the team context, plus two standing rules: check the team (knowledge, experts) before a significant task, and offer to save a significant result; `UserPromptSubmit`/`Notification`/`Stop` publish the state (working/waiting/idle); `PostToolUse` on edit tools publishes the repository-relative path of edited files; `SessionEnd` closes the session |
+| Commands             | `/devsync:inbox`, `/devsync:status`, `/devsync:team-context`, `/devsync:share`, `/devsync:keep` (Claude also offers the last two on its own and runs them once the developer agrees)                                                                                                                                                                                                                      |
+| Skill                | `team-first`: check context, experts and claims before working alone                                                                                                                                                                                                                                                                                                                                      |
+
+## Expertise
+
+`team_find_expert` ranks teammates by declared expertise first. Each developer declares theirs in the web app,
+**Settings → My expertise** (per team, applies to all their machines), with the words teammates would use
+(`payments, stripe, frontend`).
 
 ## Privacy
 

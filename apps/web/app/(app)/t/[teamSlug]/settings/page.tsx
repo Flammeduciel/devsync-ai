@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AutonomyForm } from '@/features/settings/autonomy-form';
 import { DeleteTeamButton } from '@/features/settings/delete-team-button';
 import { NotificationPreferences } from '@/features/settings/notification-preferences';
+import { SpecialtiesForm } from '@/features/settings/specialties-form';
 import { TeamSettingsForm } from '@/features/settings/team-settings-form';
 import { PageHeader } from '@/features/shell/page-header';
 import { roleLabel } from '@/lib/format';
@@ -16,9 +17,10 @@ export default async function SettingsPage({ params }: PageProps<'/t/[teamSlug]/
   const { teamSlug } = await params;
   const { user, team } = await loadTeamPage(teamSlug);
   const canUpdate = hasTeamPermission(team.role, 'team:update');
-  const [autonomy, preferences] = await Promise.all([
+  const [autonomy, preferences, specialties] = await Promise.all([
     services().autonomy.list(user.id, team.id),
     services().notifications.preferences(user.id, team.id),
+    services().members.mySpecialties(user.id, team.id),
   ]);
 
   return (
@@ -55,6 +57,18 @@ export default async function SettingsPage({ params }: PageProps<'/t/[teamSlug]/
             policy={autonomy.teamDefault}
             editable={hasTeamPermission(team.role, 'settings:manage')}
           />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>My expertise</CardTitle>
+          <CardDescription>
+            Teammates&apos; agents use it to find who to ask before working on a topic. It applies
+            to all your machines.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SpecialtiesForm teamId={team.id} initial={specialties} />
         </CardContent>
       </Card>
       <Card>

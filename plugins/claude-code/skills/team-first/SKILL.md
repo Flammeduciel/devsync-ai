@@ -36,9 +36,10 @@ piece of work:
    produce the result, store it with `team_submit_deliverable` and deliver it with
    `team_publish_deliverable`. Read deliverables you received with `team_read_deliverable`.
 
-8. **Leave something reusable** — after a significant piece of understanding, a decision or a solution, offer
-   the developer to save a synthesis: shared with the project (`/devsync:share`) or private for their future
-   sessions (`/devsync:keep`). Never publish without their choice.
+8. **Leave something reusable** — after a significant piece of understanding, a decision or a solution, end your
+   answer by offering in one sentence to save a synthesis: shared with the project or private for their future
+   sessions. If they accept, run the `devsync:share` or `devsync:keep` skill yourself; they do not need to type
+   the command. Never publish without their choice, and do not offer it for small or routine changes.
 
 Never publish secrets, credentials, file contents or your private reasoning through DevSync: only short,
 factual summaries. If DevSync is unreachable, continue the task normally and mention it once.
