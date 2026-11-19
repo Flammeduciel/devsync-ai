@@ -3,10 +3,7 @@ name: keep
 description: Save this session's result privately so the developer's future sessions can find it, without sharing it with the team. Use when the developer accepts your offer to keep a significant result for themselves, or asks to.
 argument-hint: '[what to keep]'
 allowed-tools:
-  [
-    mcp__plugin_dev_devsync__team_publish_knowledge,
-    mcp__plugin_dev_devsync__team_search_knowledge,
-  ]
+  [mcp__plugin_dev_devsync__team_publish_knowledge, mcp__plugin_dev_devsync__team_search_knowledge]
 ---
 
 # Keep for myself
