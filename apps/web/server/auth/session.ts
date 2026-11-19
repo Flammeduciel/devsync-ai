@@ -3,6 +3,7 @@ import { AppError } from '@devsync/shared';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
+import { signInPath } from '@/lib/safe-redirect';
 import { db } from '../infrastructure/database';
 import { auth } from './auth';
 
@@ -29,10 +30,13 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   return { id, name, email, image: image ?? null };
 });
 
-/** For pages and Server Actions: redirect anonymous visitors to sign-in. */
-export async function requireUser(): Promise<CurrentUser> {
+/**
+ * For pages and Server Actions: redirect anonymous visitors to sign-in.
+ * `returnTo` (a same-site path) is where they land once signed in.
+ */
+export async function requireUser(returnTo?: string): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect('/sign-in');
+  if (!user) redirect(signInPath(returnTo) as never);
   return user;
 }
 
