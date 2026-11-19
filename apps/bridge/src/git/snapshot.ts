@@ -11,6 +11,7 @@ async function git(cwd: string, args: string[], timeout = 5000): Promise<string 
     const { stdout } = await run('git', ['-C', cwd, ...args], {
       timeout,
       maxBuffer: 20 * 1024 * 1024,
+      windowsHide: true,
     });
     return stdout;
   } catch {
@@ -127,7 +128,7 @@ export async function mergeTreeConflicts(cwd: string, otherRef: string): Promise
     await run(
       'git',
       ['-C', cwd, 'merge-tree', '--write-tree', '--name-only', '--no-messages', 'HEAD', otherRef],
-      { timeout: 10_000 },
+      { timeout: 10_000, windowsHide: true },
     );
     return []; // exit 0: clean merge
   } catch (error) {

@@ -11,7 +11,7 @@ type Runner = (file: string, args: string[]) => Promise<void>;
 const defaultRunner: Runner = (file, args) =>
   new Promise((resolve) => {
     // Notifications are best effort: a missing notifier must never crash the daemon.
-    execFile(file, args, { timeout: 5000 }, () => resolve());
+    execFile(file, args, { timeout: 5000, windowsHide: true }, () => resolve());
   });
 
 /** AppleScript string literal: escape backslashes and quotes, drop control characters. */

@@ -24,7 +24,7 @@ const out = (line = '') => process.stdout.write(`${line}\n`);
 function openBrowser(url: string) {
   const command =
     platform() === 'darwin' ? 'open' : platform() === 'win32' ? 'explorer.exe' : 'xdg-open';
-  execFile(command, [url], () => undefined);
+  execFile(command, [url], { windowsHide: true }, () => undefined);
 }
 
 async function login(args: string[]) {
@@ -208,6 +208,7 @@ async function start() {
   const log = openSync(paths.log, 'a');
   const child = spawn(process.execPath, [process.argv[1]!, 'daemon'], {
     detached: true,
+    windowsHide: true,
     stdio: ['ignore', log, log],
   });
   child.unref();
