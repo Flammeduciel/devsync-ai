@@ -108,6 +108,7 @@ export class GitWatcher {
       try {
         await run('git', ['-C', cwd, 'rev-parse', '--verify', '--quiet', `${ref}^{commit}`], {
           timeout: 3000,
+          windowsHide: true,
         });
         return true;
       } catch {
@@ -130,7 +131,7 @@ export class GitWatcher {
           'origin',
           `refs/heads/${branch}:refs/remotes/origin/${branch}`,
         ],
-        { timeout: 15_000 },
+        { timeout: 15_000, windowsHide: true },
       );
       return (await exists(`origin/${branch}`)) ? `origin/${branch}` : null;
     } catch {

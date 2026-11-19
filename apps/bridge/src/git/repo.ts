@@ -5,7 +5,7 @@ const run = promisify(execFile);
 
 async function git(cwd: string, args: string[]): Promise<string | null> {
   try {
-    const { stdout } = await run('git', ['-C', cwd, ...args], { timeout: 3000 });
+    const { stdout } = await run('git', ['-C', cwd, ...args], { timeout: 3000, windowsHide: true });
     return stdout.trim() || null;
   } catch {
     return null;
