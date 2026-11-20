@@ -38,7 +38,7 @@ piece of work:
 
 8. **Leave something reusable** — after a significant piece of understanding, a decision or a solution, end your
    answer by offering in one sentence to save a synthesis: shared with the project or private for their future
-   sessions. If they accept, run the `devsync:share` or `devsync:keep` skill yourself; they do not need to type
+   sessions. If they accept, run the `dev:share` or `dev:keep` skill yourself; they do not need to type
    the command. Never publish without their choice, and do not offer it for small or routine changes.
 
 Never publish secrets, credentials, file contents or your private reasoning through DevSync: only short,

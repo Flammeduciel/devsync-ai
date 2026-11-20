@@ -5,7 +5,7 @@ plugins/claude-code/            what users install (marketplace: .claude-plugin/
 ├── .claude-plugin/plugin.json
 ├── .mcp.json                   stdio MCP server: node dist/mcp.mjs
 ├── hooks/hooks.json            node dist/hook.mjs <Event>
-├── skills/                     /devsync:inbox, /devsync:status, /devsync:team-context, team-first (model-invoked)
+├── skills/                     /dev:inbox, /dev:status, /dev:team-context, team-first (model-invoked)
 └── dist/                       built bundles, committed (CI fails if stale)
 
 apps/mcp-server/                sources of dist/

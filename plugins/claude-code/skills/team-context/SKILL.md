@@ -2,7 +2,7 @@
 name: team-context
 description: Load the DevSync team context for the current repository
 argument-hint: '[projectId]'
-allowed-tools: [mcp__plugin_devsync_devsync__team_get_context]
+allowed-tools: [mcp__plugin_dev_devsync__team_get_context]
 ---
 
 # DevSync team context

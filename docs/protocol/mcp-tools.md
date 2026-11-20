@@ -59,5 +59,5 @@ Example — `team_create_request` from a frontend agent:
 
 Besides the dashboard, developers read and act on requests from the terminal:
 
-- inside Claude Code: `/devsync:inbox`, `/devsync:request <id>`, and the inbox summary injected by the `SessionStart` hook;
+- inside Claude Code: `/dev:inbox`, `/dev:request <id>`, and the inbox summary injected by the `SessionStart` hook;
 - outside Claude Code: the Bridge CLI `devsync inbox`, `devsync request show|accept|reject|comment <id>`.

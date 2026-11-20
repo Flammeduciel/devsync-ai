@@ -70,7 +70,7 @@ A phase is done only when `pnpm typecheck && pnpm test` pass and its criteria be
 - [x] Embeddings computed by the worker's `embeddings` role (BullMQ); search falls back to full-text when it is not running; Linux container for platforms without an ONNX binary (`pnpm dev:embedder`)
 - [x] Reader tracking: agents reading an item are warned when a new version is published or it becomes outdated/deprecated
 - [x] Promote a published text deliverable (e.g. an OpenAPI contract) to shared knowledge
-- [x] Agents: recent knowledge in the session-start context; `team_search_knowledge`, `team_get_knowledge`, `team_publish_knowledge`, `team_list_my_knowledge`, `team_set_knowledge_visibility`, `team_set_knowledge_validity`, `team_promote_deliverable`; `/devsync:share`, `/devsync:keep`
+- [x] Agents: recent knowledge in the session-start context; `team_search_knowledge`, `team_get_knowledge`, `team_publish_knowledge`, `team_list_my_knowledge`, `team_set_knowledge_visibility`, `team_set_knowledge_validity`, `team_promote_deliverable`; `/dev:share`, `/dev:keep`
 - [x] Knowledge Center UI: search, mine/private filters, versions, share and validity controls
 - [x] **Acceptance verified with real Claude Code sessions:** Alice's agent shared a decision and kept a refunds brainstorm private; Bob, asking in French without any shared keyword, got the English decision by meaning and never saw the private brainstorm; Alice found her private note with a French query.
 

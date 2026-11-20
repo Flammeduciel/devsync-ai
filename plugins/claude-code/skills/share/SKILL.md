@@ -4,10 +4,10 @@ description: Share what was just worked out in this session (project understandi
 argument-hint: "[what to share, e.g. 'the architecture overview']"
 allowed-tools:
   [
-    mcp__plugin_devsync_devsync__team_publish_knowledge,
-    mcp__plugin_devsync_devsync__team_search_knowledge,
-    mcp__plugin_devsync_devsync__team_list_my_knowledge,
-    mcp__plugin_devsync_devsync__team_set_knowledge_visibility,
+    mcp__plugin_dev_devsync__team_publish_knowledge,
+    mcp__plugin_dev_devsync__team_search_knowledge,
+    mcp__plugin_dev_devsync__team_list_my_knowledge,
+    mcp__plugin_dev_devsync__team_set_knowledge_visibility,
   ]
 ---
 

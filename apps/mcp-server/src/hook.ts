@@ -33,7 +33,7 @@ const TEAM_HINT = [
   '## Leave something reusable',
   'When you finish a significant piece of work in this session (project understanding, analysis, decision,',
   'solution, API contract, brainstorm), end your answer by offering in one sentence to save a synthesis:',
-  'shared with the project team (skill `devsync:share`) or private for the developer (skill `devsync:keep`).',
+  'shared with the project team (skill `dev:share`) or private for the developer (skill `dev:keep`).',
   'If the developer accepts, run that skill. Never publish without their explicit choice. Do not offer it',
   'for small or routine changes, and do not offer it again for the same result.',
 ].join('\n');
